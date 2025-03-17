@@ -1,0 +1,31 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.5.0
+  hooks:
+  - id: check-added-large-files
+  - id: check-yaml
+  - id: check-json
+  - id: detect-private-key
+  - id: check-executables-have-shebangs
+  - id: check-shebang-scripts-are-executable
+  - id: check-case-conflict
+
+# Use this hook to prevent committing "dirty" notebooks, i.e. notebooks which contain:
+#  - outputs
+#  - execution counts
+#  - blacklisted metadata keys (you have to define the blacklist, see sample config)
+- repo: https://github.com/kynan/nbstripout
+  rev: 0.5.0
+  hooks:
+    - id: nbstripout
+
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.5.2
+  hooks:
+    - id: ruff
+      types_or: [ python, jupyter ]
+      args: [ --fix, --exit-non-zero-on-fix ]
+    - id: ruff-format
+      types_or: [ python, jupyter ]

@@ -1,0 +1,249 @@
+% Do not change document class, margins, fonts, etc.
+\documentclass[a4paper,oneside,bibliography=totoc]{scrbook}
+\setlength{\parindent}{0pt}
+\newtheorem{definition}{Definition} \newtheorem{proposition}{Proposition}
+
+
+% Add packages
+\usepackage[utf8]{inputenc}
+\usepackage{emptypage}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{latexsym}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{algorithm} % you can modify the algorithm style to your liking
+\usepackage{algorithmic}
+\usepackage{csquotes}
+\renewcommand{\algorithmiccomment}[1]{\hfill\textit{// #1}}
+\usepackage[usenames,dvipsnames]{xcolor}
+\usepackage[colorlinks,citecolor=Green]{hyperref} % you may change/remove the colors
+\usepackage{lipsum} % you do not need this
+
+% Citation style
+\usepackage{natbib}
+\bibliographystyle{chicagoa}
+\setcitestyle{authoryear,round,semicolon,aysep={},yysep={,}} \let\cite\citep
+
+% ----------------------------------------------------------------------------------------------
+% Begin Documents
+\begin{document}
+
+% Cover page
+\frontmatter \subject{Master Thesis} % change to appropriate type
+\title{\LARGE 
+	Uncertainty Estimation with Online Conformal Prediction in Neural Architecture Search: \\ 
+	An Evaluation under the BANANAS Framework 
+}
+\author{
+	Cheng Chen\\ (matriculation number 1662473)} \date{July 31, 2025
+}
+\publishers{
+	{\small Submitted to}\\
+	Data and Web Science Group\\Prof.\ Dr.\ Margret Keuper\\University of Mannheim\\
+}
+\maketitle
+
+% Abstract
+\chapter{Abstract}
+Some contents
+
+
+% Table of contents
+\begingroup%
+\hypersetup{hidelinks} % disable link color in TOC only
+\tableofcontents%
+\endgroup
+
+
+% List of algorithms/figures/tables
+\listofalgorithms 
+\listoffigures 
+\listoftables
+
+
+% Body
+\mainmatter  % start new numbering
+
+% chapter 1
+\chapter{Introduction}
+\label{ch:intro}
+
+\section{Motivation}
+\section{Related Work}
+\section{Contributions and Limitations}
+\section{Outline}
+
+
+% chapter 2
+\chapter{Literature Review}
+\label{ch:related_work}
+
+\section{Neural Architecture Search (NAS)}
+
+\subsection{Background}
+NAS is a subfield of AutoML.
+\begin{description}
+	\item [Search Space] Details will be introduced in \ref{Dataset}
+	\item [Search Strategy] 
+	\item [Performance Evaluation]
+\end{description}}
+
+\subsection{BANANAS}
+BANANAS is an Bayesian Optimization based search strategy. Give an introduction how Bayesian Optimization works. We list the five engineering decisions and review each field's related works. Maybe briefly cite Gaussian Process.
+
+\begin{description}[leftmargin=0cm]
+	\item [Architecture Encoding]
+	\item [Neural Predictor]
+	\item [Uncertainty Calibration] 
+	\item [Acquisition Function]
+	\item [Acquisition Optimization]
+\end{description}}
+
+
+\section{Uncertainty Quantification}
+Understanding uncertainty is important for real-world application of artificial intelligence, e.g., in autonomous driving, medical diagnosis. 
+
+\subsection{Types of Uncertainty}
+- aleatory uncertainty (data uncertainty): uncertainty that arises due to inherent variations and randomness, and cannot be reduced by collecting more information \\
+- epistemic uncertainty (model uncertainty): uncertainty that arises due to lack of knowledge, and can be reduced by collecting more information.
+
+\subsection{Alternative Uncertainty Estimation Methods}
+- Bayesian-based: e.g., Bayesian Neural Network \\
+- Ensemble-based: e.g., Monte-Carlo dropout \\
+- Bootstrapping \\
+But these techniques are limited in several perspectives. First, quantifying uncertainty requires training models for several times, which means that the models cannot be applied for real-time prediction or in an online-learning setup. Second, some models are pre-trained and are only accessible via API. Besides, models (pre-)trained on certain datasets may struggle to generalize across different domains or contexts. 
+
+\section{Conformal Prediction}
+
+\subsection{Theoretical Background}
+Starting from i.i.d data, and provide an intuitive demonstration how the prediction interval is constructed (can add a figure illustrating why conformal prediction works, i.e., symmetry). From the most intuitive expression to the finite-sample adjusted expression. 
+		
+\begin{description}[leftmargin=0cm]
+	\item [Terminology] Then, relax the i.i.d assumption to exchangeability, and lay a formal definition of the conformal prediction. And list the most importance three ingredients of the conformal predictions. \\
+	- A trained predictor f \\
+	- A conformity score function s. The conformity score is an important engineering decision and has an impact on the size on the prediction set, i.e., the efficiency. The conformity score function can be either a negatively- or positively oriented, in which … And it can be a random variable as well. \\
+	-	A target coverage alpha	\\
+
+		Marginal coverage is guaranteed regardless of the choices in dataset and black
+		box model. Only the model predictions are required to apply the technique.
+	\item [A Link to Statistical Testing] (clarify the relationship between conformal prediction and hypothesis testing) In this video (22:21), it is explained the intuition why conformal prediction guarantees the coverage, which is quite similar to the spirit of hypothesis testing. 
+	
+	     \begin{table}[h]
+    		\centering
+    		\caption{Comparison between CP and Hypothesis Testing}
+
+    		\renewcommand{\arraystretch}{1.2}
+   			\begin{tabular}{| m{6cm} | m{6cm} |}
+     			\hline
+      		   	\textbf{CP} & \textbf{Hypothesis Testing} \\
+               	\hline
+        		(desired) Coverage level & Confidence level \\
+        	   	\hline
+        		Nominal error level (1 - Coverage level) & Significance level \\
+        		\hline
+        		The conformity score of the new instance & p-value (is an empirical term) \\
+        		\hline
+    		\end{tabular}
+        	\label{tab:comparison}
+		\end{table}
+	  	
+		The coverage parameters which should be pre-set plays a similar role as the confidence interval in hypothesis testing. 
+		Conformal prediction is like hypothesis testing with hypotheses: \\
+			H0: test instance i conforms to the training instances. \\
+			H1: test instance i does not conform to the training instances. \\
+\end{description}}
+
+\subsection{Online Conformal Prediction}
+\subsection{Split Conformal Prediction}
+\subsection{Limitations and Extensions}
+Limitations of split conformal predictions:
+- Distribution shift. The conformal prediction is built on the core assumption of exchangeability, which means the data points are identically distributed. However, this assumption is hard to meet in real-world application. For example, with time-series data this assumption is generally violated due to the temporal relationships. 
+- Adaptivity. Once the conformity scores are computed on the calibration set, the decision threshold is settled and is applied to all test datapoints, regardless of the intrinsic complexity of the exact example. It is desirable that the threshold can adapts to the difficulty of the problem and produce a larger prediction interval/set on hard-to-solve example and smaller prediction interval/set on easy-to-solve example. This limitation echoes with the characteristic of Conformal Prediction that the guaranteed coverage is only marginal over all datapoints but not conditional on a specific data points..
+
+Variations of Conformal predictions have been proposed to overcome the limitations. There are three main streams:
+- find an empirical coverage rate which leads to the desired coverage level. For example, if the desired coverage rate is 90%, the calibration set suggests that the alpha should be set to 93%, then 93% is used for generating prediction on the test set. 
+- find an efficient conformity score: Alternatively, […] apply the conformal prediction in an online setting to dynamically incorporate the conformity score of new data points.
+- find suitable predictor: The trained predictor can be just a poor approximation of the real data generation process.
+Cross-validation / Jackknife +, Conformal Quantile Prediction
+
+Besides, […] proposes a CP algorithm that samples datapoints using Monte-Carlo sampling to approach the real distribution of labels in case the ground-truth is ambiguous and consequently cause a biased distribution in manually-annotated labels.
+
+
+
+
+% chapter 3
+\chapter{Datasets Description}
+\label{Dataset}
+
+This thesis will primarily focus on NAS-Bench-201 due to comparison concerns.
+\section{NAS-Bench-201}
+\section{Robust dataset}
+\section{Others} NAS-Benchmark-101 / 301 and DARST
+
+
+% chapter 4
+\chapter{Methodology}
+\label{Method}
+
+\section{Baseline}
+BANANAS + Split Conformal Prediction
+
+\section{Enhancement}
+\subsection{Conformity scores}
+\subsection{Conformal Quantile Regression}
+\subsection{Conformal Prediction with Cross-validation / Jackknife+}
+\subsection{Conformal Prediction with Boosting}
+\subsection{...}
+.......
+
+\section{Evaluation Metrics}
+
+% chapter 5
+\chapter{Experiments and Results}
+\label{Results}
+
+% chapter 6
+\chapter{Conclusion}
+\label{Conclude}
+Summary + Future Work
+
+
+% Reference
+\bibliography{references}
+
+% Appendix
+\appendix
+\chapter{Additional Experimental Results}
+
+
+% Declare non-Plagiarism and independent work
+\backmatter
+\chapter{Ehrenwörtliche Erklärung}
+Ich versichere, dass ich die beiliegende Bachelor-, Master-, Seminar-, oder
+Projektarbeit ohne Hilfe Dritter und ohne Benutzung anderer als der angegebenen
+Quellen und in der untenstehenden Tabelle angegebenen Hilfsmittel angefertigt
+und die den benutzten Quellen wörtlich oder inhaltlich entnommenen Stellen als
+solche kenntlich gemacht habe. Diese Arbeit hat in gleicher oder ähnlicher Form
+noch keiner Prüfungsbehörde vorgelegen. Ich bin mir bewusst, dass eine falsche
+Erklärung rechtliche Folgen haben wird.
+
+% Declare the use of AI tools.
+\vspace{0.5cm}
+  \textbf{Declaration of Used AI Tools} \\[.3em]
+  \begin{tabularx}{\textwidth}{lXlc}
+    \toprule
+    Tool & Purpose & Where? & Useful? \\
+    \midrule
+    ChatGPT & Rephrasing & Throughout & + \\
+    \bottomrule
+  \end{tabularx}
+\end{center}
+
+\vspace{2cm}
+\noindent Unterschrift\\
+\noindent Mannheim, den 31.07.2025 \hfill
+
+\end{document}

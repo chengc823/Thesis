@@ -1,0 +1,97 @@
+\documentclass[a4paper]{scrartcl}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{blindtext}
+\usepackage{bm}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{amsmath}
+\usepackage{csquotes}
+\usepackage{enumerate}
+\renewcommand{\algorithmiccomment}[1]{\hfill\textit{// #1}}
+
+\title{
+Uncertainty Estimation with Online Conformal Prediction in Neural Architecture Search: 
+	\\ An Evaluation under the BANANAS Framework 
+}
+
+\author{Cheng Chen}
+\date{February 24th, 2025}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+Over the last decade, deep learning models have emerged in an unprecedented speed and have proven to be successful in a wide range of machine learning tasks. Consequently, Neural architecture search (NAS), the process of automating the neural architecture design, is a natural next step of building high-performance neural networks. 
+Recently, the framework ``Bayesian Optimization (BO) + neural predictor'' is proved to be efficient in NAS. In particular, \cite{white2019bananas} identifies five components of this framework and performs a thorough analysis on each component’s importance towards the performance. Based on both theoretical and empirical findings, \cite{white2019bananas} proposes BANANAS, an NAS algorithm that jointly leverages architecture path encoding and Bayesian optimization and has achieved state-of-the-art performance on NAS search spaces. 
+
+Despite of its provable strength, BANANAS still assumes a Gaussian distribution in uncertain calibration, one of the five identified components in the framework. However, this assumption does not necessarily hold and might limit the application of NAS in real world. In order to attain higher-quality uncertainty estimate, this thesis focuses on applying Conformal Prediction (CP), a distribution-free framework for uncertainty calibration, under the framework of BANANAS.
+
+
+\section{Background}
+The BO side in the ``Bayesian Optimization+neural predictor'' framework requires two components: a surrogate model to approximate the unknown objective function, which predicts the performance of neural architectures that have not been evaluated yet; and an acquisition function, which balances between exploitation and exploration to pick up the next data point for evaluation.  
+In order to evaluate the acquisition function, uncertainty estimate for each input datapoint is required as well. \cite{white2019bananas} assumes that the probability distribution of each datapoint $x$ is Gaussian. Therefore, the problem of uncertainty estimation is reduced to variance estimation, though at a cost of estimate precision. To mitigate this constraint, this thesis explores the potential of applying CP-based calibration to bypass the Gaussian assumption. Despite of zero assumption on the underlying data distribution, CP-based calibration comes with other virtues:
+
+\begin{description}
+  \item[$\bullet$ Balancing exploration-exploitation:] Bayesian optimization uses a probabilistic model to make exploration-exploitation decisions. In less explored regions, the confidence interval around the ground truth should be large to promote exploration. Calibration helps mitigate over-confidence and promotes accurate confidence intervals that encourage exploration \cite{deshpande2024online}.
+  
+  
+  \item[$\bullet$ Simple and lightweight:] Two popular ways to quantify uncertainties are by using a Bayesian neural network (BNN), or by using an ensemble of neural predictors. For example, \cite{white2019bananas} adopts an ensemble of five Feedforward neural networks (FNN). However, either approach is computationally expensive. Meanwhile, CP requires only training a single predictor in one search, which should benefit the entire search process especially under a given budget.
+  \item[$\bullet$ Model-agnostic:] CP is a general framework and can be applied to any dataset and any black-box model, which grants high flexibility in making engineering decision on other components. 
+\end{description} 
+
+\begin{algorithm}[t]
+  \caption{Estimate uncertainty using Conformal Prediction in BANANAS}
+  \label{alg:OCP}
+  \begin{algorithmic}[1]
+    \textbf{Input:} NAS parameters: Search space $\mathcal{A}$, dataset $\mathcal{D}$, exploration budget $T$, a neural predictor $\mathcal{M}$, acquisition function $\phi$, surrogate model $\myfunc{f(\cdot)}$ returning validation error of an architecture after training; CP parameters: $t_{0}$, $p_{train}$, an array of desired coverage levels $\bm{\alpha}$, and a conformity score function $\myfunc{s(\cdot)}$. \vskip 6
+    
+    \STATE Draw $t_{0}$ architectures {$\{a_{0}, a_{1},..., a_{t_{0}}\}$} uniformly at random from $\mathcal{A}$ and train them on $\mathcal{D}$.
+   	\STATE $\mathcal{A}_{t_{0}} \leftarrow{\{a_{0}, a_{1},..., a_{t_{0}}\}$},
+   		
+    \FOR {$t$ in $t_{0},...,T$}
+    	\begin{enumerate}[i]
+    	    \itemsep0em 
+			\item Randomly select a proportion $p_{train}$ from the trained $t_{0}$ architectures as the training set $\mathcal{A}_{t, train}$, use the remaining architectures as the calibration set $\mathcal{A}_{t, cal}$.
+			\item Train a neural predictor $\mathcal{M}$ on $\{a, \myfunc{f(a)}\}, a \in \mathcal{A}_{t, train}$ using the path encoding to represent each architecture. 
+			\item Compute the respective quantile of the conformity scores $\myfunc{s}$ on $\mathcal{A}_{t, cal}$ for each coverage level in $\bm{\alpha}$.
+			\item Fit a distribution $d$ using the quantile values computed in the previous step.
+			\item Generate a set of candidate architectures from $\mathcal{A}$.
+			\item For each candidate architecture $a$, evaluate the acquisition function $\myfunc{\phi(a)}$.
+			\item Denote $a_{t+1}$ as the candidate architecture with maximum $\myfunc{\phi(a)}$, and evaluate $\myfunc{f(a_{t+1})}$.
+			\item $\mathcal{A}_{t+1} \leftarrow{\mathcal{A}_{t} \cup \{{a_{t+1}\}}$
+		\end{enumerate}
+    \ENDFOR 
+    \STATE \textbf{Output:} $a^{*}=\operatorname*{argmin}_{t=0,...,T} f(a_{t})$    
+  \end{algorithmic}
+\end{algorithm}
+
+
+\section{Goals and Work Plan}
+The entire thesis writing period of 6 months can be roughly seen as a two-stage experiments. 
+The first stage is to setup preliminary experiments and should last for approximately 2 weeks. The second stage is to enhance the results that are acquired in the previous stage by exploring variations of the Conformal Prediction algorithms and extending to alternative search spaces and datasets. The second experiment stage will last for approximately 4 months. Report drafting should take place over the entire course of the thesis writing period and the remaining one month is for final consolidation. The detailed experiment plan and timeline are outlined as follows:
+
+\begin{description}
+  \item[$\bullet$ Experiment Phase 1: Design and Initial Setup (2 weeks)] Upon the submission of this proposal, preliminary literature review on uncertainty quantification techniques and CP algorithms is expected to be completed. Therefore, the focuses of this stage are:
+  
+		\begin{itemize} 
+		\item[-] Design the experiment framework and conduct baseline experiments. Algorithm \ref{alg:OCP} depicts how CP can be incorporated into the BANANAS framework. The baseline experiments begins with NAS-Bench-201 as the search space and is evaluated on CIFAR-10.
+		\item[-] Design ablation study, e.g., evaluating if the performance of CP-based NAS algorithm is sensitive to different parameterization, such as the size of set of neural architectures to be initially evaluated.	
+        \end{itemize}
+
+  
+  \item[$\bullet$ Experiment Phase 2: Enhancement (4 months)] The focuses of this phase are on the enhancement of the performance and robustness of the approach.
+   		
+  		\begin{itemize} 
+		\item[-] Incorporate different CP algorithms into the existing experiment framework and evaluate NAS performance. Candidates include applying Conformal Quantile Prediction \cite{Romano2019ConformalizedQR}, Boosted CP \cite{Xie2024BoostedCP},  weighting CP scores based on architecture similarity, or combining CP with Cross-validation and/or Jackknife+ \cite{romano2020classification}.
+		\item[-] Extend to different search spaces and evaluation datasets. For example, one direction is multi-objective NAS and evaluate the impact of uncertainty estimation on the robust accuracy of the best-found architecture \cite{Jung2023}.  		
+		\end{itemize}
+
+\end{description}
+
+
+\newpage
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document}
+

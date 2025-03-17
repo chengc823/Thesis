@@ -3,7 +3,6 @@ import logging
 import torch
 # import copy
 import numpy as np
-
 from naslib.optimizers.base import MetaOptimizer
 from naslib.optimizers.bananas.acquisition_functions import (
     acquisition_function,

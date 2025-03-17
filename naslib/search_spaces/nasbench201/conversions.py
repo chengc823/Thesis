@@ -110,9 +110,7 @@ def convert_op_indices_to_naslib(op_indices, naslib_object):
 
 
 def convert_naslib_to_str(naslib_object):
-    """
-    Converts naslib object to string representation.
-    """
+    """Converts naslib object to string representation."""
 
     cell = naslib_object.edges[2, 3].op
     edge_op_dict = {
@@ -127,9 +125,7 @@ def convert_naslib_to_str(naslib_object):
 
 
 def convert_str_to_op_indices(str_encoding):
-    """
-    Converts NB201 string representation to op_indices
-    """
+    """Converts NB201 string representation to op_indices"""
     nodes = str_encoding.split('+')
 
     def get_op(x):

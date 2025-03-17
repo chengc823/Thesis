@@ -7,7 +7,7 @@ from fvcore.common.checkpoint import Checkpointer as fvCheckpointer
 
 
 class NamedAverageMeter:
-    """Computes and stores the average and current value, ported from naszilla repo"""
+    """Computes and stores the average and current value."""
 
     def __init__(self, name, fmt=":f"):
         """

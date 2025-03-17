@@ -26,10 +26,7 @@ OP_NAMES = ["Identity", "Zero", "ReLUConvBN3x3", "ReLUConvBN1x1", "AvgPool1x1"]
 
 
 class NasBench201SearchSpace(Graph):
-    """
-    Implementation of the nasbench 201 search space.
-    It also has an interface to the tabular benchmark of nasbench 201.
-    """
+    """Search space NAS-Bench-201 with queryable interface to the performance metrics."""
 
     OPTIMIZER_SCOPE = [
         "stage_1",

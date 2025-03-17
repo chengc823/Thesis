@@ -22,6 +22,7 @@ from typing import Callable
 logger = logging.getLogger(__name__)
 
 
+
 class Trainer(object):
     """
     Default implementation that handles dataloading and preparing batches, the

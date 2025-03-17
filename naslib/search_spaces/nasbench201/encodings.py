@@ -1,7 +1,5 @@
 import logging
-
 import numpy as np
-
 from naslib.utils.encodings import EncodingType
 
 logger = logging.getLogger(__name__)

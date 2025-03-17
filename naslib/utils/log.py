@@ -24,6 +24,7 @@ def _find_caller():
             return mod_name, (code.co_filename, frame.f_lineno, code.co_name)
         frame = frame.f_back
 
+
 def log_formats(x):
     if isinstance(x, torch.Tensor):
         return x.shape
@@ -68,12 +69,10 @@ def log_first_n(lvl, msg, n=1, *, name=None, key="caller"):
 
 
 def log_every_n(lvl, msg, n=1, *, name=None):
-    """
-    Log once per n times.
+    """Log once per n times.
+    
     Args:
-        lvl (int): the logging level
-        msg (str):
-        n (int):
+        lvl (int): the logging level.
         name (str): name of the logger to use. Will use the caller's module by default.
     """
     caller_module, key = _find_caller()
@@ -83,12 +82,10 @@ def log_every_n(lvl, msg, n=1, *, name=None):
 
 
 def log_every_n_seconds(lvl, msg, n=1, *, name=None):
-    """
-    Log no more than once per n seconds.
+    """Log no more than once per n seconds.
+    
     Args:
         lvl (int): the logging level
-        msg (str):
-        n (int):
         name (str): name of the logger to use. Will use the caller's module by default.
     """
     caller_module, key = _find_caller()

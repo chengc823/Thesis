@@ -1,6 +1,5 @@
 import torch.nn as nn
-
-from ..core.primitives import AbstractPrimitive, ReLUConvBN
+from naslib.search_spaces.core.primitives import AbstractPrimitive, ReLUConvBN
 
 
 """

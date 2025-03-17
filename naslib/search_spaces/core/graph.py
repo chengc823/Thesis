@@ -1,16 +1,17 @@
-import networkx as nx
+
 import copy
 import logging
 import torch
 import random
 import inspect
 
+import networkx as nx
 from networkx.algorithms.dag import lexicographical_topological_sort
 
 from naslib.utils.tools import iter_flatten, AttrDict
 from naslib.utils.log import log_formats, log_first_n
-from .primitives import AbstractCombOp, AbstractPrimitive, Identity
-from .query_metrics import Metric
+from naslib.search_spaces.core.primitives import AbstractCombOp, AbstractPrimitive, Identity
+from naslib.search_spaces.core.query_metrics import Metric
 
 logger = logging.getLogger(__name__)
 

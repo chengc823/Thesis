@@ -1,3 +1,4 @@
+from typing import Literal
 import numpy as np
 import os
 import json
@@ -6,13 +7,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
-
+from naslib.config import EncodingType
 from naslib.utils.tools import AverageMeterGroup
-from naslib.utils.encodings import EncodingType
 from naslib.predictors.predictor import Predictor
 
-# NOTE: faster on CPU
-device = torch.device("cpu")
+device = torch.device("cpu")  # NOTE: faster on CPU
 
 
 def accuracy_mse(prediction, target, scale=100.0):
@@ -22,6 +21,7 @@ def accuracy_mse(prediction, target, scale=100.0):
 
 
 class FeedforwardNet(nn.Module):
+
     def __init__(
         self,
         input_dims: int = 5,
@@ -31,10 +31,7 @@ class FeedforwardNet(nn.Module):
         activation="relu",
     ):
         super(FeedforwardNet, self).__init__()
-        assert (
-            len(layer_width) == num_layers
-        ), "number of widths should be \
-        equal to the number of layers"
+        assert len(layer_width) == num_layers, "number of widths should be equal to the number of layers"
 
         self.activation = eval("F." + activation)
 
@@ -42,8 +39,7 @@ class FeedforwardNet(nn.Module):
         self.layers = nn.ModuleList(
             [nn.Linear(all_units[i], all_units[i + 1]) for i in range(num_layers)]
         )
-
-        self.out = nn.Linear(all_units[-1], 1)
+        self.out = nn.Linear(all_units[-1], output_dims)
 
         # make the init similar to the tf.keras version
         for l in self.layers:
@@ -88,7 +84,7 @@ class MLPPredictor(Predictor):
         predictor = FeedforwardNet(**kwargs)
         return predictor
 
-    def fit(self, xtrain, ytrain, train_info=None, epochs=500, loss="mae", verbose=0):
+    def fit(self, xtrain, ytrain, train_info=None, epochs=500, loss: Literal["mae", "mse"]="mae", verbose=0):
 
         if self.hparams_from_file and self.hparams_from_file not in ['False', 'None'] \
         and os.path.exists(self.hparams_from_file):

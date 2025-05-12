@@ -1,22 +1,18 @@
-import codecs
-from naslib.search_spaces.core.graph import Graph
-from naslib.utils.plot import plot_architectural_weights
 import time
 import json
 import logging
 import os
 import copy
-import torch
+from typing import Callable
 import numpy as np
-
+import codecs
 from fvcore.common.checkpoint import PeriodicCheckpointer
-
+import torch
+from naslib.search_spaces.core.graph import Graph
 from naslib.search_spaces.core.query_metrics import Metric
-
+from naslib.utils.plot import plot_architectural_weights
 from naslib.utils.tools import AverageMeter, Checkpointer, AttrDict
 # from naslib.utils.log import log_every_n_seconds, log_first_n
-
-from typing import Callable
 # from naslib.search_spaces.core.primitives import DropPathWrapper
 
 logger = logging.getLogger(__name__)
@@ -205,14 +201,12 @@ class Trainer(object):
                 # )
 
             self._log_to_json()
-
             self._log_and_reset_accuracies(e, summary_writer)
 
             # if after_epoch is not None:
             #     after_epoch(e)
 
         logger.info(f"Saving architectural weight tensors: {self.config.save}/arch_weights.pt")
-
 
         # if hasattr(self.config, "save_arch_weights") and self.config.save_arch_weights:
         if self.config.save_arch_weights:
@@ -572,9 +566,7 @@ class Trainer(object):
     #     self.valid_queue = valid_queue
     #     self.test_queue = test_queue
 
-    def _setup_checkpointers(
-        self, resume_from="", search=True, period=1, **add_checkpointables
-    ):
+    def _setup_checkpointers(self, resume_from="", search=True, period=1, **add_checkpointables):
         """
         Sets up a periodic chechkpointer which can be used to save checkpoints
         at every epoch. It will call optimizer's `get_checkpointables()` as objects

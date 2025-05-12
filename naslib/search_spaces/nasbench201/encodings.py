@@ -1,6 +1,6 @@
 import logging
 import numpy as np
-from naslib.utils.encodings import EncodingType
+from naslib.config import EncodingType
 
 logger = logging.getLogger(__name__)
 
@@ -29,9 +29,7 @@ def get_paths(arch):
 
 
 def get_path_indices(arch, num_ops=5):
-    """
-    compute the index of each path
-    """
+    """compute the index of each path"""
     paths = get_paths(arch)
     path_indices = []
 

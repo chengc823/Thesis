@@ -4,8 +4,7 @@ import itertools
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import *
-
+from typing import Iterator, Callable
 from naslib.search_spaces.core import primitives as ops
 from naslib.search_spaces.core.graph import Graph
 from naslib.search_spaces.core.query_metrics import Metric
@@ -15,10 +14,10 @@ from naslib.search_spaces.nasbench201.conversions import (
     convert_naslib_to_str,
     convert_op_indices_to_str,
 )
-from naslib.search_spaces.nasbench201.encodings import encode_201, encode_adjacency_one_hot_op_indices
-from naslib.utils.encodings import EncodingType
+from naslib.search_spaces.nasbench201.primitives import ResNetBasicblock
+from naslib.search_spaces.nasbench201.encodings import encode_201
+from naslib.config import EncodingType
 
-from .primitives import ResNetBasicblock
 
 NUM_EDGES = 6
 NUM_OPS = 5
@@ -48,9 +47,7 @@ class NasBench201SearchSpace(Graph):
         self.instantiate_model = True
         self.sample_without_replacement = False
 
-        #
         # Cell definition
-        #
         cell = Graph()
         cell.name = "cell"  # Use the same name for all cells with shared attributes
 
@@ -67,9 +64,7 @@ class NasBench201SearchSpace(Graph):
         # Edges
         cell.add_edges_densly()
 
-        #
         # Makrograph definition
-        #
         self.name = "makrograph"
 
         # Cell is on the edges
@@ -84,16 +79,11 @@ class NasBench201SearchSpace(Graph):
         total_num_nodes = 20
         self.add_nodes_from(range(1, total_num_nodes + 1))
         self.add_edges_from([(i, i + 1) for i in range(1, total_num_nodes)])
-
         self.channels = [16, 32, 64]
 
-        #
-        # operations at the edges
-        #
-
+        # Operations at the edges
         # preprocessing
-        self.edges[1, 2].set("op", ops.Stem(C_in=self.in_channels,
-                                            C_out=self.channels[0]))
+        self.edges[1, 2].set("op", ops.Stem(C_in=self.in_channels, C_out=self.channels[0]))
 
         # stage 1
         for i in range(2, 7):
@@ -144,9 +134,8 @@ class NasBench201SearchSpace(Graph):
             epoch: int = -1,
             full_lc: bool = False,
             dataset_api: dict = None) -> float:
-        """
-        Query results from nasbench 201
-        """
+        """Query results from nasbench 201"""
+
         assert isinstance(metric, Metric)
         if metric == Metric.ALL:
             raise NotImplementedError()
@@ -320,6 +309,7 @@ class NasBench201SearchSpace(Graph):
 
     def encode(self, encoding_type=EncodingType.ADJACENCY_ONE_HOT):
         return encode_201(self, encoding_type=encoding_type)
+
 
 
 def _set_ops(edge, C: int) -> None:

@@ -1,6 +1,7 @@
-import logging
 import numpy as np
 from scipy.stats import norm
+import sys
+import logging
 
 
 logger = logging.getLogger(__name__)
@@ -60,7 +61,7 @@ def acquisition_function(
 
     elif acq_fn_type == "exploit_only":
         # Expected improvement (EI) acquisition function
-
+        
         def exploit(arch_encoding, info=None):
             predictions = ensemble.query([arch_encoding], info)
             return np.mean(predictions)

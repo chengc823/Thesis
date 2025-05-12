@@ -19,6 +19,7 @@ dependencies:
   - scipy~=1.11
   - pip
   - pip:
+    - pybnn==0.0.5
     - torch
     - torchvision
     - torchaudio

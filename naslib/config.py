@@ -2,20 +2,31 @@ from enum import Enum
 from pydantic import BaseModel, model_validator
 
 
+class EncodingType(Enum):
+    ADJACENCY_ONE_HOT = "adjacency_one_hot"
+    ADJACENCY_MIX = 'adjacency_mix'
+    PATH = "path"
+    GCN = "gcn"
+    BONAS = "bonas"
+    SEMINAS = "seminas"
+    COMPACT = 'compact'
+
+
+
 
 class SearchConfig(BaseModel):
     predictor_type: str = "bananas"
     seed: int = 99
-    epochs: int = 3
+    epochs: int = 150
 
     checkpoint_freq: int = 5
     
     k: int = 10
     num_init: int = 1
-    num_ensemble: int = 3
+    num_ensemble: int = 5
     acq_fn_type: str = "its"
     acq_fn_optimization: str = "mutation"
-    encoding_type: str = "path"
+    encoding_type: EncodingType = EncodingType.PATH
     num_arches_to_mutate: int = 2
     max_mutations: int = 1
     num_candidates: int = 100
@@ -69,14 +80,14 @@ class FullConfig(BaseModel):
 
     #: Export
     #: Path to save the results
-    out_dir: str = "run"
+    out_dir: str = "~/Desktop/test"
     save_arch_weights: bool = True
     plot_arch_weights: bool = False
     save: str | None = None
     opts: tuple | None = None
 
     @model_validator(mode="after")
-    def process(self):
+    def compute_fields(self):
         self.search.seed = self.seed
         self.evaluation.multiprocessing_distributed = self.multiprocessing_distributed
         self.search.gpu = self.evaluation.gpu = self.gpu

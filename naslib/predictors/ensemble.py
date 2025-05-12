@@ -16,7 +16,7 @@ from naslib.predictors.mlp import MLPPredictor
 # )
 # from naslib.predictors.omni_ngb import OmniNGBPredictor
 # from naslib.predictors.omni_seminas import OmniSemiNASPredictor
-from naslib.utils.encodings import EncodingType
+from naslib.config import EncodingType
 
 
 class Ensemble(Predictor):

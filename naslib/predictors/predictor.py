@@ -33,8 +33,7 @@ class Predictor:
     def query(self, xtest, info):
         """
         This can be called any number of times during the NAS algorithm.
-        inputs: list of architectures,
-                info about the architectures (e.g., training data up to 20 epochs)
+        inputs: list of architectures, info about the architectures (e.g., training data up to 20 epochs)
         output: predictions for the architectures
         """
         pass

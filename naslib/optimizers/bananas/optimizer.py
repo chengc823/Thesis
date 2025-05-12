@@ -4,9 +4,7 @@ import torch
 # import copy
 import numpy as np
 from naslib.optimizers.base import MetaOptimizer
-from naslib.optimizers.bananas.acquisition_functions import (
-    acquisition_function,
-)
+from naslib.optimizers.bananas.acquisition_functions import acquisition_function
 
 from naslib.predictors.ensemble import Ensemble
 # from naslib.predictors.zerocost import ZeroCost
@@ -219,7 +217,7 @@ class Bananas(MetaOptimizer):
                 #             m.zc_scores for m in self.unlabeled]}
                 #         ensemble.set_pre_computations(
                 #             unlabeled_zc_info=unlabeled_zc_info)
-
+                print(f"TRAINING ensemble for epoch={epoch}")
                 ensemble.fit(xtrain, ytrain)
 
                 # define an acquisition function

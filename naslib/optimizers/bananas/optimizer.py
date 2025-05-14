@@ -121,7 +121,6 @@ class Bananas(MetaOptimizer):
         
         if self.search_space.instantiate_model == True:
             model.arch.parse()
-
         return model
 
     def _get_train(self):
@@ -309,8 +308,9 @@ class Bananas(MetaOptimizer):
         #     ) 
 
     def test_statistics(self):
-        best_arch = self.get_final_architecture()
-        if self.search_space.space_name != "nasbench301":
+        if Metric.RAW in self.ss_metrics_mapping:
+            best_arch = self.get_final_architecture()
+        #if self.search_space.space_name != "nasbench301":
             return best_arch.query(Metric.RAW, self.dataset, dataset_api=self.dataset_api)
         else:
             return -1

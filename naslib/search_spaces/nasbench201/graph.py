@@ -34,6 +34,7 @@ class NasBench201SearchSpace(Graph):
     ]
     QUERYABLE = True
     METRIC_TO_SEARCH_SPACE = {
+        Metric.RAW: None,
         Metric.TRAIN_ACCURACY: "train_acc1es",
         Metric.VAL_ACCURACY: "eval_acc1es",
         Metric.TEST_ACCURACY: "eval_acc1es",

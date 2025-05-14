@@ -1,6 +1,6 @@
 from enum import Enum
-from pydantic import BaseModel, model_validator
-from typing import Literal
+from pydantic import BaseModel, model_validator, Field
+from typing import Literal, Any
 
 
 class EncodingType(Enum):
@@ -22,23 +22,27 @@ class NASConfig(BaseModel):
 
     #: Random seed for search
     seed: int = 99
-
-    #: Number of architectures being sampled and evaluated
-    epochs: int = 150
     #: Frequency to setup checkpoints 
     checkpoint_freq: int = 5
    
+    #: Number of architectures being sampled and evaluated
+    epochs: int = 150
+    #: Architecture encoding type
+    encoding_type: EncodingType = EncodingType.PATH
+    
+    
+    # BO-related parameters
     #: Number of initially sampled data points before fitting the surrogate model for the first time
     num_init: int = 1
-   
-    encoding_type: EncodingType = EncodingType.PATH
-
-    # BO-related parameters
     #: Surrogate model
-    num_ensemble: int = 5
-
+    predictor_type: Literal["ensemble", "quantile"] = "ensemble"
+    predictor_params: dict[str, Any] = Field(default_factory={"num_ensemble": 5})
+    #: Calibrator: 
+    calibrator_type: Literal["identity", "CP_split", "CP_quantile", "CP_boosting", "CP_boosting_simbling"]
+    calibrator_params: dict[str, Any] = Field(default_factory={})
     #: Acquisition functions
     acq_fn_type: Literal["its", "ucb", "ei", "exploit_only"] = "its"
+    acq_fn_params: dict[str, Any] = Field(default_factory={})
     acq_fn_optimization: Literal["random_sampling", "mutation"] = "mutation"
     #: Mutation parameters
     #: the number of best ever-found models to be mutated

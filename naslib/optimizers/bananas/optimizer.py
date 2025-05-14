@@ -11,6 +11,7 @@ from naslib.predictors.ensemble import Ensemble
 # from naslib.predictors.utils.encodings import encode_spec
 from naslib.search_spaces.core.graph import Graph
 from naslib.search_spaces.core.query_metrics import Metric
+from naslib.config import FullConfig
 from naslib.utils.tools import count_parameters_in_MB # , get_train_val_loaders, AttrDict
 # from naslib.utils.log import log_every_n_seconds
 
@@ -23,11 +24,12 @@ class Bananas(MetaOptimizer):
     # training the models is not implemented
     using_step_function = False
 
-    def __init__(self, config, zc_api=None):
+    def __init__(self, config: FullConfig, zc_api=None):
         super().__init__()
         self.config = config
      #   self.epochs = config.search.epochs
-
+        self.predictor_type = config.search.predictor_type
+        self.predictor_params = config.search.predictor_params
         self.performance_metric = Metric.VAL_ACCURACY # The metric score for training surrogate model
         self.dataset = config.dataset
 
@@ -36,6 +38,7 @@ class Bananas(MetaOptimizer):
         self.num_ensemble = config.search.num_ensemble
         # self.predictor_type = config.search.predictor_type
         self.acq_fn_type = config.search.acq_fn_type
+        self.acq_fn_params = config.search.acq_fn_params
         self.acq_fn_optimization = config.search.acq_fn_optimization
         self.encoding_type = config.search.encoding_type     # # currently not implemented
         self.num_arches_to_mutate = config.search.num_arches_to_mutate
@@ -128,14 +131,17 @@ class Bananas(MetaOptimizer):
         ytrain = [m.accuracy for m in self.train_data]
         return xtrain, ytrain
 
-    def _get_ensemble(self):
-        ensemble = Ensemble(num_ensemble=self.num_ensemble, ss_type=self.ss_type, encoding_type=self.encoding_type,
-                          #  predictor_type=self.predictor_type,
-                          #  zc=self.zc,
-                          #  zc_only=self.zc_only,
-                            config=self.config)
+    def _get_predictor(self):
+        if self.predictor_type == "ensemble":
+            predictor = Ensemble(**self.predictor_params, encoding_type=self.encoding_type)
+                
+             #   num_ensemble=self.num_ensemble, ss_type=self.ss_type, encoding_type=self.encoding_type)#,
+                            #  predictor_type=self.predictor_type,
+                            #  zc=self.zc,
+                            #  zc_only=self.zc_only,
+                               # config=self.config)
 
-        return ensemble
+        return predictor
 
     def _get_new_candidates(self, ytrain):
         # optimize the acquisition function to output k new architectures
@@ -145,9 +151,7 @@ class Bananas(MetaOptimizer):
             for _ in range(self.num_candidates):
                 # self.search_space.sample_random_architecture(dataset_api=self.dataset_api, load_labeled=self.sample_from_zc_api) # # FIXME extend to Zero Cost case
                 model = self._sample_new_model()
-                model.accuracy = model.arch.query(
-                    self.performance_metric, self.dataset, dataset_api=self.dataset_api
-                )
+                model.accuracy = model.arch.query(self.performance_metric, self.dataset, dataset_api=self.dataset_api)
                 candidates.append(model)
 
         elif self.acq_fn_optimization == 'mutation':
@@ -184,7 +188,7 @@ class Bananas(MetaOptimizer):
             if len(self.next_batch) == 0:
                 # train a neural predictor
                 xtrain, ytrain = self._get_train()
-                ensemble = self._get_ensemble()
+                predictor = self._get_predictor()
 
                 # if self.semi:
                 #     # create unlabeled data and pass it to the predictor
@@ -212,10 +216,10 @@ class Bananas(MetaOptimizer):
                 #         ensemble.set_pre_computations(
                 #             unlabeled_zc_info=unlabeled_zc_info)
                 print(f"TRAINING surrogate predictor for epoch={epoch}")
-                ensemble.fit(xtrain, ytrain)
+                predictor.fit(xtrain, ytrain)
 
                 # define an acquisition function
-                acq_fn = acquisition_function(ensemble=ensemble, ytrain=ytrain, acq_fn_type=self.acq_fn_type)
+                acq_fn = acquisition_function(predictor=predictor, ytrain=ytrain, acq_fn_type=self.acq_fn_type, **self.acq_fn_params)
 
                 # optimize the acquisition function to output k new architectures
                 candidates = self._get_new_candidates(ytrain=ytrain)

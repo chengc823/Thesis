@@ -1,7 +1,7 @@
 import numpy as np
 import copy
 
-from naslib.predictors.predictor import Predictor
+from naslib.predictors.base import Predictor
 from naslib.predictors.mlp import MLPPredictor
 # from naslib.predictors.trees import LGBoost, XGBoost, NGBoost, RandomForestPredictor
 # from naslib.predictors.gcn import GCNPredictor
@@ -24,21 +24,21 @@ class Ensemble(Predictor):
         self,
         base_predictor: Predictor | None = None,
         encoding_type: EncodingType = EncodingType.PATH,
-        num_ensemble=3,
+        num_ensemble=5,
     #    predictor_type=None,
-        ss_type=None,
+    #    ss_type=None,
         hpo_wrapper=True,
-        config=None,
+    #    config=None,
         zc=None,
         zc_only=None
     ):
-        self.base_preidctor = base_predictor or MLPPredictor(ss_type=ss_type, encoding_type=encoding_type)
+        self.base_preidctor = base_predictor or MLPPredictor(encoding_type=encoding_type)#ss_type=ss_type, encoding_type=encoding_type)
         self.num_ensemble = num_ensemble
     #    self.predictor_type = predictor_type
      #   self.encoding_type = encoding_type
-        self.ss_type = ss_type
+     #   self.ss_type = ss_type
         self.hpo_wrapper = hpo_wrapper
-        self.config = config
+      #  self.config = config
         self.hyperparams = None
         self.ensemble = None
         self.zc = zc
@@ -142,12 +142,8 @@ class Ensemble(Predictor):
         if self.ensemble is None:
             self.ensemble = self.get_ensemble()
 
-        if self.hyperparams is None and hasattr(
-            self.ensemble[0], "default_hyperparams"
-        ):
-            # todo: ideally should implement get_default_hyperparams() for all predictors
+        if self.hyperparams is None and hasattr(self.ensemble[0], "default_hyperparams"):
             self.hyperparams = self.ensemble[0].default_hyperparams.copy()
-
         self.set_hyperparams(self.hyperparams)
 
         train_errors = []
@@ -178,10 +174,7 @@ class Ensemble(Predictor):
         if self.ensemble is None:
             self.ensemble = self.get_ensemble()
 
-        if self.hyperparams is None and hasattr(
-            self.ensemble[0], "default_hyperparams"
-        ):
-            # todo: ideally should implement get_default_hyperparams() for all predictors
+        if self.hyperparams is None and hasattr(self.ensemble[0], "default_hyperparams"):
             params = self.ensemble[0].default_hyperparams.copy()
             
         params = self.hyperparams or self.ensemble[0].set_random_hyperparams()

@@ -134,7 +134,7 @@ class NasBench201SearchSpace(Graph):
             epoch: int = -1,
             full_lc: bool = False,
             dataset_api: dict = None) -> float:
-        """Query results from nasbench 201"""
+        """Query results from nasbench 201."""
 
         assert isinstance(metric, Metric)
         if metric == Metric.ALL:

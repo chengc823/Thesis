@@ -22,18 +22,20 @@ from naslib.config import EncodingType
 class Ensemble(Predictor):
     def __init__(
         self,
-        encoding_type=None,
+        base_predictor: Predictor | None = None,
+        encoding_type: EncodingType = EncodingType.PATH,
         num_ensemble=3,
-        predictor_type=None,
+    #    predictor_type=None,
         ss_type=None,
         hpo_wrapper=True,
         config=None,
         zc=None,
         zc_only=None
     ):
+        self.base_preidctor = base_predictor or MLPPredictor(ss_type=ss_type, encoding_type=encoding_type)
         self.num_ensemble = num_ensemble
-        self.predictor_type = predictor_type
-        self.encoding_type = encoding_type
+    #    self.predictor_type = predictor_type
+     #   self.encoding_type = encoding_type
         self.ss_type = ss_type
         self.hpo_wrapper = hpo_wrapper
         self.config = config
@@ -45,8 +47,8 @@ class Ensemble(Predictor):
     def get_ensemble(self):
         # TODO: if encoding_type is not None, set the encoding type
     
-        trainable_predictors = {
-            "bananas": MLPPredictor(ss_type=self.ss_type, encoding_type=EncodingType.PATH),
+       # trainable_predictors = {
+         #   "bananas":
             # "bayes_lin_reg": BayesianLinearRegression(
             #     ss_type=self.ss_type, encoding_type=EncodingType.ADJACENCY_ONE_HOT
             # ),
@@ -129,10 +131,10 @@ class Ensemble(Predictor):
             #     max_zerocost=1000,
             #     config=self.config,
             # ),
-        }
+       # }
 
         return [
-            copy.deepcopy(trainable_predictors[self.predictor_type])
+            copy.deepcopy(self.base_preidctor) #trainable_predictors[self.predictor_type])
             for _ in range(self.num_ensemble)
         ]
 

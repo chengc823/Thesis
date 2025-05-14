@@ -3,11 +3,14 @@ import json
 import logging
 import os
 import copy
+from pathlib import Path
 from typing import Callable
 import numpy as np
 import codecs
 from fvcore.common.checkpoint import PeriodicCheckpointer
 import torch
+from naslib.config import FullConfig
+from naslib.optimizers.base import MetaOptimizer
 from naslib.search_spaces.core.graph import Graph
 from naslib.search_spaces.core.query_metrics import Metric
 from naslib.utils.plot import plot_architectural_weights
@@ -29,18 +32,12 @@ class Trainer(object):
     required logic.
     """
 
-    def __init__(self, optimizer, config, lightweight_output=False):
-        """
-        Initializes the trainer.
-
-        Args:
-            optimizer: A NASLib opti.additional_primitives mizer
-            config (AttrDict): The configuration loaded from a yaml file, e.g
-                via  `utils.get_config_from_args()`
-        """
+    def __init__(self, optimizer: MetaOptimizer, config: FullConfig, lightweight_output=False):
         self.optimizer = optimizer
         self.config = config
-        self.epochs = self.config.search.epochs
+        self.seed = config.search.seed
+        self.save = config.save
+        self.epochs = config.search.epochs
         self.lightweight_output = lightweight_output
 
         # preparations
@@ -71,21 +68,17 @@ class Trainer(object):
             }
         )
 
-    def search(self, save, resume_from="", summary_writer=None, after_epoch: Callable[[int], None]=None, report_incumbent=True):
-        """
-        Start the architecture search.
-
-        Generates a json file with training statistics.
+    def search(self, resume_from="", summary_writer=None, after_epoch: Callable[[int], None]=None, report_incumbent=True):
+        """Start the architecture search and generates a json file with training statistics.
 
         Args:
-            resume_from (str): Checkpoint file to resume from. If not given then
-                train from scratch.
+            resume_from (str): Checkpoint file to resume from. If not given then train from scratch.
         """
         logger.info("Beginning search")
 
-        os.makedirs(save+ '/search', exist_ok=True)
-        np.random.seed(self.config.search.seed)
-        torch.manual_seed(self.config.search.seed)
+        os.makedirs(self.save + '/search', exist_ok=True)
+        np.random.seed(self.seed)
+        torch.manual_seed(self.seed)
 
        # self.optimizer.before_training()
         checkpoint_freq = self.config.search.checkpoint_freq
@@ -98,7 +91,7 @@ class Trainer(object):
         #         resume_from, period=checkpoint_freq, scheduler=self.scheduler
         #     )
         # else:
-        start_epoch = self._setup_checkpointers(resume_from, period=checkpoint_freq)
+        start_epoch = self._setup_checkpointers(save=self.save, resume_from=resume_from, period=checkpoint_freq)
 
         # if self.optimizer.using_step_function:
         #     self.train_queue, self.valid_queue, _ = self.build_search_dataloaders(
@@ -206,14 +199,14 @@ class Trainer(object):
             # if after_epoch is not None:
             #     after_epoch(e)
 
-        logger.info(f"Saving architectural weight tensors: {self.config.save}/arch_weights.pt")
+        logger.info(f"Saving architectural weight tensors: {self.save}/arch_weights.pt")
 
         # if hasattr(self.config, "save_arch_weights") and self.config.save_arch_weights:
         if self.config.save_arch_weights:
-            torch.save(arch_weights, f'{self.config.save}/arch_weights.pt')
+            torch.save(arch_weights, f'{self.save}/arch_weights.pt')
         # if hasattr(self.config, "plot_arch_weights") and 
         if self.config.plot_arch_weights:
-                plot_architectural_weights(self.config, self.optimizer)
+            plot_architectural_weights(self.config, self.optimizer)
 
         # self.optimizer.after_training()
 
@@ -278,27 +271,21 @@ class Trainer(object):
         """
         Evaluate the final architecture as given from the optimizer.
 
-        If the search space has an interface to a benchmark then query that.
-        Otherwise train as defined in the config.
+        If the search space has an interface to a benchmark then query that, otherwise train as defined in the config.
 
         Args:
-            retrain (bool)      : Reset the weights from the architecure search
-            search_model (str)  : Path to checkpoint file that was created during search. If not provided,
-                                  then try to load 'model_final.pth' from search
-            resume_from (str)   : Resume retraining from the given checkpoint file.
-            best_arch           : Parsed model you want to directly evaluate and ignore the final model
-                                  from the optimizer.
-            dataset_api         : Dataset API to use for querying model performance.
-            metric              : Metric to query the benchmark for.
+            retrain (bool): Reset the weights from the architecure search
+            search_model (str): Path to checkpoint file that was created during search. If not provided, then try to load 'model_final.pth' from search.
+            resume_from (str): Resume retraining from the given checkpoint file.
+            best_arch: Parsed model you want to directly evaluate and ignore the final model from the optimizer.
+            dataset_api: Dataset API to use for querying model performance.
+            metric: Metric to query the benchmark for.
         """
         logger.info("Start evaluation")
         if not best_arch:
-
             if not search_model:
-                search_model = os.path.join(
-                    self.config.save, "search", "model_final.pth"
-                )
-            self._setup_checkpointers(search_model)  # required to load the architecture
+                search_model = os.path.join(self.save, "search", "model_final.pth")
+            self._setup_checkpointers(save=self.save, resume_from=search_model)  # required to load the architecture
 
             best_arch = self.optimizer.get_final_architecture()
         logger.info(f"Final architecture hash: {best_arch.get_hash()}")
@@ -566,7 +553,7 @@ class Trainer(object):
     #     self.valid_queue = valid_queue
     #     self.test_queue = test_queue
 
-    def _setup_checkpointers(self, resume_from="", search=True, period=1, **add_checkpointables):
+    def _setup_checkpointers(self, save: str, resume_from="", search=True, period=1, **add_checkpointables):
         """
         Sets up a periodic chechkpointer which can be used to save checkpoints
         at every epoch. It will call optimizer's `get_checkpointables()` as objects
@@ -584,18 +571,14 @@ class Trainer(object):
 
         checkpointer = Checkpointer(
             model=checkpointables.pop("model"),
-            save_dir=self.config.save + "/search"
-            if search
-            else self.config.save + "/eval",
+            save_dir=save + "/search" if search else save + "/eval",
             # **checkpointables #NOTE: this is throwing an Error
         )
 
         self.periodic_checkpointer = PeriodicCheckpointer(
             checkpointer,
             period=period,
-            max_iter=self.config.search.epochs
-            if search
-            else self.config.evaluation.epochs,
+            max_iter=self.epochs#self.config.search.epochs if search else self.config.evaluation.epochs,
         )
 
         if resume_from:
@@ -607,16 +590,16 @@ class Trainer(object):
 
     def _log_to_json(self):
         """log training statistics to json file"""
-        if not os.path.exists(self.config.save):
-            os.makedirs(self.config.save)
+        if not os.path.exists(self.save):
+            os.makedirs(self.save)
         if not self.lightweight_output:
             with codecs.open(
-                os.path.join(self.config.save, "errors.json"), "w", encoding="utf-8"
+                os.path.join(self.save, "errors.json"), "w", encoding="utf-8"
             ) as file:
                 json.dump(self.search_trajectory, file, separators=(",", ":"))
         else:
             with codecs.open(
-                os.path.join(self.config.save, "errors.json"), "w", encoding="utf-8"
+                os.path.join(self.save, "errors.json"), "w", encoding="utf-8"
             ) as file:
                 lightweight_dict = copy.deepcopy(self.search_trajectory)
                 for key in ["arch_eval", "train_loss", "valid_loss", "test_loss"]:

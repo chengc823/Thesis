@@ -19,14 +19,14 @@ logger = logging.getLogger(__name__)
 
 
 class Bananas(MetaOptimizer):
-
+    
     # training the models is not implemented
     using_step_function = False
 
     def __init__(self, config, zc_api=None):
         super().__init__()
         self.config = config
-        self.epochs = config.search.epochs
+     #   self.epochs = config.search.epochs
 
         self.performance_metric = Metric.VAL_ACCURACY
         self.dataset = config.dataset
@@ -34,7 +34,7 @@ class Bananas(MetaOptimizer):
         self.k = config.search.k
         self.num_init = config.search.num_init
         self.num_ensemble = config.search.num_ensemble
-        self.predictor_type = config.search.predictor_type
+        # self.predictor_type = config.search.predictor_type
         self.acq_fn_type = config.search.acq_fn_type
         self.acq_fn_optimization = config.search.acq_fn_optimization
         self.encoding_type = config.search.encoding_type  # currently not implemented
@@ -48,7 +48,7 @@ class Bananas(MetaOptimizer):
         self.history = torch.nn.ModuleList()
 
         # self.zc = config.search.zc if hasattr(config.search, 'zc') else None
-        self.semi = "semi" in self.predictor_type 
+        # self.semi = "semi" in self.predictor_type 
         # self.zc_api = zc_api
         # self.use_zc_api = config.search.use_zc_api if hasattr(
         #     config.search, 'use_zc_api') else False
@@ -132,9 +132,8 @@ class Bananas(MetaOptimizer):
         return xtrain, ytrain
 
     def _get_ensemble(self):
-        ensemble = Ensemble(num_ensemble=self.num_ensemble,
-                            ss_type=self.ss_type,
-                            predictor_type=self.predictor_type,
+        ensemble = Ensemble(num_ensemble=self.num_ensemble, ss_type=self.ss_type,
+                          #  predictor_type=self.predictor_type,
                           #  zc=self.zc,
                           #  zc_only=self.zc_only,
                             config=self.config)
@@ -192,19 +191,19 @@ class Bananas(MetaOptimizer):
                 xtrain, ytrain = self._get_train()
                 ensemble = self._get_ensemble()
 
-                if self.semi:
-                    # create unlabeled data and pass it to the predictor
-                    while len(self.unlabeled) < len(xtrain):
-                        model = self._sample_new_model()
+                # if self.semi:
+                #     # create unlabeled data and pass it to the predictor
+                #     while len(self.unlabeled) < len(xtrain):
+                #         model = self._sample_new_model()
 
-                        # if self.zc and len(self.train_data) <= self.max_zerocost:
-                        #     model.zc_scores = self.query_zc_scores(model.arch)
+                #         # if self.zc and len(self.train_data) <= self.max_zerocost:
+                #         #     model.zc_scores = self.query_zc_scores(model.arch)
 
-                        self.unlabeled.append(model)
+                #         self.unlabeled.append(model)
 
-                    ensemble.set_pre_computations(
-                        unlabeled=[m.arch for m in self.unlabeled]
-                    )
+                #     ensemble.set_pre_computations(
+                #         unlabeled=[m.arch for m in self.unlabeled]
+                #     )
 
                 # if self.zc and len(self.train_data) <= self.max_zerocost:
                 #     # pass the zero-cost scores to the predictor

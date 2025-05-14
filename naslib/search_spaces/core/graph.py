@@ -83,6 +83,9 @@ class Graph(torch.nn.Module, nx.DiGraph):
     """
     QUERYABLE = False
 
+    METRIC_TO_SEARCH_SPACE = {}
+
+
     def __init__(self, name: str = None, scope: str = None):
         """
         Initialise a graph. The edges are automatically filled with an EdgeData object

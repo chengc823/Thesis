@@ -32,8 +32,22 @@ class NasBench201SearchSpace(Graph):
         "stage_2",
         "stage_3",
     ]
-
     QUERYABLE = True
+    METRIC_TO_SEARCH_SPACE = {
+        Metric.TRAIN_ACCURACY: "train_acc1es",
+        Metric.VAL_ACCURACY: "eval_acc1es",
+        Metric.TEST_ACCURACY: "eval_acc1es",
+        Metric.TRAIN_LOSS: "train_losses",
+        Metric.VAL_LOSS: "eval_losses",
+        Metric.TEST_LOSS: "eval_losses",
+        Metric.TRAIN_TIME: "train_times",
+        Metric.VAL_TIME: "eval_times",
+        Metric.TEST_TIME: "eval_times",
+        Metric.FLOPS: "flop",
+        Metric.LATENCY: "latency",
+        Metric.PARAMETERS: "params",
+        Metric.EPOCH: "epochs",
+    }
 
     def __init__(self, n_classes=10, in_channels=3):
         super().__init__()
@@ -149,21 +163,7 @@ class NasBench201SearchSpace(Graph):
         if dataset_api is None:
             raise NotImplementedError("Must pass in dataset_api to query NAS-Bench-201")
 
-        metric_to_nb201 = {
-            Metric.TRAIN_ACCURACY: "train_acc1es",
-            Metric.VAL_ACCURACY: "eval_acc1es",
-            Metric.TEST_ACCURACY: "eval_acc1es",
-            Metric.TRAIN_LOSS: "train_losses",
-            Metric.VAL_LOSS: "eval_losses",
-            Metric.TEST_LOSS: "eval_losses",
-            Metric.TRAIN_TIME: "train_times",
-            Metric.VAL_TIME: "eval_times",
-            Metric.TEST_TIME: "eval_times",
-            Metric.FLOPS: "flop",
-            Metric.LATENCY: "latency",
-            Metric.PARAMETERS: "params",
-            Metric.EPOCH: "epochs",
-        }
+       
 
         if self.instantiate_model:
             arch_str = convert_naslib_to_str(self)
@@ -190,12 +190,12 @@ class NasBench201SearchSpace(Graph):
             return query_results[dataset]["cost_info"]["train_time"]
 
         if full_lc and epoch == -1:
-            return query_results[dataset][metric_to_nb201[metric]]
+            return query_results[dataset][self.METRIC_TO_SEARCH_SPACE[metric]]
         elif full_lc and epoch != -1:
-            return query_results[dataset][metric_to_nb201[metric]][:epoch]
+            return query_results[dataset][self.METRIC_TO_SEARCH_SPACE[metric]][:epoch]
         else:
             # return the value of the metric only at the specified epoch
-            return query_results[dataset][metric_to_nb201[metric]][epoch]
+            return query_results[dataset][self.METRIC_TO_SEARCH_SPACE[metric]][epoch]
 
     def get_op_indices(self) -> list:
         if self.op_indices is None:

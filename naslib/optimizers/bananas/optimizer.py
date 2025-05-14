@@ -9,7 +9,7 @@ from naslib.optimizers.bananas.acquisition_functions import acquisition_function
 from naslib.predictors.ensemble import Ensemble
 # from naslib.predictors.zerocost import ZeroCost
 # from naslib.predictors.utils.encodings import encode_spec
-
+from naslib.search_spaces.core.graph import Graph
 from naslib.search_spaces.core.query_metrics import Metric
 from naslib.utils.tools import count_parameters_in_MB # , get_train_val_loaders, AttrDict
 # from naslib.utils.log import log_every_n_seconds
@@ -28,7 +28,7 @@ class Bananas(MetaOptimizer):
         self.config = config
      #   self.epochs = config.search.epochs
 
-        self.performance_metric = Metric.VAL_ACCURACY
+        self.performance_metric = Metric.VAL_ACCURACY # The metric score for training surrogate model
         self.dataset = config.dataset
 
         self.k = config.search.k
@@ -62,15 +62,14 @@ class Bananas(MetaOptimizer):
         # self.load_labeled = config.search.load_labeled if hasattr(
         #     config.search, 'load_labeled') else False
 
-    def adapt_search_space(self, search_space, scope=None, dataset_api=None):
-        assert (
-            search_space.QUERYABLE
-        ), "Bananas is currently only implemented for benchmarks."
+    def adapt_search_space(self, search_space: Graph, scope=None, dataset_api=None):
+        assert (search_space.QUERYABLE), "Bananas is currently only implemented for benchmarks."
 
         self.search_space = search_space.clone()
         self.scope = scope if scope else search_space.OPTIMIZER_SCOPE
         self.dataset_api = dataset_api
         self.ss_type = self.search_space.get_type()
+        self.ss_metrics_mapping = self.search_space.METRIC_TO_SEARCH_SPACE
         # if self.zc:
         #     self.train_loader, _, _, _, _ = get_train_val_loaders(
         #         self.config, mode="train")
@@ -145,7 +144,7 @@ class Bananas(MetaOptimizer):
         if self.acq_fn_optimization == 'random_sampling':
 
             for _ in range(self.num_candidates):
-                # self.search_space.sample_random_architecture(dataset_api=self.dataset_api, load_labeled=self.sample_from_zc_api) # FIXME extend to Zero Cost case
+                # self.search_space.sample_random_architecture(dataset_api=self.dataset_api, load_labeled=self.sample_from_zc_api) # # FIXME extend to Zero Cost case
                 model = self._sample_new_model()
                 model.accuracy = model.arch.query(
                     self.performance_metric, self.dataset, dataset_api=self.dataset_api
@@ -252,39 +251,62 @@ class Bananas(MetaOptimizer):
                     break
 
     def train_statistics(self, report_incumbent=True):
-        if report_incumbent:
-            best_arch = self.get_final_architecture()
-        else:
-            best_arch = self.train_data[-1].arch
+        best_arch = self.get_final_architecture() if report_incumbent else self.train_data[-1].arch
+
+        metrics_to_query = [
+            Metric.TRAIN_ACCURACY, 
+            Metric.TRAIN_LOSS,
+            Metric.VAL_ACCURACY,
+            Metric.VAL_LOSS,
+            Metric.TEST_ACCURACY,
+            Metric.TEST_LOSS,
+            Metric.TRAIN_TIME
+        ]
+
+        statistics = [-1] * len(metrics_to_query)   # -1 is the default value if a metrics is not available
+        for idx, metric in enumerate(metrics_to_query):
+            if metric in self.ss_metrics_mapping:
+                statistics[idx] =  best_arch.query(metric, self.dataset, dataset_api=self.dataset_api)
+                
+        return statistics
+
+
+
         
-        if self.search_space.space_name != "nasbench301":
-            return (
-                best_arch.query(
-                    Metric.TRAIN_ACCURACY, self.dataset, dataset_api=self.dataset_api
-                ),
-                best_arch.query(
-                    Metric.VAL_ACCURACY, self.dataset, dataset_api=self.dataset_api
-                ),
-                best_arch.query(
-                    Metric.TEST_ACCURACY, self.dataset, dataset_api=self.dataset_api
-                ),
-                best_arch.query(
-                    Metric.TRAIN_TIME, self.dataset, dataset_api=self.dataset_api
-                ),
-            )
-        else:
-            return (
-                -1, 
-                best_arch.query(
-                    Metric.VAL_ACCURACY, self.dataset, dataset_api=self.dataset_api
-                ),
-                best_arch.query(
-                    Metric.TEST_ACCURACY, self.dataset, dataset_api=self.dataset_api
-                ),
-                best_arch.query(
-                    Metric.TRAIN_TIME, self.dataset, dataset_api=self.dataset_api
-                ),
-            ) 
+
+
+
+
+        # train_acc, train_loss, valid_acc, valid_loss, test_acc, test_loss, train_time
+        
+        # if self.search_space.space_name != "nasbench301":
+        #     return (
+        #         best_arch.query(
+        #             Metric.TRAIN_ACCURACY, self.dataset, dataset_api=self.dataset_api
+        #         ),
+        #         best_arch.query(
+        #             Metric.VAL_ACCURACY, self.dataset, dataset_api=self.dataset_api
+        #         ),
+        #         best_arch.query(
+        #             Metric.TEST_ACCURACY, self.dataset, dataset_api=self.dataset_api
+        #         ),
+        #         best_arch.query(
+        #             Metric.TRAIN_TIME, self.dataset, dataset_api=self.dataset_api
+        #         ),
+        #     )
+        # else:
+        #     return (
+        #         -1, 
+        #         best_arch.query(
+        #             Metric.VAL_ACCURACY, self.dataset, dataset_api=self.dataset_api
+        #         ),
+        #         best_arch.query(
+        #             Metric.TEST_ACCURACY, self.dataset, dataset_api=self.dataset_api
+        #         ),
+        #         best_arch.query(
+        #             Metric.TRAIN_TIME, self.dataset, dataset_api=self.dataset_api
+        #         ),
+        #     ) 
 
     def test_statistics(self):
         best_arch = self.get_final_architecture()

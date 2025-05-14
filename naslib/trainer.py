@@ -161,14 +161,14 @@ class Trainer(object):
             # else:
             end_time = time.time()
             # TODO: nasbench101 does not have train_loss, valid_loss, test_loss implemented, so this is a quick fix for now
-            # train_acc, train_loss, valid_acc, valid_loss, test_acc, test_loss = self.optimizer.train_statistics()
-            (
-                train_acc,
-                valid_acc,
-                test_acc,
-                train_time,
-            ) = self.optimizer.train_statistics(report_incumbent)
-            train_loss, valid_loss, test_loss = -1, -1, -1
+            train_acc, train_loss, valid_acc, valid_loss, test_acc, test_loss, train_time = self.optimizer.train_statistics()
+            # (
+            #     train_acc,
+            #     valid_acc,
+            #     test_acc,
+            #     train_time,
+            # ) = self.optimizer.train_statistics(report_incumbent)
+            # train_loss, valid_loss, test_loss = -1, -1, -1
 
             self.search_trajectory.train_acc.append(train_acc)
             self.search_trajectory.train_loss.append(train_loss)

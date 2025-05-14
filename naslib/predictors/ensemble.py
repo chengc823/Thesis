@@ -183,12 +183,8 @@ class Ensemble(Predictor):
         ):
             # todo: ideally should implement get_default_hyperparams() for all predictors
             params = self.ensemble[0].default_hyperparams.copy()
-
-        elif self.hyperparams is None:
-            params = None
-        else:
-            params = self.ensemble[0].set_random_hyperparams()
-
+            
+        params = self.hyperparams or self.ensemble[0].set_random_hyperparams()
         self.set_hyperparams(params)
         return params
 

@@ -17,7 +17,7 @@ class EncodingType(Enum):
 
 
 
-class SearchConfig(BaseModel):
+class NASConfig(BaseModel):
   #  predictor_type: str = "bananas"
 
     #: Random seed for search
@@ -30,24 +30,37 @@ class SearchConfig(BaseModel):
    
     #: Number of initially sampled data points before fitting the surrogate model for the first time
     num_init: int = 1
-    #: Number of architectures to evaluate in parallel (i.e., number of candidates picked by acquisition function before refitting the surrogate model) 
-    k: int = 10
+   
     encoding_type: EncodingType = EncodingType.PATH
 
     # BO-related parameters
-    #: Acquisition functions
-    acq_fn_type: str = "its"
-    acq_fn_optimization: str = "mutation"
-
+    #: Surrogate model
     num_ensemble: int = 5
+
+    #: Acquisition functions
+    acq_fn_type: Literal["its", "ucb", "ei", "exploit_only"] = "its"
+    acq_fn_optimization: Literal["random_sampling", "mutation"] = "mutation"
+    #: Mutation parameters
+    #: the number of best ever-found models to be mutated
+    num_arches_to_mutate: int = 2
+    #: maximal mutation allowed for each model to get mutated
+    max_mutations: int = 1
+    #: The number of archtectures with which the acquisition function is called (Since it's not possible to run acq over the entire search space)
+    num_candidates: int = 100
+    #: Among the above picked candidates, the number of architectures picked to evaluate in parallel 
+    # (i.e., number of candidates picked by acquisition function before refitting the surrogate model) 
+    k: int = 10
+
+   
    
     
     
-    num_arches_to_mutate: int = 2
-    max_mutations: int = 1
-    num_candidates: int = 100
+    
+   
 
-    gpu:  int | None = None
+   
+
+    # gpu:  int | None = None
 
 
 # class EvalConfig(BaseModel):
@@ -72,8 +85,8 @@ class SearchConfig(BaseModel):
 
 
 class FullConfig(BaseModel):
-    model_path: str | None  = None
-    data_path: str | None = None
+   # model_path: str | None  = None
+   # data_path: str | None = None
     #: Use multi-processing distributed training to launch N processes per node, which has N GPUs. 
     # This is the fastest way to use PyTorch for either single node or multi node data parallel training
     multiprocessing_distributed: bool = True
@@ -84,9 +97,9 @@ class FullConfig(BaseModel):
     seed: int = 99
 
     dataset: Literal["cifar10", "cifar100", "ImageNet16-120"] = "cifar10"
-    search_space: str = "nasbench201"
+    search_space: Literal["nasbench201"] = "nasbench201"
 
-    search: SearchConfig = SearchConfig()
+    search: NASConfig 
     # #: perform evaluation only
     # eval_only: bool = False
     # evaluation: EvalConfig = EvalConfig()
@@ -96,19 +109,19 @@ class FullConfig(BaseModel):
 
     #: Export
     #: Path to save the results
-    out_dir: str = "~/Desktop/test"
+    out_dir: str 
     save_arch_weights: bool = True
     plot_arch_weights: bool = False
     save: str | None = None
-    opts: tuple | None = None
+  #  opts: tuple | None = None
 
     @model_validator(mode="after")
     def compute_fields(self):
-        self.search.seed = self.seed
+      #  self.search.seed = self.seed
       #  self.evaluation.multiprocessing_distributed = self.multiprocessing_distributed
-        self.search.gpu = self.gpu
+      #  self.search.gpu = self.gpu
 
-        self.save = f"{self.out_dir}/{self.search_space}/{self.dataset}/{self.optimizer}/{self.seed}"
-        self.opts = None
+        self.save = f"{self.out_dir}/{self.search_space}/{self.dataset}/search_epochs={self.search.epochs}/seed={self.seed}"
+       # self.opts = None
         return self
     

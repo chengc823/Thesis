@@ -37,12 +37,14 @@ class Bananas(MetaOptimizer):
         # self.predictor_type = config.search.predictor_type
         self.acq_fn_type = config.search.acq_fn_type
         self.acq_fn_optimization = config.search.acq_fn_optimization
-        self.encoding_type = config.search.encoding_type  # currently not implemented
+        self.encoding_type = config.search.encoding_type     # # currently not implemented
         self.num_arches_to_mutate = config.search.num_arches_to_mutate
         self.max_mutations = config.search.max_mutations
         self.num_candidates = config.search.num_candidates
       #  self.max_zerocost = 1000
 
+        # a container storing evaluated models. training data (model_encoding, model_metrics) for fitting the surrogate model 
+        # can be built from train_data using self._get_train
         self.train_data = []
         self.next_batch = []
         self.history = torch.nn.ModuleList()
@@ -57,8 +59,8 @@ class Bananas(MetaOptimizer):
         # self.zc_only = config.search.zc_only if hasattr(
         #     config.search, 'zc_only') else False
         
-        self.load_labeled = config.search.load_labeled if hasattr(
-            config.search, 'load_labeled') else False
+        # self.load_labeled = config.search.load_labeled if hasattr(
+        #     config.search, 'load_labeled') else False
 
     def adapt_search_space(self, search_space, scope=None, dataset_api=None):
         assert (
@@ -104,9 +106,7 @@ class Bananas(MetaOptimizer):
         # if self.use_zc_api and str(model.arch_hash) in self.zc_api:
         #     model.accuracy = self.zc_api[str(model.arch_hash)]['val_accuracy']
         # else:
-        model.accuracy = model.arch.query(
-            self.performance_metric, self.dataset, dataset_api=self.dataset_api
-        )
+        model.accuracy = model.arch.query(self.performance_metric, self.dataset, dataset_api=self.dataset_api)
 
         # if self.zc and len(self.train_data) <= self.max_zerocost:
         #     model.zc_scores = self.query_zc_scores(model.arch)
@@ -117,8 +117,7 @@ class Bananas(MetaOptimizer):
     def _sample_new_model(self):
         model = torch.nn.Module()
         model.arch = self.search_space.clone()
-        model.arch.sample_random_architecture(
-            dataset_api=self.dataset_api, load_labeled=self.load_labeled)
+        model.arch.sample_random_architecture(dataset_api=self.dataset_api, load_labeled=False)#self.load_labeled)
         model.arch_hash = model.arch.get_hash()
         
         if self.search_space.instantiate_model == True:
@@ -132,7 +131,7 @@ class Bananas(MetaOptimizer):
         return xtrain, ytrain
 
     def _get_ensemble(self):
-        ensemble = Ensemble(num_ensemble=self.num_ensemble, ss_type=self.ss_type,
+        ensemble = Ensemble(num_ensemble=self.num_ensemble, ss_type=self.ss_type, encoding_type=self.encoding_type,
                           #  predictor_type=self.predictor_type,
                           #  zc=self.zc,
                           #  zc_only=self.zc_only,
@@ -174,14 +173,12 @@ class Bananas(MetaOptimizer):
                     candidates.append(model)
 
         else:
-            logger.info('{} is not yet supported as a acq fn optimizer'.format(
-                self.encoding_type))
+            logger.info(f'{self.encoding_type} is not yet supported as a acq fn optimizer.')
             raise NotImplementedError()
 
         return candidates
 
     def new_epoch(self, epoch):
-
         if epoch < self.num_init:
             model = self._sample_new_model()
             self._set_scores(model)
@@ -216,13 +213,11 @@ class Bananas(MetaOptimizer):
                 #             m.zc_scores for m in self.unlabeled]}
                 #         ensemble.set_pre_computations(
                 #             unlabeled_zc_info=unlabeled_zc_info)
-                print(f"TRAINING ensemble for epoch={epoch}")
+                print(f"TRAINING surrogate predictor for epoch={epoch}")
                 ensemble.fit(xtrain, ytrain)
 
                 # define an acquisition function
-                acq_fn = acquisition_function(
-                    ensemble=ensemble, ytrain=ytrain, acq_fn_type=self.acq_fn_type
-                )
+                acq_fn = acquisition_function(ensemble=ensemble, ytrain=ytrain, acq_fn_type=self.acq_fn_type)
 
                 # optimize the acquisition function to output k new architectures
                 candidates = self._get_new_candidates(ytrain=ytrain)

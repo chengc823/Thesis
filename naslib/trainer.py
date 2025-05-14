@@ -35,7 +35,7 @@ class Trainer(object):
     def __init__(self, optimizer: MetaOptimizer, config: FullConfig, lightweight_output=False):
         self.optimizer = optimizer
         self.config = config
-        self.seed = config.search.seed
+        self.seed = config.seed
         self.save = config.save
         self.epochs = config.search.epochs
         self.lightweight_output = lightweight_output

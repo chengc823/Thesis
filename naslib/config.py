@@ -3,7 +3,7 @@ from pydantic import BaseModel, model_validator, Field
 from typing import Literal, Any
 
 
-class EncodingType(Enum):
+class EncodingType(str, Enum):
     """Architecture encoding type."""
 
     ADJACENCY_ONE_HOT = "adjacency_one_hot"
@@ -15,36 +15,55 @@ class EncodingType(Enum):
     COMPACT = 'compact'
 
 
+class PredictorType(str, Enum):
+    ENSEMBLE_MLP = "ensemble_mlp"
+    QUANTILE = "quantile"
+
+class CalibratorType(str, Enum):
+    CP_SPLIT = "CP_split"
+    CP_CROSSVAL = "CP_cv"
+    CP_QUANTILE = "CP_quantile"
+    CP_BOOSTING = "CP_boosting"
+    CP_BOOSTING_NBHD = "CP_boosting_NBHD"
+
+
+class ACQType(str, Enum):
+    TS = "ts"
+    ITS = "its"
+    UCB = "ucb"
+    EI = "ei"
+    EXPLOIT_ONLY = "exploit_only"
+
+
 
 
 class NASConfig(BaseModel):
-  #  predictor_type: str = "bananas"
-
-    #: Random seed for search
-    seed: int = 99
+    # #: Random seed for search
+    # seed: int = 99
     #: Frequency to setup checkpoints 
     checkpoint_freq: int = 5
-   
     #: Number of architectures being sampled and evaluated
     epochs: int = 150
     #: Architecture encoding type
     encoding_type: EncodingType = EncodingType.PATH
     
-    
     # BO-related parameters
     #: Number of initially sampled data points before fitting the surrogate model for the first time
-    num_init: int = 1
+    num_init: int = 10
+    
     #: Surrogate model
-    predictor_type: Literal["ensemble", "quantile"] = "ensemble"
-    predictor_params: dict[str, Any] = Field(default_factory={"num_ensemble": 5})
+    predictor_type: PredictorType = PredictorType.ENSEMBLE_MLP
+    predictor_params: dict[str, Any] 
+    
     #: Calibrator: 
-    calibrator_type: Literal["identity", "CP_split", "CP_quantile", "CP_boosting", "CP_boosting_simbling"]
-    calibrator_params: dict[str, Any] = Field(default_factory={})
+    calibrator_type: CalibratorType | None = None
+    calibrator_params: dict[str, Any]
+    
     #: Acquisition functions
-    acq_fn_type: Literal["its", "ucb", "ei", "exploit_only"] = "its"
-    acq_fn_params: dict[str, Any] = Field(default_factory={})
+    acq_fn_type: ACQType = ACQType.ITS
+    acq_fn_params: dict[str, Any]
     acq_fn_optimization: Literal["random_sampling", "mutation"] = "mutation"
-    #: Mutation parameters
+    #: Mutation parameters (only relevant if "mutation" is used)
     #: the number of best ever-found models to be mutated
     num_arches_to_mutate: int = 2
     #: maximal mutation allowed for each model to get mutated
@@ -54,8 +73,14 @@ class NASConfig(BaseModel):
     #: Among the above picked candidates, the number of architectures picked to evaluate in parallel 
     # (i.e., number of candidates picked by acquisition function before refitting the surrogate model) 
     k: int = 10
-
-   
+    
+    @model_validator(mode="before")
+    def set_empty_params(cls, values):
+        fields = ["predictor_params", "calibrator_params", "acq_fn_params"]
+        for field in fields:
+            if values[field] is None:
+                values[field] = {}
+        return values
    
     
     
@@ -98,10 +123,10 @@ class FullConfig(BaseModel):
     gpu: int | None = None
     optimizer: str = "bananas"
     #: random seed
-    seed: int = 99
+    seed: int 
 
-    dataset: Literal["cifar10", "cifar100", "ImageNet16-120"] = "cifar10"
-    search_space: Literal["nasbench201"] = "nasbench201"
+    search_space: Literal["nasbench201"]
+    dataset: Literal["cifar10", "cifar100", "ImageNet16-120"]
 
     search: NASConfig 
     # #: perform evaluation only
@@ -116,16 +141,16 @@ class FullConfig(BaseModel):
     out_dir: str 
     save_arch_weights: bool = True
     plot_arch_weights: bool = False
-    save: str | None = None
+ #  save: str | None = None
   #  opts: tuple | None = None
 
-    @model_validator(mode="after")
-    def compute_fields(self):
+    @property
+    def save(self):
       #  self.search.seed = self.seed
       #  self.evaluation.multiprocessing_distributed = self.multiprocessing_distributed
       #  self.search.gpu = self.gpu
 
-        self.save = f"{self.out_dir}/{self.search_space}/{self.dataset}/search_epochs={self.search.epochs}/seed={self.seed}"
+      #  self.save = 
        # self.opts = None
-        return self
+        return f"{self.out_dir}/{self.search_space}/{self.dataset}/search_epochs={self.search.epochs}/seed={self.seed}"
     

@@ -22,8 +22,8 @@ from naslib.config import EncodingType
 class Ensemble(Predictor):
     def __init__(
         self,
-        base_predictor: Predictor | None = None,
-        encoding_type: EncodingType = EncodingType.PATH,
+        base_predictor: Predictor,
+    #    encoding_type: EncodingType = EncodingType.PATH,
         num_ensemble=5,
     #    predictor_type=None,
     #    ss_type=None,
@@ -32,7 +32,7 @@ class Ensemble(Predictor):
         zc=None,
         zc_only=None
     ):
-        self.base_preidctor = base_predictor or MLPPredictor(encoding_type=encoding_type)#ss_type=ss_type, encoding_type=encoding_type)
+        self.base_preidctor = base_predictor #ss_type=ss_type, encoding_type=encoding_type)
         self.num_ensemble = num_ensemble
     #    self.predictor_type = predictor_type
      #   self.encoding_type = encoding_type

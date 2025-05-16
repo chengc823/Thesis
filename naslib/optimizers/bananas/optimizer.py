@@ -5,13 +5,15 @@ import torch
 import numpy as np
 from naslib.optimizers.base import MetaOptimizer
 from naslib.optimizers.bananas.acquisition_functions import acquisition_function
-
+from naslib.optimizers.bananas.calibrator import Calibrator
+from naslib.predictors.base import Predictor
 from naslib.predictors.ensemble import Ensemble
+from naslib.predictors.mlp import MLPPredictor
 # from naslib.predictors.zerocost import ZeroCost
 # from naslib.predictors.utils.encodings import encode_spec
 from naslib.search_spaces.core.graph import Graph
 from naslib.search_spaces.core.query_metrics import Metric
-from naslib.config import FullConfig
+from naslib.config import FullConfig, PredictorType
 from naslib.utils.tools import count_parameters_in_MB # , get_train_val_loaders, AttrDict
 # from naslib.utils.log import log_every_n_seconds
 
@@ -35,7 +37,7 @@ class Bananas(MetaOptimizer):
 
         self.k = config.search.k
         self.num_init = config.search.num_init
-        self.num_ensemble = config.search.num_ensemble
+     #   self.num_ensemble = config.search.num_ensemble
         # self.predictor_type = config.search.predictor_type
         self.acq_fn_type = config.search.acq_fn_type
         self.acq_fn_params = config.search.acq_fn_params
@@ -131,23 +133,24 @@ class Bananas(MetaOptimizer):
         ytrain = [m.accuracy for m in self.train_data]
         return xtrain, ytrain
 
-    def _get_predictor(self):
-        if self.predictor_type == "ensemble":
-            predictor = Ensemble(**self.predictor_params, encoding_type=self.encoding_type)
+    def _get_predictor(self) -> Predictor:
+        if self.predictor_type == PredictorType.ENSEMBLE_MLP:
+            predictor = Ensemble(base_predictor=MLPPredictor(encoding_type=self.encoding_type), **self.predictor_params)
                 
              #   num_ensemble=self.num_ensemble, ss_type=self.ss_type, encoding_type=self.encoding_type)#,
                             #  predictor_type=self.predictor_type,
                             #  zc=self.zc,
                             #  zc_only=self.zc_only,
                                # config=self.config)
-
         return predictor
+    
+    def _get_calibrator(self) -> Calibrator:
+        return None
 
     def _get_new_candidates(self, ytrain):
         # optimize the acquisition function to output k new architectures
         candidates = []
         if self.acq_fn_optimization == 'random_sampling':
-
             for _ in range(self.num_candidates):
                 # self.search_space.sample_random_architecture(dataset_api=self.dataset_api, load_labeled=self.sample_from_zc_api) # # FIXME extend to Zero Cost case
                 model = self._sample_new_model()
@@ -216,14 +219,15 @@ class Bananas(MetaOptimizer):
                 #         ensemble.set_pre_computations(
                 #             unlabeled_zc_info=unlabeled_zc_info)
                 print(f"TRAINING surrogate predictor for epoch={epoch}")
+                
                 predictor.fit(xtrain, ytrain)
-
+                #TODO: calibrated_predictor = Calibrator(predictor=predictor, y_train=ytrain)
+                
                 # define an acquisition function
                 acq_fn = acquisition_function(predictor=predictor, ytrain=ytrain, acq_fn_type=self.acq_fn_type, **self.acq_fn_params)
 
                 # optimize the acquisition function to output k new architectures
                 candidates = self._get_new_candidates(ytrain=ytrain)
-
                 self.next_batch = self._get_best_candidates(candidates, acq_fn)
 
             # train the next architecture chosen by the neural predictor

@@ -3,6 +3,11 @@ from pydantic import BaseModel, model_validator, Field
 from typing import Literal, Any
 
 
+
+class SearchSpaceType(str, Enum):
+    NB201 = "nasbench201"
+
+
 class EncodingType(str, Enum):
     """Architecture encoding type."""
 
@@ -81,6 +86,8 @@ class NASConfig(BaseModel):
             if values[field] is None:
                 values[field] = {}
         return values
+    
+
    
     
     
@@ -125,7 +132,7 @@ class FullConfig(BaseModel):
     #: random seed
     seed: int 
 
-    search_space: Literal["nasbench201"]
+    search_space: SearchSpaceType = SearchSpaceType.NB201
     dataset: Literal["cifar10", "cifar100", "ImageNet16-120"]
 
     search: NASConfig 
@@ -153,4 +160,8 @@ class FullConfig(BaseModel):
       #  self.save = 
        # self.opts = None
         return f"{self.out_dir}/{self.search_space}/{self.dataset}/search_epochs={self.search.epochs}/seed={self.seed}"
+    
+    def info(self) -> str:
+      return f"{self.search_space}_{self.dataset}"
+
     

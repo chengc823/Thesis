@@ -118,7 +118,7 @@ class Bananas(MetaOptimizer):
         self.train_data.append(model)
         self._update_history(model)
 
-    def _sample_new_model(self):
+    def _sample_new_model(self) -> torch.nn.Module:
         model = torch.nn.Module()
         model.arch = self.search_space.clone()
         model.arch.sample_random_architecture(dataset_api=self.dataset_api, load_labeled=False)#self.load_labeled)
@@ -147,7 +147,7 @@ class Bananas(MetaOptimizer):
     def _get_calibrator(self) -> Calibrator:
         return None
 
-    def _get_new_candidates(self, ytrain):
+    def _get_new_candidates(self, ytrain) -> list[torch.nn.Module]:
         # optimize the acquisition function to output k new architectures
         candidates = []
         if self.acq_fn_optimization == 'random_sampling':
@@ -163,7 +163,7 @@ class Bananas(MetaOptimizer):
             best_archs = [self.train_data[i].arch for i in best_arch_indices]
             candidates = []
             for arch in best_archs:
-                for _ in range(int(self.num_candidates / len(best_archs) / self.max_mutations)):
+                for _ in range(int(self.num_candidates / len(best_archs) / self.max_mutations)):    # number of candidates each selected best arch should derive
                     candidate = arch.clone()
                     for __ in range(int(self.max_mutations)):
                         arch = self.search_space.clone()

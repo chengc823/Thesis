@@ -13,7 +13,6 @@ Note: we could add more conversions, but this is all we need for now
 """
 
 import torch
-
 from naslib.search_spaces.core.primitives import AbstractPrimitive
 
 OP_NAMES = ["Identity", "Zero", "ReLUConvBN3x3", "ReLUConvBN1x1", "AvgPool1x1"]

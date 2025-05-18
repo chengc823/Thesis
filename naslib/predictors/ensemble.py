@@ -2,7 +2,7 @@ import numpy as np
 import copy
 
 from naslib.predictors.base import Predictor
-from naslib.predictors.mlp import MLPPredictor
+# from naslib.predictors.mlp import MLPPredictor
 # from naslib.predictors.trees import LGBoost, XGBoost, NGBoost, RandomForestPredictor
 # from naslib.predictors.gcn import GCNPredictor
 # from naslib.predictors.bonas import BonasPredictor
@@ -16,7 +16,7 @@ from naslib.predictors.mlp import MLPPredictor
 # )
 # from naslib.predictors.omni_ngb import OmniNGBPredictor
 # from naslib.predictors.omni_seminas import OmniSemiNASPredictor
-from naslib.config import EncodingType
+# from naslib.config import EncodingType
 
 
 class Ensemble(Predictor):

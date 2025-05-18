@@ -1,6 +1,11 @@
 import pickle
 import os
-from typing import Literal
+from typing import Literal, Protocol
+
+
+class DataAPI(Protocol):
+    
+    def __call__(self, dataset: str):...
 
 
 def get_nasbench201_api(dataset: Literal["cifar10", "cifar100", "ImageNet16-120", 'ninapro']):

@@ -15,7 +15,7 @@ plot_arch_weights: false
 # 3. Search setups
 optimizer: "bananas"
 #: random seed
-seed: 99
+seed: 42
 
 search_space: "nasbench201"
 dataset: "cifar10"
@@ -23,13 +23,13 @@ search:
     #: Frequency to setup checkpoints 
     checkpoint_freq: 5
     #: Number of architectures being sampled and evaluated
-    epochs: 10
+    epochs: 150 
     #: Architecture encoding type
     encoding_type: "path"
     
     # BO-related parameters
     #: Number of initially sampled data points before fitting the surrogate model for the first time
-    num_init: 1
+    num_init: 10
     #: Surrogate model
     predictor_type: "ensemble_mlp"
     predictor_params:

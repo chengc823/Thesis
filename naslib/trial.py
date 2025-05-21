@@ -23,10 +23,11 @@ def get_dataset_api(search_space_type: SearchSpaceType, dataset: str):
 
 
 
-def trial(config: FullConfig, seed=42):
+def trial(config: FullConfig, seed=42, dump_config: bool = True):
     # Overwrite random seed and dump the config file to the output dir
     config.seed = seed
-    dump_config_to_yaml(output_dir=config.save, config=config)
+    if dump_config:
+        dump_config_to_yaml(output_dir=config.save, config=config)
     # Get seach space
     search_space = get_search_space(search_space_type=config.search_space)
     # Setup optimizer and trainer
@@ -37,4 +38,4 @@ def trial(config: FullConfig, seed=42):
     # Search
     trainer.search()
     # Evaluate
-    trainer.evaluate(dataset_api=dataset_api)  
+    print(f"seed={seed}: {trainer.evaluate(dataset_api=dataset_api)}")  

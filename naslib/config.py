@@ -24,7 +24,11 @@ class PredictorType(str, Enum):
     ENSEMBLE_MLP = "ensemble_mlp"
     QUANTILE = "quantile"
 
-class CalibratorType(str, Enum):
+
+class CalibratorType(str, Enum):  
+    #: Default calibrator used in BANANAS (no calibration is peformed)
+    GAUSSIAN = "gaussian"
+    #: Calibrators based on Conformal Predictions
     CP_SPLIT = "CP_split"
     CP_CROSSVAL = "CP_cv"
     CP_QUANTILE = "CP_quantile"
@@ -36,6 +40,7 @@ class ACQType(str, Enum):
     TS = "ts"
     ITS = "its"
     UCB = "ucb"
+    PI = "pi"
     EI = "ei"
     EXPLOIT_ONLY = "exploit_only"
 
@@ -61,7 +66,9 @@ class NASConfig(BaseModel):
     predictor_params: dict[str, Any] 
     
     #: Calibrator: 
-    calibrator_type: CalibratorType | None = None
+    num_quantiles: int = 20
+    train_cal_split: float | int = 0.3
+    calibrator_type: CalibratorType = CalibratorType.GAUSSIAN
     calibrator_params: dict[str, Any]
     
     #: Acquisition functions
@@ -159,7 +166,8 @@ class FullConfig(BaseModel):
 
       #  self.save = 
        # self.opts = None
-        return f"{self.out_dir}/{self.search_space}/{self.dataset}/search_epochs={self.search.epochs}/seed={self.seed}"
+        algo = f"{self.optimizer}__{self.search.predictor_type.value}__{self.search.calibrator_type.value}"
+        return f"{self.out_dir}/{algo}/{self.search_space}/{self.dataset}/search_epochs={self.search.epochs}/seed={self.seed}"
     
     def info(self) -> str:
       return f"{self.search_space}_{self.dataset}"

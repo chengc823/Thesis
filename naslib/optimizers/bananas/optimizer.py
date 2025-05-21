@@ -4,8 +4,8 @@ import torch
 # import copy
 import numpy as np
 from naslib.optimizers.base import MetaOptimizer
-from naslib.optimizers.bananas.acquisition_functions import acquisition_function
-from naslib.optimizers.bananas.calibrator import Calibrator
+import naslib.optimizers.bananas.acquisition_functions as acq
+from naslib.optimizers.bananas.calibrator import BaseCalibrator, get_calibrator_class
 from naslib.predictors.base import Predictor
 from naslib.predictors.ensemble import Ensemble
 from naslib.predictors.mlp import MLPPredictor
@@ -13,12 +13,32 @@ from naslib.predictors.mlp import MLPPredictor
 # from naslib.predictors.utils.encodings import encode_spec
 from naslib.search_spaces.core.graph import Graph
 from naslib.search_spaces.core.query_metrics import Metric
-from naslib.config import FullConfig, PredictorType
+from naslib.config import FullConfig, PredictorType, EncodingType
 from naslib.utils.tools import count_parameters_in_MB # , get_train_val_loaders, AttrDict
 # from naslib.utils.log import log_every_n_seconds
 
 
 logger = logging.getLogger(__name__)
+
+
+
+def _get_predictor(predictor_type: PredictorType, encoding_type: EncodingType, **kwargs) -> Predictor:
+
+    if predictor_type == PredictorType.ENSEMBLE_MLP:
+        predictor = Ensemble(base_predictor=MLPPredictor(encoding_type=encoding_type), **kwargs)
+                
+             #   num_ensemble=self.num_ensemble, ss_type=self.ss_type, encoding_type=self.encoding_type)#,
+                            #  predictor_type=self.predictor_type,
+                            #  zc=self.zc,
+                            #  zc_only=self.zc_only,
+                               # config=self.config)
+    return predictor
+
+
+
+
+
+
 
 
 class Bananas(MetaOptimizer):
@@ -29,23 +49,33 @@ class Bananas(MetaOptimizer):
     def __init__(self, config: FullConfig, zc_api=None):
         super().__init__()
         self.config = config
-     #   self.epochs = config.search.epochs
+        self.dataset = config.dataset
+        self.k = config.search.k
+        self.num_init = config.search.num_init
+        #   self.epochs = config.search.epochs
+     #   self.num_ensemble = config.search.num_ensemble
+        # self.predictor_type = config.search.predictor_type
+
+        # Surrogate model
+        self.encoding_type = config.search.encoding_type     # # currently not implemented
         self.predictor_type = config.search.predictor_type
         self.predictor_params = config.search.predictor_params
         self.performance_metric = Metric.VAL_ACCURACY # The metric score for training surrogate model
-        self.dataset = config.dataset
+        # Calibrator
+        self.calibrator_type = config.search.calibrator_type
+        self.train_cal_split = config.search.train_cal_split
+        self.calibrator_params = config.search.calibrator_params 
+        self.percentiles = np.linspace(0, 1, num=config.search.num_quantiles + 1)
 
-        self.k = config.search.k
-        self.num_init = config.search.num_init
-     #   self.num_ensemble = config.search.num_ensemble
-        # self.predictor_type = config.search.predictor_type
+        # Acquisition functions
+        # define an acquisition function
+     #   self.acq_fn = get_acquisition_function(acq_type=self.acq_fn_type, **self.acq_fn_params)
         self.acq_fn_type = config.search.acq_fn_type
         self.acq_fn_params = config.search.acq_fn_params
         self.acq_fn_optimization = config.search.acq_fn_optimization
-        self.encoding_type = config.search.encoding_type     # # currently not implemented
+        self.num_candidates = config.search.num_candidates
         self.num_arches_to_mutate = config.search.num_arches_to_mutate
         self.max_mutations = config.search.max_mutations
-        self.num_candidates = config.search.num_candidates
       #  self.max_zerocost = 1000
 
         # a container storing evaluated models. training data (model_encoding, model_metrics) for fitting the surrogate model 
@@ -133,19 +163,16 @@ class Bananas(MetaOptimizer):
         ytrain = [m.accuracy for m in self.train_data]
         return xtrain, ytrain
 
-    def _get_predictor(self) -> Predictor:
-        if self.predictor_type == PredictorType.ENSEMBLE_MLP:
-            predictor = Ensemble(base_predictor=MLPPredictor(encoding_type=self.encoding_type), **self.predictor_params)
+    # def _get_predictor(self) -> Predictor:
+    #     if self.predictor_type == PredictorType.ENSEMBLE_MLP:
+    #         predictor = Ensemble(base_predictor=MLPPredictor(encoding_type=self.encoding_type), **self.predictor_params)
                 
-             #   num_ensemble=self.num_ensemble, ss_type=self.ss_type, encoding_type=self.encoding_type)#,
-                            #  predictor_type=self.predictor_type,
-                            #  zc=self.zc,
-                            #  zc_only=self.zc_only,
-                               # config=self.config)
-        return predictor
-    
-    def _get_calibrator(self) -> Calibrator:
-        return None
+    #          #   num_ensemble=self.num_ensemble, ss_type=self.ss_type, encoding_type=self.encoding_type)#,
+    #                         #  predictor_type=self.predictor_type,
+    #                         #  zc=self.zc,
+    #                         #  zc_only=self.zc_only,
+    #                            # config=self.config)
+    #     return predictor
 
     def _get_new_candidates(self, ytrain) -> list[torch.nn.Module]:
         # optimize the acquisition function to output k new architectures
@@ -154,7 +181,7 @@ class Bananas(MetaOptimizer):
             for _ in range(self.num_candidates):
                 # self.search_space.sample_random_architecture(dataset_api=self.dataset_api, load_labeled=self.sample_from_zc_api) # # FIXME extend to Zero Cost case
                 model = self._sample_new_model()
-                model.accuracy = model.arch.query(self.performance_metric, self.dataset, dataset_api=self.dataset_api)
+             #   model.accuracy = model.arch.query(self.performance_metric, self.dataset, dataset_api=self.dataset_api)
                 candidates.append(model)
 
         elif self.acq_fn_optimization == 'mutation':
@@ -189,9 +216,15 @@ class Bananas(MetaOptimizer):
             self._set_scores(model)
         else:
             if len(self.next_batch) == 0:
-                # train a neural predictor
+                
+                print(f"TRAINING surrogate predictor for epoch={epoch}.")
+                # train and calibrate a surrogate model
                 xtrain, ytrain = self._get_train()
-                predictor = self._get_predictor()
+                predictor = _get_predictor(predictor_type=self.predictor_type, encoding_type=self.encoding_type, **self.predictor_params)
+                calibrator = get_calibrator_class(calibrator_type=self.calibrator_type)(
+                    predictor=predictor, train_cal_split=self.train_cal_split, percentiles=self.percentiles, **self.calibrator_params
+                )
+                calibrator.calibrate(data=(xtrain, ytrain))
 
                 # if self.semi:
                 #     # create unlabeled data and pass it to the predictor
@@ -218,35 +251,52 @@ class Bananas(MetaOptimizer):
                 #             m.zc_scores for m in self.unlabeled]}
                 #         ensemble.set_pre_computations(
                 #             unlabeled_zc_info=unlabeled_zc_info)
-                print(f"TRAINING surrogate predictor for epoch={epoch}")
+               
+                # predictor.fit(xtrain, ytrain)
+                # get a calibrated distribution (CDF)
+               # calibrator = get_calibrator(calibrator_type=self.calibrator_type, predictor=predictor)
                 
-                predictor.fit(xtrain, ytrain)
-                #TODO: calibrated_predictor = Calibrator(predictor=predictor, y_train=ytrain)
-                
-                # define an acquisition function
-                acq_fn = acquisition_function(predictor=predictor, ytrain=ytrain, acq_fn_type=self.acq_fn_type, **self.acq_fn_params)
+                # get candidates for next exploration 
+                candidates = self._get_new_candidates(ytrain=ytrain)
+    
+               # acq_fn = acquisition_function(distribution=distribution, threshold=max(ytrain), acq_type=self.acq_fn_type,  **self.acq_fn_params)
+              ## # acquisition_function(predictor=predictor, ytrain=ytrain, acq_fn_type=self.acq_fn_type, **self.acq_fn_params)
 
                 # optimize the acquisition function to output k new architectures
-                candidates = self._get_new_candidates(ytrain=ytrain)
-                self.next_batch = self._get_best_candidates(candidates, acq_fn)
+                values = []
+                for model in candidates:
+                    distribution = calibrator.get_distribution(data=model.arch)
+
+                    # get acquisition score based on function type
+                    match self.acq_fn_type:
+                        case acq.ACQType.ITS:
+                            acq_score = acq.idependent_thompson_sampling(distribution=distribution)
+                        case acq.ACQType.UCB:
+                            acq_score = acq.upper_confidence_bound(distribution=distribution, **self.acq_fn_params)
+                        case acq.ACQType.PI:
+                            acq_score = acq.probability_of_improvement(distribution=distribution, threhold=max(ytrain))
+                    values.append(acq_score)
+
+                sorted_indices = np.argsort(values)
+                self.next_batch = [candidates[i] for i in sorted_indices[-self.k:]]#self._get_best_candidates(candidates, acq_fn)
 
             # train the next architecture chosen by the neural predictor
             model = self.next_batch.pop()
             self._set_scores(model)
 
-    def _get_best_candidates(self, candidates, acq_fn):
-        # if self.zc and len(self.train_data) <= self.max_zerocost:
-        #     for model in candidates:
-        #         model.zc_scores = self.query_zc_scores(model.arch)
+    # def _get_best_candidates(self, candidates: list[torch.nn.Module]):
+    #     # if self.zc and len(self.train_data) <= self.max_zerocost:
+    #     #     for model in candidates:
+    #     #         model.zc_scores = self.query_zc_scores(model.arch)
 
-        #     values = [acq_fn(model.arch, [{'zero_cost_scores': model.zc_scores}]) for model in candidates]
-        # else:
-        values = [acq_fn(model.arch) for model in candidates]
+    #     #     values = [acq_fn(model.arch, [{'zero_cost_scores': model.zc_scores}]) for model in candidates]
+    #     # else:
+    #     values = [acq_fn(model.arch) for model in candidates]
 
-        sorted_indices = np.argsort(values)
-        choices = [candidates[i] for i in sorted_indices[-self.k:]]
+    #     sorted_indices = np.argsort(values)
+    #     choices = [candidates[i] for i in sorted_indices[-self.k:]]
 
-        return choices
+    #     return choices
 
     def _update_history(self, child):
         if len(self.history) < 100:
@@ -335,9 +385,9 @@ class Bananas(MetaOptimizer):
     def get_model_size(self):
         return count_parameters_in_MB(self.history)
 
-    def get_arch_as_string(self, arch):
-        if self.search_space.get_type() == 'nasbench301':
-            str_arch = str(list((list(arch[0]), list(arch[1]))))
-        else:
-            str_arch = str(arch)
-        return str_arch
+    # def get_arch_as_string(self, arch):
+    #     if self.search_space.get_type() == 'nasbench301':
+    #         str_arch = str(list((list(arch[0]), list(arch[1]))))
+    #     else:
+    #         str_arch = str(arch)
+    #     return str_arch

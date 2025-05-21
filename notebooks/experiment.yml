@@ -23,7 +23,7 @@ search:
     #: Frequency to setup checkpoints 
     checkpoint_freq: 5
     #: Number of architectures being sampled and evaluated
-    epochs: 150 
+    epochs: 50 
     #: Architecture encoding type
     encoding_type: "path"
     
@@ -36,7 +36,7 @@ search:
       num_ensemble: 5
     
     #: Calibrator: 
-    calibrator_type: null
+    calibrator_type: "gaussian"
     calibrator_params: 
       
     

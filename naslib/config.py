@@ -168,7 +168,14 @@ class FullConfig(BaseModel):
       #  self.save = 
        # self.opts = None
         algo = f"{self.optimizer}__{self.search.predictor_type.value}__{self.search.calibrator_type.value}"
-        return f"{self.out_dir}/{algo}/{self.search_space}/{self.dataset}/search_epochs={self.search.epochs}/seed={self.seed}"
+        algo_cfg = f"acq={self.search.acq_fn_type.value}"
+
+        match self.search.calibrator_type:
+            case CalibratorType.CP_SPLIT:
+                algo_cfg += f"__train_cal_split={self.search.train_cal_split}__num_quantiles={self.search.num_quantiles}".replace(".", "")
+
+        full_path = f"{self.out_dir}/{algo}/{self.search_space}/{self.dataset}/{algo_cfg}/search_epochs={self.search.epochs}/seed={self.seed}"
+        return full_path
     
     def info(self) -> str:
       return f"{self.search_space}_{self.dataset}"

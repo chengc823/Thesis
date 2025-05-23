@@ -1,11 +1,4 @@
-import numpy as np
-from typing import Protocol
-from functools import partial
-from scipy.stats import norm
-from naslib.config import ACQType
-from naslib.optimizers.bananas.calibrator import Distribution
-
-
+from naslib.optimizers.bananas.distribution import Distribution
 
 
 def idependent_thompson_sampling(distribution: Distribution, **kwargs) -> float:

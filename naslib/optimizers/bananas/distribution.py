@@ -1,9 +1,7 @@
 from typing import Protocol
-from dataclasses import dataclass
 from numpy.typing import ArrayLike
 import scipy.stats as stats
 import numpy as np
-
 
 
 class Distribution(Protocol):
@@ -34,25 +32,26 @@ class PointwiseInterpolatedDist(stats.rv_continuous):
         self.qk = qk
  
         self.intervals = []
-        self.density = []
+        self.densities = []
+        # For simplicity, for now we just assume the sample extremums are population extremums
         for i in range(1, len(qk)):
             interval = (qk[i-1], qk[i])
             self.intervals.append(interval)
             weight = pk[i] - pk[i-1]
             density =  weight / (qk[i] - qk[i - 1])
-            self.density.append(density)  
+            self.densities.append(density)  
         
         # prob mass of each interval
         self.width = 1 / len(self.intervals)  
 
     def mean(self):
         cum_ = 0.0
-        for interval, prob in zip(self.intervals, self.density):
+        for interval, prob in zip(self.intervals, self.densities):
             cum_ = (interval[1] - interval[0]) / 2 * prob
         return cum_
 
     def rvs(self, size=1):
-        def _sample_single_sample():
+        def _sample_single_var():
             # first sample an interval
             interval_idx = np.random.randint(0, len(self.intervals), 1)[0]
             interval = self.intervals[interval_idx]
@@ -61,7 +60,7 @@ class PointwiseInterpolatedDist(stats.rv_continuous):
 
         samples = []
         for _ in range(size):
-            samples.append(_sample_single_sample())
+            samples.append(_sample_single_var())
 
         assert len(samples) == size
         return np.array(samples)
@@ -86,6 +85,12 @@ class PointwiseInterpolatedDist(stats.rv_continuous):
             return np.nan
         
         for i, percentile in enumerate(self.pk):
-            ...
+            if q <= percentile:
+                interval = self.intervals[i-1]
+                left, right = interval
+                break
+        
+        ratio = (q - percentile) / self.width 
+        return ratio * (right - left) + left
         
 

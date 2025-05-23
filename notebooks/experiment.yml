@@ -21,23 +21,25 @@ search_space: "nasbench201"
 dataset: "cifar10"
 search: 
     #: Frequency to setup checkpoints 
-    checkpoint_freq: 5
+    checkpoint_freq: 25
     #: Number of architectures being sampled and evaluated
-    epochs: 50 
+    epochs: 150
     #: Architecture encoding type
     encoding_type: "path"
     
     # BO-related parameters
     #: Number of initially sampled data points before fitting the surrogate model for the first time
-    num_init: 10
+    num_init: 20
     #: Surrogate model
     predictor_type: "ensemble_mlp"
     predictor_params:
       num_ensemble: 5
     
     #: Calibrator: 
-    calibrator_type: "gaussian"
-    calibrator_params: 
+    num_quantiles: 10
+    train_cal_split: 0.3
+    calibrator_type: "CP_split"
+    calibrator_params: null
       
     
     #: Acquisition functions

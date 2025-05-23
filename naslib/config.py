@@ -21,6 +21,7 @@ class EncodingType(str, Enum):
 
 
 class PredictorType(str, Enum):
+    MLP = "mlp"
     ENSEMBLE_MLP = "ensemble_mlp"
     QUANTILE = "quantile"
 

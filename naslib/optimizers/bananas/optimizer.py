@@ -24,8 +24,13 @@ logger = logging.getLogger(__name__)
 
 def _get_predictor(predictor_type: PredictorType, encoding_type: EncodingType, **kwargs) -> Predictor:
 
-    if predictor_type == PredictorType.ENSEMBLE_MLP:
-        predictor = Ensemble(base_predictor=MLPPredictor(encoding_type=encoding_type), **kwargs)
+    match predictor_type:
+        case PredictorType.ENSEMBLE_MLP:
+            predictor = Ensemble(base_predictor=MLPPredictor(encoding_type=encoding_type), **kwargs)
+
+        case PredictorType.MLP:
+            predictor = MLPPredictor(encoding_type=encoding_type, **kwargs)
+    
                 
              #   num_ensemble=self.num_ensemble, ss_type=self.ss_type, encoding_type=self.encoding_type)#,
                             #  predictor_type=self.predictor_type,
@@ -49,6 +54,7 @@ class Bananas(MetaOptimizer):
     def __init__(self, config: FullConfig, zc_api=None):
         super().__init__()
         self.config = config
+        self.seed = config.seed
         self.dataset = config.dataset
         self.k = config.search.k
         self.num_init = config.search.num_init
@@ -222,7 +228,7 @@ class Bananas(MetaOptimizer):
                 xtrain, ytrain = self._get_train()
                 predictor = _get_predictor(predictor_type=self.predictor_type, encoding_type=self.encoding_type, **self.predictor_params)
                 calibrator = get_calibrator_class(calibrator_type=self.calibrator_type)(
-                    predictor=predictor, train_cal_split=self.train_cal_split, percentiles=self.percentiles, **self.calibrator_params
+                    predictor=predictor, train_cal_split=self.train_cal_split, seed=self.seed, **self.calibrator_params
                 )
                 calibrator.calibrate(data=(xtrain, ytrain))
 
@@ -265,16 +271,16 @@ class Bananas(MetaOptimizer):
                 # optimize the acquisition function to output k new architectures
                 values = []
                 for model in candidates:
-                    distribution = calibrator.get_distribution(data=model.arch)
+                    distribution = calibrator.get_distribution(data=model.arch, percentiles=self.percentiles)
 
                     # get acquisition score based on function type
                     match self.acq_fn_type:
                         case acq.ACQType.ITS:
-                            acq_score = acq.idependent_thompson_sampling(distribution=distribution)
+                            acq_score = acq.idependent_thompson_sampling(distribution=distribution, **self.acq_fn_params)
                         case acq.ACQType.UCB:
                             acq_score = acq.upper_confidence_bound(distribution=distribution, **self.acq_fn_params)
-                        case acq.ACQType.PI:
-                            acq_score = acq.probability_of_improvement(distribution=distribution, threhold=max(ytrain))
+                        case acq.ACQType.PI | acq.ACQType.EI:
+                            acq_score = acq.probability_of_improvement(distribution=distribution, threhold=max(ytrain), **self.acq_fn_params)
                     values.append(acq_score)
 
                 sorted_indices = np.argsort(values)

@@ -5,7 +5,7 @@ import torch
 import numpy as np
 from naslib.optimizers.base import MetaOptimizer
 import naslib.optimizers.bananas.acquisition_functions as acq
-from naslib.optimizers.bananas.calibrator import BaseCalibrator, get_calibrator_class
+from naslib.optimizers.bananas.calibrator import get_calibrator_class
 from naslib.predictors.base import Predictor
 from naslib.predictors.ensemble import Ensemble
 from naslib.predictors.mlp import MLPPredictor
@@ -13,7 +13,7 @@ from naslib.predictors.mlp import MLPPredictor
 # from naslib.predictors.utils.encodings import encode_spec
 from naslib.search_spaces.core.graph import Graph
 from naslib.search_spaces.core.query_metrics import Metric
-from naslib.config import FullConfig, PredictorType, EncodingType
+from naslib.config import FullConfig, PredictorType, EncodingType, ACQType
 from naslib.utils.tools import count_parameters_in_MB # , get_train_val_loaders, AttrDict
 # from naslib.utils.log import log_every_n_seconds
 
@@ -275,11 +275,11 @@ class Bananas(MetaOptimizer):
 
                     # get acquisition score based on function type
                     match self.acq_fn_type:
-                        case acq.ACQType.ITS:
+                        case ACQType.ITS:
                             acq_score = acq.idependent_thompson_sampling(distribution=distribution, **self.acq_fn_params)
-                        case acq.ACQType.UCB:
+                        case ACQType.UCB:
                             acq_score = acq.upper_confidence_bound(distribution=distribution, **self.acq_fn_params)
-                        case acq.ACQType.PI | acq.ACQType.EI:
+                        case ACQType.PI | ACQType.EI:
                             acq_score = acq.probability_of_improvement(distribution=distribution, threhold=max(ytrain), **self.acq_fn_params)
                     values.append(acq_score)
 

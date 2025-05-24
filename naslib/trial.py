@@ -23,9 +23,11 @@ def get_dataset_api(search_space_type: SearchSpaceType, dataset: str):
 
 
 
-def trial(config: FullConfig, seed=42, dump_config: bool = True):
+def trial(config: FullConfig, seed=42, output_dir: str | None = None, dump_config: bool = True):
     # Overwrite random seed and dump the config file to the output dir
     config.seed = seed
+    if output_dir:
+        config.out_dir = output_dir
     if dump_config:
         dump_config_to_yaml(output_dir=config.save, config=config)
     # Get seach space
@@ -38,4 +40,8 @@ def trial(config: FullConfig, seed=42, dump_config: bool = True):
     # Search
     trainer.search()
     # Evaluate
-    print(f"seed={seed}: {trainer.evaluate(dataset_api=dataset_api)}")  
+    if config.search.checkpoint_freq:
+        performance = trainer.evaluate(dataset_api=dataset_api)
+    else:
+        performance = trainer.evaluate(dataset_api=dataset_api, best_arch=optimizer.get_final_architecture())
+    print(f"seed={seed}: {performance}")  

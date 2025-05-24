@@ -38,7 +38,6 @@ class CalibratorType(str, Enum):
 
 
 class ACQType(str, Enum):
-    TS = "ts"
     ITS = "its"
     UCB = "ucb"
     PI = "pi"
@@ -51,8 +50,8 @@ class ACQType(str, Enum):
 class NASConfig(BaseModel):
     # #: Random seed for search
     # seed: int = 99
-    #: Frequency to setup checkpoints 
-    checkpoint_freq: int = 5
+    #: Whether or not and the frequency to setup checkpoints 
+    checkpoint_freq: int | None = None
     #: Number of architectures being sampled and evaluated
     epochs: int = 150
     #: Architecture encoding type
@@ -174,7 +173,7 @@ class FullConfig(BaseModel):
             case CalibratorType.CP_SPLIT:
                 algo_cfg += f"__train_cal_split={self.search.train_cal_split}__num_quantiles={self.search.num_quantiles}".replace(".", "")
 
-        full_path = f"{self.out_dir}/{algo}/{self.search_space}/{self.dataset}/{algo_cfg}/search_epochs={self.search.epochs}/seed={self.seed}"
+        full_path = f"{self.out_dir}/{algo}/{self.search_space}/{self.dataset}/{algo_cfg}/num_init={self.search.num_init}/seed={self.seed}"
         return full_path
     
     def info(self) -> str:

@@ -91,7 +91,10 @@ class Trainer(object):
         #         resume_from, period=checkpoint_freq, scheduler=self.scheduler
         #     )
         # else:
-        start_epoch = self._setup_checkpointers(save=self.save, resume_from=resume_from, period=checkpoint_freq)
+        
+        start_epoch = 0
+        if checkpoint_freq is not None:
+            start_epoch = self._setup_checkpointers(save=self.save, resume_from=resume_from, period=checkpoint_freq)
 
         # if self.optimizer.using_step_function:
         #     self.train_queue, self.valid_queue, _ = self.build_search_dataloaders(
@@ -181,7 +184,8 @@ class Trainer(object):
             self.train_top1.avg = train_acc
             self.val_top1.avg = valid_acc
 
-            self.periodic_checkpointer.step(e)
+            if hasattr(self, "periodic_checkpointer"):
+                self.periodic_checkpointer.step(e)
 
             # anytime_results = self.optimizer.test_statistics()
             # if anytime_results:

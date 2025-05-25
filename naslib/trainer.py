@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import copy
+import dill as pickle
 from pathlib import Path
 from typing import Callable
 import numpy as np
@@ -101,7 +102,7 @@ class Trainer(object):
         #         self.config
         #     )
 
-        arch_weights = []
+       # arch_weights = []
         for e in range(start_epoch, self.epochs):
 
             start_time = time.time()
@@ -203,16 +204,19 @@ class Trainer(object):
             # if after_epoch is not None:
             #     after_epoch(e)
 
-        logger.info(f"Saving architectural weight tensors: {self.save}/arch_weights.pt")
 
         # if hasattr(self.config, "save_arch_weights") and self.config.save_arch_weights:
         
         if self.config.save_arch_weights:
-            torch.save(arch_weights, f'{self.save}/arch_weights.pt')
+            logger.info(f"Saving architectural weight tensors: {self.save}/arch_weights.pt")
+            best_arch = self.optimizer.get_final_architecture()
+            arch_weights = best_arch.edges.data()
+            with open(f'{self.save}/arch_weights.pt', "wb") as f:
+                pickle.dump(arch_weights, f)
+            #torch.save(arch_weights, f'{self.save}/arch_weights.pt')
         # if hasattr(self.config, "plot_arch_weights") and 
         if self.config.plot_arch_weights:
-            
-            plot_architectural_weights(self.config, self.optimizer)
+            plot_architectural_weights(arch_weights)
 
         # self.optimizer.after_training()
 

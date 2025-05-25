@@ -25,3 +25,4 @@ dependencies:
     - torchaudio
     - termcolor
     - fvcore
+    - dill

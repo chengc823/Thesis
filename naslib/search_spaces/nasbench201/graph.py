@@ -164,8 +164,6 @@ class NasBench201SearchSpace(Graph):
         if dataset_api is None:
             raise NotImplementedError("Must pass in dataset_api to query NAS-Bench-201")
 
-       
-
         if self.instantiate_model:
             arch_str = convert_naslib_to_str(self)
         else:

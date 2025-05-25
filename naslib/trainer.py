@@ -76,7 +76,6 @@ class Trainer(object):
         """
         logger.info("Beginning search")
 
-        os.makedirs(self.save + '/search', exist_ok=True)
         np.random.seed(self.seed)
         torch.manual_seed(self.seed)
 
@@ -94,6 +93,7 @@ class Trainer(object):
         
         start_epoch = 0
         if checkpoint_freq is not None:
+            os.makedirs(self.save + '/search', exist_ok=True)
             start_epoch = self._setup_checkpointers(save=self.save, resume_from=resume_from, period=checkpoint_freq)
 
         # if self.optimizer.using_step_function:
@@ -206,10 +206,12 @@ class Trainer(object):
         logger.info(f"Saving architectural weight tensors: {self.save}/arch_weights.pt")
 
         # if hasattr(self.config, "save_arch_weights") and self.config.save_arch_weights:
+        
         if self.config.save_arch_weights:
             torch.save(arch_weights, f'{self.save}/arch_weights.pt')
         # if hasattr(self.config, "plot_arch_weights") and 
         if self.config.plot_arch_weights:
+            
             plot_architectural_weights(self.config, self.optimizer)
 
         # self.optimizer.after_training()

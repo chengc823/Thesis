@@ -119,7 +119,7 @@ class SplitCPCalibrator(BaseCalibrator):
             adj_p = min(math.ceil((n_cal + 1) * p) / n_cal, 1.0)  # adjusted percentil for finite sample
             quantile = np.quantile(self.conformity_scores, adj_p) * std + mean
             quantiles.append(quantile)
-        return PointwiseInterpolatedDist(values=(percentiles, quantiles))
+        return PointwiseInterpolatedDist(values=(percentiles, quantiles), std=std)
 
 
 

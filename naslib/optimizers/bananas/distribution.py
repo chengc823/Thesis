@@ -1,6 +1,7 @@
 from typing import Protocol
 from numpy.typing import ArrayLike
 import scipy.stats as stats
+import random
 import numpy as np
 
 
@@ -25,20 +26,25 @@ class PointwiseInterpolatedDist(stats.rv_continuous):
     the quantile values of each percentil. pk and qk must have the same shape.fcr
     """
 
-    def __init__(self, values: tuple[ArrayLike, ArrayLike]):
+    def __init__(self, values: tuple[ArrayLike, ArrayLike], std: float):
         pk, qk = values
         assert len(pk) == len(qk)
+        # For simplicity, for now we just assume the population extremums are half standard
+        # deviation distance away from the sample extremums.
+        qk[0] = qk[0] - std / 2 
+        qk[-1] = qk[-1] + std / 2
         self.pk = pk
         self.qk = qk
  
         self.intervals = []
         self.densities = []
-        # For simplicity, for now we just assume the sample extremums are population extremums
+       
         for i in range(1, len(qk)):
             interval = (qk[i-1], qk[i])
             self.intervals.append(interval)
             weight = pk[i] - pk[i-1]
-            density =  weight / (qk[i] - qk[i - 1])
+            left, right = interval
+            density =  weight / (right - left + np.finfo(dtype=float).eps)
             self.densities.append(density)  
         
         # prob mass of each interval
@@ -53,7 +59,8 @@ class PointwiseInterpolatedDist(stats.rv_continuous):
     def rvs(self, size=1):
         def _sample_single_var():
             # first sample an interval
-            interval_idx = np.random.randint(0, len(self.intervals), 1)[0]
+            interval_idx = np.random.randint(0, len(self.intervals), 1)[0]  # overweight extremes
+            # interval_idx = random.choices(range(len(self.intervals)), weights=self.densities, k=1)[0]
             interval = self.intervals[interval_idx]
             # inside this interval, sample uniformly
             return np.random.uniform(interval[0], interval[1], size=1)[0]

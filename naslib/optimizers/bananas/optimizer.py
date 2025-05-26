@@ -5,7 +5,7 @@ import torch
 import numpy as np
 from naslib.optimizers.base import MetaOptimizer
 import naslib.optimizers.bananas.acquisition_functions as acq
-from naslib.optimizers.bananas.calibrator import get_calibrator_class
+from naslib.optimizers.bananas.calibrator import get_calibrator_class, calibration_metrics
 from naslib.predictors.base import Predictor
 from naslib.predictors.ensemble import Ensemble
 from naslib.predictors.mlp import MLPPredictor
@@ -38,8 +38,6 @@ def _get_predictor(predictor_type: PredictorType, encoding_type: EncodingType, *
                             #  zc_only=self.zc_only,
                                # config=self.config)
     return predictor
-
-
 
 
 
@@ -164,7 +162,7 @@ class Bananas(MetaOptimizer):
             model.arch.parse()
         return model
 
-    def _get_train(self):
+    def _get_data(self):
         xtrain = [m.arch for m in self.train_data]
         ytrain = [m.accuracy for m in self.train_data]
         return xtrain, ytrain
@@ -220,17 +218,18 @@ class Bananas(MetaOptimizer):
         if epoch < self.num_init:
             model = self._sample_new_model()
             self._set_scores(model)
+            self.calibration_score = np.nan
         else:
             if len(self.next_batch) == 0:
                 
                 print(f"TRAINING surrogate predictor for epoch={epoch}.")
                 # train and calibrate a surrogate model
-                xtrain, ytrain = self._get_train()
+                X, y = self._get_data()
                 predictor = _get_predictor(predictor_type=self.predictor_type, encoding_type=self.encoding_type, **self.predictor_params)
                 calibrator = get_calibrator_class(calibrator_type=self.calibrator_type)(
                     predictor=predictor, train_cal_split=self.train_cal_split, seed=self.seed, **self.calibrator_params
                 )
-                calibrator.calibrate(data=(xtrain, ytrain))
+                calibrator.calibrate(data=(X, y))
 
                 # if self.semi:
                 #     # create unlabeled data and pass it to the predictor
@@ -263,16 +262,16 @@ class Bananas(MetaOptimizer):
                # calibrator = get_calibrator(calibrator_type=self.calibrator_type, predictor=predictor)
                 
                 # get candidates for next exploration 
-                candidates = self._get_new_candidates(ytrain=ytrain)
+                candidates = self._get_new_candidates(ytrain=y)
     
                # acq_fn = acquisition_function(distribution=distribution, threshold=max(ytrain), acq_type=self.acq_fn_type,  **self.acq_fn_params)
               ## # acquisition_function(predictor=predictor, ytrain=ytrain, acq_fn_type=self.acq_fn_type, **self.acq_fn_params)
 
                 # optimize the acquisition function to output k new architectures
                 values = []
+                distributions = []
                 for model in candidates:
-                    distribution = calibrator.get_distribution(data=model.arch, percentiles=self.percentiles)
-
+                    distribution = calibrator.get_distribution(data=model.arch, percentiles=self.percentiles)                   
                     # get acquisition score based on function type
                     match self.acq_fn_type:
                         case ACQType.ITS:
@@ -280,15 +279,19 @@ class Bananas(MetaOptimizer):
                         case ACQType.UCB:
                             acq_score = acq.upper_confidence_bound(distribution=distribution, **self.acq_fn_params)
                         case ACQType.PI | ACQType.EI:
-                            acq_score = acq.probability_of_improvement(distribution=distribution, threhold=max(ytrain), **self.acq_fn_params)
+                            acq_score = acq.probability_of_improvement(distribution=distribution, threhold=max(y), **self.acq_fn_params)
                     values.append(acq_score)
+                    distributions.append(distribution)
 
                 sorted_indices = np.argsort(values)
                 self.next_batch = [candidates[i] for i in sorted_indices[-self.k:]]#self._get_best_candidates(candidates, acq_fn)
+                self.next_batch_dist = [distributions[i] for i in sorted_indices[-self.k:]]
 
             # train the next architecture chosen by the neural predictor
             model = self.next_batch.pop()
-            self._set_scores(model)
+            curr_dist = self.next_batch_dist.pop()
+            self._set_scores(model)  # add model to train_data 
+            self.calibration_score = calibration_metrics(dist=curr_dist, percentiles=self.percentiles, observations=self._get_data()[1])
 
     # def _get_best_candidates(self, candidates: list[torch.nn.Module]):
     #     # if self.zc and len(self.train_data) <= self.max_zerocost:

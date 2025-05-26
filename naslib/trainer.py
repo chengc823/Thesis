@@ -66,6 +66,7 @@ class Trainer(object):
                 "train_time": [],
                 "arch_eval": [],
                 "params": n_parameters,
+                "calibration_score": []
             }
         )
 
@@ -166,6 +167,7 @@ class Trainer(object):
             end_time = time.time()
             # TODO: nasbench101 does not have train_loss, valid_loss, test_loss implemented, so this is a quick fix for now
             train_acc, train_loss, valid_acc, valid_loss, test_acc, test_loss, train_time = self.optimizer.train_statistics()
+            calibration_score = self.optimizer.calibration_score 
             # (
             #     train_acc,
             #     valid_acc,
@@ -182,6 +184,8 @@ class Trainer(object):
             self.search_trajectory.test_loss.append(test_loss)
             self.search_trajectory.runtime.append(end_time - start_time)
             self.search_trajectory.train_time.append(train_time)
+            self.search_trajectory.calibration_score.append(calibration_score)
+
             self.train_top1.avg = train_acc
             self.val_top1.avg = valid_acc
 
@@ -212,6 +216,7 @@ class Trainer(object):
             best_arch = self.optimizer.get_final_architecture()
             arch_weights = best_arch.edges.data()
             with open(f'{self.save}/arch_weights.pt', "wb") as f:
+                pickle.dump(best_arch, f)
                 pickle.dump(arch_weights, f)
             #torch.save(arch_weights, f'{self.save}/arch_weights.pt')
         # if hasattr(self.config, "plot_arch_weights") and 

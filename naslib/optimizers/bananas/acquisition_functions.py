@@ -20,9 +20,8 @@ def exploit_only(distribution: Distribution, **kwargs) -> float:
     return distribution.mean()
 
 
-def expected_improvement(distribution: Distribution, threshold: float, scaler: float = 5.0, **kwargs) -> float:
-    ...
-
+def expected_improvement(distribution: Distribution, threshold: float, **kwargs) -> float:
+    return distribution.explected_gain(x=threshold, **kwargs)
 
     # if acq_fn_type == "its":
     #     # Independent Thompson sampling (ITS) acquisition function

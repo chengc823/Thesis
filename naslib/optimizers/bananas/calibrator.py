@@ -8,10 +8,19 @@ from naslib.search_spaces.core import Graph
 from naslib.predictors.base import Predictor
 from naslib.predictors.ensemble import Ensemble
 from naslib.config import CalibratorType
-from naslib.optimizers.bananas.distribution import Distribution, PointwiseInterpolatedDist
+from naslib.optimizers.bananas.distribution import Distribution, GaussianDist, PointwiseInterpolatedDist
 
 
-def normalise(value: float, mean: float, std: float) -> float:
+
+def calibration_metrics(dist: Distribution, percentiles: list[float], observations) -> float:
+    score = []
+    for p in percentiles:
+        p_e = len([i for i in observations if dist.cdf(i) <= p]) / len(observations)
+        score.append((p - p_e)**2)
+    return np.sum(score)
+
+
+def conformity_scoring_normalise(value: float, mean: float, std: float) -> float:
     assert std >= 0
     return (value - mean) / std
 
@@ -27,7 +36,7 @@ class BaseCalibrator(ABC):
     def __init__(self, predictor: Predictor, train_cal_split: float | None ,seed: int = 42):
         self.predictor = predictor
         self.train_cal_split = train_cal_split
-        self.conformity_func = normalise   # TODO: make the conformity score function a constant for now
+        self.conformity_func = conformity_scoring_normalise   # TODO: make the conformity score function a constant for now
         self.seed = seed
         self._is_calibrated = False
 
@@ -37,11 +46,13 @@ class BaseCalibrator(ABC):
     
     @abstractmethod
     def get_distribution(self, data: Graph, percentiles: list[float] | None = [0.05, 0.1, 0.5, 0.9, 0.95]) -> Distribution:
-        """Get the distribution confitional on the given data point.
+        """Get the distribution conditional on the given data point.
         
         Note: percentiles is only required if the distribution is discrete.
         """
         raise NotImplementedError 
+    
+
 
 
 class Gaussian(BaseCalibrator):
@@ -50,11 +61,11 @@ class Gaussian(BaseCalibrator):
         X_train, y_train = data
         self.predictor.fit(X_train, y_train)
 
-    def get_distribution(self, data: Graph, percentiles=None):
+    def get_distribution(self, data: Graph, percentiles=None) -> GaussianDist:
         predictions = np.squeeze(self.predictor.query([data]))
         mean = np.mean(predictions)
         std = np.std(predictions)
-        return stats.norm(loc=mean, scale=std)
+        return GaussianDist(loc=mean, scale=std)
     
 
 class SplitCPCalibrator(BaseCalibrator):
@@ -116,9 +127,10 @@ class SplitCPCalibrator(BaseCalibrator):
         quantiles = []
         for p in percentiles:
             n_cal = len(self.conformity_scores)
-            adj_p = min(math.ceil((n_cal + 1) * p) / n_cal, 1.0)  # adjusted percentil for finite sample
+            adj_p = min((n_cal + 1) * p / n_cal, 1.0)  # adjusted percentil for finite sample
             quantile = np.quantile(self.conformity_scores, adj_p) * std + mean
             quantiles.append(quantile)
+
         return PointwiseInterpolatedDist(values=(percentiles, quantiles), std=std)
 
 

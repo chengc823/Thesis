@@ -14,10 +14,60 @@ class Distribution(Protocol):
         """Sample variates from the distribution."""
 
     def cdf(self, x: float) -> float:
-        """Cumulative distribution function."""
+        """Cumulative distribution function.
+        
+        x: value of a variate sampled from the distributrion.
+        """
     
     def ppf(self, q: float) -> float:
-        """Percent point function (inverse of cdf)."""
+        """Percent point function (inverse of cdf).
+        
+        q: a float between 0 and 1 representing quantile level 
+        """
+
+    def explected_gain(self, x: float) -> float:
+        """Expected value of the distribution larger than a given value.
+        
+        x: value of a variate sampled from the distributrion.
+        """
+
+    
+class GaussianDist:
+
+    def __init__(self, loc, scale):
+        self.dist = stats.norm(loc=loc, scale=scale)
+
+    def mean(self) -> float:
+        return self.dist.mean()
+
+    def rvs(self, size: int) -> list[float]:
+        return self.dist.rvs(size=size)
+
+    def cdf(self, x: float) -> float:
+        return self.dist.cdf(x=x)
+       
+    def ppf(self, q: float) -> float:
+        return self.dist.ppf(q=q)
+
+    def expected_gain(self, x, ei_factor: float = 5.0):
+        scaled_std = self.dist.std() / ei_factor
+        gam = (x - self.dist.mean()) / scaled_std
+        ei = self.dist.mean() + scaled_std * (self.dist.pdf(gam) / (1 - self.dist.cdf(gam)))
+
+        # gam = (self.dist.mean() - x) / scaled_std
+        # ei = scaled_std * (gam * self.dist.cdf(gam) + self.dist.pdf(gam))
+        return ei
+
+
+        predictions = predictor.query([arch_encoding], info)
+    #         mean = np.mean(predictions)
+    #         std = np.std(predictions)
+    #         factored_std = std / ei_calibration_factor
+    #         max_y = ytrain.max()
+    #         gam = (mean - max_y) / factored_std
+    #         ei_value = factored_std * (gam * norm.cdf(gam) + norm.pdf(gam))
+    #         return ei_value
+        ...
 
 
 class PointwiseInterpolatedDist(stats.rv_continuous):

@@ -102,8 +102,8 @@ class PointwiseInterpolatedDist(stats.rv_continuous):
 
     def mean(self):
         cum_ = 0.0
-        for interval, prob in zip(self.intervals, self.densities):
-            cum_ = (interval[1] - interval[0]) / 2 * prob
+        for interval in self.intervals:
+            cum_ += (interval[1] + interval[0]) / 2 * self.width
         return cum_
 
     def rvs(self, size=1):

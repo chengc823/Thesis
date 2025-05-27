@@ -66,7 +66,7 @@ class NASConfig(BaseModel):
     predictor_params: dict[str, Any] 
     
     #: Calibrator: 
-    num_quantiles: int = 20  # even number
+    num_quantiles: int = 20 
     train_cal_split: float | int = 0.3
     calibrator_type: CalibratorType = CalibratorType.GAUSSIAN
     calibrator_params: dict[str, Any]

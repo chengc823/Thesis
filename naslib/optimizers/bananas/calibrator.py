@@ -17,7 +17,7 @@ def calibration_metrics(dist: Distribution, percentiles: list[float], observatio
     for p in percentiles:
         p_e = len([i for i in observations if dist.cdf(i) <= p]) / len(observations)
         score.append((p - p_e)**2)
-    return np.sum(score)
+    return np.mean(score)
 
 
 def conformity_scoring_normalise(value: float, mean: float, std: float) -> float:

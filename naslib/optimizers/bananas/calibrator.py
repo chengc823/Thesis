@@ -12,12 +12,20 @@ from naslib.optimizers.bananas.distribution import Distribution, GaussianDist, P
 
 
 
-def calibration_metrics(dist: Distribution, percentiles: list[float], observations) -> float:
+def calibration_metrics(obs_and_dist: list[tuple[float, Distribution]], percentiles: list[float]) -> float:
+    def assess_single_quantile(obs_and_dist: list[tuple[float, Distribution]], p):
+        freq_p = 0
+        for obs, dist in obs_and_dist:
+            if dist.cdf(obs) <= p:
+                freq_p += 1
+        score_p = freq_p / len(obs_and_dist)
+        return (score_p - p)**2
+
     score = []
-    for p in percentiles:
-        p_e = len([i for i in observations if dist.cdf(i) <= p]) / len(observations)
-        score.append((p - p_e)**2)
-    return np.mean(score)
+    for p_j in percentiles:
+        p_j_score = assess_single_quantile(obs_and_dist=obs_and_dist, p=p_j)
+        score.append(p_j_score)
+    return np.sum(score)
 
 
 def conformity_scoring_normalise(value: float, mean: float, std: float) -> float:

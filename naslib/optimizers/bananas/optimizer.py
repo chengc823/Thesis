@@ -85,6 +85,7 @@ class Bananas(MetaOptimizer):
         # a container storing evaluated models. training data (model_encoding, model_metrics) for fitting the surrogate model 
         # can be built from train_data using self._get_train
         self.train_data = []
+        self.conditional_dists = []
         self.next_batch = []
         self.history = torch.nn.ModuleList()
 
@@ -218,6 +219,8 @@ class Bananas(MetaOptimizer):
         if epoch < self.num_init:
             model = self._sample_new_model()
             self._set_scores(model)
+
+            self.conditional_dists.append(None)
             self.calibration_score = np.nan
         else:
             if len(self.next_batch) == 0:
@@ -288,10 +291,12 @@ class Bananas(MetaOptimizer):
                 self.next_batch_dist = [distributions[i] for i in sorted_indices[-self.k:]]
 
             # train the next architecture chosen by the neural predictor
-            model = self.next_batch.pop()
-            curr_dist = self.next_batch_dist.pop()
-            self._set_scores(model)  # add model to train_data 
-            self.calibration_score = calibration_metrics(dist=curr_dist, percentiles=self.percentiles, observations=self._get_data()[1])
+            # add model to train_data 
+            self._set_scores(self.next_batch.pop()) 
+            # add distribution conditional on the next archtecture into list
+            self.conditional_dists.append(self.next_batch_dist.pop())
+            obs_and_dist = list(zip(self._get_data()[1], self.conditional_dists))
+            self.calibration_score = calibration_metrics(obs_and_dist=obs_and_dist[self.num_init:], percentiles=self.percentiles)
 
     # def _get_best_candidates(self, candidates: list[torch.nn.Module]):
     #     # if self.zc and len(self.train_data) <= self.max_zerocost:

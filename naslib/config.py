@@ -166,14 +166,14 @@ class FullConfig(BaseModel):
 
       #  self.save = 
        # self.opts = None
-        algo = f"{self.optimizer}__{self.search.predictor_type.value}__{self.search.calibrator_type.value}"
-        algo_cfg = f"acq={self.search.acq_fn_type.value}"
-
+        algo_base = f"{self.optimizer}__{self.search.predictor_type.value}__{self.search.calibrator_type.value}"
         match self.search.calibrator_type:
-            case CalibratorType.CP_SPLIT:
-                algo_cfg += f"__train_cal_split={self.search.train_cal_split}__num_quantiles={self.search.num_quantiles}".replace(".", "")
+            case CalibratorType.GAUSSIAN:
+                algo = algo_base
+            case _:
+                algo = algo_base + f"__train_cal_split={self.search.train_cal_split}__num_quantiles={self.search.num_quantiles}".replace(".", "")
 
-        full_path = f"{self.out_dir}/{algo}/{self.search_space}/{self.dataset}/{algo_cfg}/num_init={self.search.num_init}/seed={self.seed}"
+        full_path = f"{self.out_dir}/{self.search_space}/{self.dataset}/acq={self.search.acq_fn_type.value}/{algo}/num_init={self.search.num_init}/seed={self.seed}"
         return full_path
     
     def info(self) -> str:

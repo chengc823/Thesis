@@ -143,7 +143,7 @@ class SplitCPCalibrator(BaseCalibrator):
 
 
 
-def get_calibrator_class(calibrator_type: CalibratorType,) -> Type[BaseCalibrator]:
+def get_calibrator_class(calibrator_type: CalibratorType) -> Type[BaseCalibrator]:
     match calibrator_type:
         case CalibratorType.GAUSSIAN:
             return Gaussian

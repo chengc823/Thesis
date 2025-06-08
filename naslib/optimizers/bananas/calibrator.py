@@ -1,5 +1,7 @@
+from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Type, Callable, Literal
+from dataclasses import dataclass
+from typing import Type, Callable, Literal, Any
 import scipy.stats as stats
 import math
 import numpy as np
@@ -12,25 +14,33 @@ from naslib.optimizers.bananas.distribution import Distribution, GaussianDist, P
 
 
 
-def calibration_metrics(obs_and_dist: list[tuple[float, Distribution]], percentiles: list[float]) -> float:
-    def assess_single_quantile(obs_and_dist: list[tuple[float, Distribution]], p):
+def calibration_metrics(obs_and_condest: list[tuple[float, ConditionalEstimation]], percentiles: list[float]) -> float:
+    """A metric measures the precision of calibration."""
+    def assess_single_quantile(obs_and_condest: list[tuple[float, ConditionalEstimation]], p):
         freq_p = 0
-        for i, (obs, dist) in enumerate(obs_and_dist):
-            if dist.cdf(obs) <= p:
+        for i, (obs, condest) in enumerate(obs_and_condest):
+            if condest.distribution.cdf(obs) <= p:
                 freq_p += 1
-        score_p = freq_p / len(obs_and_dist)
+        score_p = freq_p / len(obs_and_condest)
         return (score_p - p)**2
 
     score = []
     for p_j in percentiles:
-        p_j_score = assess_single_quantile(obs_and_dist=obs_and_dist, p=p_j)
+        p_j_score = assess_single_quantile(obs_and_condest=obs_and_condest, p=p_j)
         score.append(p_j_score)
     return np.sum(score)
 
 
 def conformity_scoring_normalise(value: float, mean: float, std: float) -> float:
+    """Conformity scoring function based on normalising value."""
     assert std >= 0
     return (value - mean) / std
+
+
+@dataclass
+class ConditionalEstimation:
+    point_prediction: Any
+    distribution: Distribution
 
 
 class BaseCalibrator(ABC):
@@ -53,7 +63,7 @@ class BaseCalibrator(ABC):
         raise NotImplementedError
     
     @abstractmethod
-    def get_distribution(self, data: Graph, percentiles: list[float] | None = [0.05, 0.1, 0.5, 0.9, 0.95]) -> Distribution:
+    def get_conditional_estimation(self, data: Graph, percentiles: list[float] | None = [0.05, 0.1, 0.5, 0.9, 0.95]) -> ConditionalEstimation:
         """Get the distribution conditional on the given data point.
         
         Note: percentiles is only required if the distribution is discrete.
@@ -69,11 +79,11 @@ class Gaussian(BaseCalibrator):
         X_train, y_train = data
         self.predictor.fit(X_train, y_train)
 
-    def get_distribution(self, data: Graph, percentiles=None) -> GaussianDist:
+    def get_conditional_estimation(self, data: Graph, percentiles=None) -> ConditionalEstimation:
         predictions = np.squeeze(self.predictor.query([data]))
         mean = np.mean(predictions)
         std = np.std(predictions)
-        return GaussianDist(loc=mean, scale=std)
+        return ConditionalEstimation(point_prediction=predictions, distribution=GaussianDist(loc=mean, scale=std))
     
 
 class SplitCPCalibrator(BaseCalibrator):
@@ -122,7 +132,7 @@ class SplitCPCalibrator(BaseCalibrator):
         self.num_seen_obs = len(X)
         self._is_calibrated = True
 
-    def get_distribution(self, data: Graph, percentiles = [0.05, 0.1, 0.5, 0.9, 0.95]) -> PointwiseInterpolatedDist:
+    def get_conditional_estimation(self, data: Graph, percentiles = [0.05, 0.1, 0.5, 0.9, 0.95]) -> ConditionalEstimation:
         assert self._is_calibrated
 
         if isinstance(self.predictor, Ensemble):
@@ -139,7 +149,7 @@ class SplitCPCalibrator(BaseCalibrator):
             quantile = np.quantile(self.conformity_scores, adj_p) * std + mean
             quantiles.append(quantile)
 
-        return PointwiseInterpolatedDist(values=(percentiles, np.array(quantiles)))
+        return ConditionalEstimation(point_prediction=preds, distribution=PointwiseInterpolatedDist(values=(percentiles, np.array(quantiles))))
 
 
 

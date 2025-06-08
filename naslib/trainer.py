@@ -210,7 +210,11 @@ class Trainer(object):
 
 
         # if hasattr(self.config, "save_arch_weights") and self.config.save_arch_weights:
-        
+
+
+        with open(f'{self.save}/search_log.pt', "wb") as f:
+            pickle.dump(self.optimizer.obs_and_condest, f)
+
         if self.config.save_arch_weights:
             logger.info(f"Saving architectural weight tensors: {self.save}/arch_weights.pt")
             best_arch = self.optimizer.get_final_architecture()

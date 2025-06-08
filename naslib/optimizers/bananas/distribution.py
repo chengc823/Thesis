@@ -89,7 +89,7 @@ class Interval:
 
 
 
-class PointwiseInterpolatedDist(stats.rv_continuous):
+class PointwiseInterpolatedDist:
     """
     values: (pk, qk) where pk are percentiles between 0 and 1, and xk are
     the quantile values of each percentil. pk and qk must have the same shape.fcr
@@ -112,7 +112,7 @@ class PointwiseInterpolatedDist(stats.rv_continuous):
             left = qk[i-1]
             right = qk[i]
             prob = pk[i] - pk[i-1]
-            interval = Interval(left=left, right=right, prob=prob, density=prob / (right - left), cum_prob=pk[i-1])
+            interval = Interval(left=left, right=right, prob=prob, density=prob / (right - left + np.finfo(float).eps), cum_prob=pk[i-1])
             self.intervals.append(interval)
      
     def mean(self):

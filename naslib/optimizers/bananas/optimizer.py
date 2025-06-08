@@ -86,7 +86,7 @@ class Bananas(MetaOptimizer):
         # a container storing evaluated models. training data (model_encoding, model_metrics) for fitting the surrogate model 
         # can be built from train_data using self._get_train
         self.train_data = []
-        self.conditional_dists = []
+        self.conditional_estimations = []
         self.next_batch = []
         self.history = torch.nn.ModuleList()
 
@@ -221,7 +221,7 @@ class Bananas(MetaOptimizer):
             model = self._sample_new_model()
             self._set_scores(model)
 
-            self.conditional_dists.append(None)
+            self.conditional_estimations.append(None)
             self.calibration_score = np.nan
         else:
             if len(self.next_batch) == 0:
@@ -272,10 +272,11 @@ class Bananas(MetaOptimizer):
               ## # acquisition_function(predictor=predictor, ytrain=ytrain, acq_fn_type=self.acq_fn_type, **self.acq_fn_params)
 
                 # optimize the acquisition function to output k new architectures
-                values = []
-                distributions = []
+                acq_values = []
+                conditional_estimation = []
                 for model in candidates:
-                    distribution = calibrator.get_distribution(data=model.arch, percentiles=self.percentiles)                   
+                    model_condest = calibrator.get_conditional_estimation(data=model.arch, percentiles=self.percentiles)
+                    distribution = model_condest.distribution       
                     # get acquisition score based on function type
                     match self.acq_fn_type:
                         case ACQType.ITS:
@@ -284,21 +285,23 @@ class Bananas(MetaOptimizer):
                             acq_score = acq.upper_confidence_bound(distribution=distribution, **self.acq_fn_params)
                         case ACQType.PI | ACQType.EI:
                             acq_score = acq.probability_of_improvement(distribution=distribution, threhold=max(y), **self.acq_fn_params)
-                    values.append(acq_score)
-                    distributions.append(distribution)
+                    acq_values.append(acq_score)
+                    conditional_estimation.append(model_condest)
 
-                sorted_indices = np.argsort(values)
+                sorted_indices = np.argsort(acq_values)
                 self.next_batch = [candidates[i] for i in sorted_indices[-self.k:]]#self._get_best_candidates(candidates, acq_fn)
-                self.next_batch_dist = [distributions[i] for i in sorted_indices[-self.k:]]
+                self.next_batch_estimations = [conditional_estimation[i] for i in sorted_indices[-self.k:]]
 
             # train the next architecture chosen by the neural predictor
             # add model to train_data 
             self._set_scores(self.next_batch.pop()) 
             # add distribution conditional on the next archtecture into list
-            self.conditional_dists.append(self.next_batch_dist.pop())
-            obs_and_dist = list(zip(self._get_data()[1], self.conditional_dists))
-            self.calibration_score = calibration_metrics(obs_and_dist=obs_and_dist[self.num_init:], percentiles=self.percentiles)
+            self.conditional_estimations.append(self.next_batch_estimations.pop())
+            # compute calibration score
+            self.obs_and_condest = list(zip(self._get_data()[1], self.conditional_estimations))
+            self.calibration_score = calibration_metrics(obs_and_condest=self.obs_and_condest[self.num_init:], percentiles=self.percentiles)
 
+              
     # def _get_best_candidates(self, candidates: list[torch.nn.Module]):
     #     # if self.zc and len(self.train_data) <= self.max_zerocost:
     #     #     for model in candidates:
@@ -314,13 +317,13 @@ class Bananas(MetaOptimizer):
     #     return choices
 
     def _update_history(self, child):
-        if len(self.history) < 100:
-            self.history.append(child)
-        else:
-            for i, p in enumerate(self.history):
-                if child.accuracy > p.accuracy:
-                    self.history[i] = child
-                    break
+        #if len(self.history) < 100:
+        self.history.append(child)
+        # else:
+        #     for i, p in enumerate(self.history):
+        #         if child.accuracy > p.accuracy:
+        #             self.history[i] = child
+        #             break
 
     def train_statistics(self, report_incumbent=True):
         best_arch = self.get_final_architecture() if report_incumbent else self.train_data[-1].arch

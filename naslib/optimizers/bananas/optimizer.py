@@ -6,6 +6,7 @@ import numpy as np
 from naslib.optimizers.base import MetaOptimizer
 import naslib.optimizers.bananas.acquisition_functions as acq
 from naslib.optimizers.bananas.calibrator import get_calibrator_class, calibration_metrics
+from naslib.optimizers.bananas.distribution import get_quantile_levels
 from naslib.predictors.base import Predictor
 from naslib.predictors.ensemble import Ensemble
 from naslib.predictors.mlp import MLPPredictor
@@ -69,7 +70,7 @@ class Bananas(MetaOptimizer):
         self.calibrator_type = config.search.calibrator_type
         self.train_cal_split = config.search.train_cal_split
         self.calibrator_params = config.search.calibrator_params 
-        self.percentiles = np.linspace(0, 1, num=config.search.num_quantiles + 1)
+        self.percentiles = get_quantile_levels(num_quantiles=config.search.num_quantiles)
 
         # Acquisition functions
         # define an acquisition function

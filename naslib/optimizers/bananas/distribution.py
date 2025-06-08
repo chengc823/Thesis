@@ -1,8 +1,18 @@
 from typing import Protocol
-from numpy.typing import ArrayLike
+from dataclasses import dataclass
 import scipy.stats as stats
 import random
 import numpy as np
+
+def get_quantile_levels(num_quantiles: int):
+    if num_quantiles > 100:
+        raise NotImplementedError("num_quantiles should not be larger than 100.")
+    
+    levels = np.linspace(0, 1, num=num_quantiles + 1)
+    # replace the first one and the last one 
+    levels[0] = 0.001
+    levels[-1] = 0.999
+    return levels
 
 
 class Distribution(Protocol):
@@ -69,6 +79,15 @@ class GaussianDist:
     #         return ei_value
         ...
 
+@dataclass
+class Interval:
+    left: float
+    right: float
+    density: float
+    prob: float
+    cum_prob: float
+
+
 
 class PointwiseInterpolatedDist(stats.rv_continuous):
     """
@@ -76,44 +95,40 @@ class PointwiseInterpolatedDist(stats.rv_continuous):
     the quantile values of each percentil. pk and qk must have the same shape.fcr
     """
 
-    def __init__(self, values: tuple[ArrayLike, ArrayLike], std: float):
+    def __init__(self, values: tuple[np.array, np.array]):
         pk, qk = values
+        # Assume the population extremums are infinite values
+        qk = np.insert(qk, 0, -np.finfo(np.float32).max)
+        qk = np.append(qk, [np.finfo(np.float32).max])
+        pk = np.insert(pk, 0, 0.0)
+        pk = np.append(pk, [1.0])
+
         assert len(pk) == len(qk)
-        # For simplicity, for now we just assume the population extremums are half standard
-        # deviation distance away from the sample extremums.
-        qk[0] = qk[0] - std / 2 
-        qk[-1] = qk[-1] + std / 2
         self.pk = pk
         self.qk = qk
  
         self.intervals = []
-        self.densities = []
-       
         for i in range(1, len(qk)):
-            interval = (qk[i-1], qk[i])
+            left = qk[i-1]
+            right = qk[i]
+            prob = pk[i] - pk[i-1]
+            interval = Interval(left=left, right=right, prob=prob, density=prob / (right - left), cum_prob=pk[i-1])
             self.intervals.append(interval)
-            weight = pk[i] - pk[i-1]
-            left, right = interval
-            density =  weight / (right - left + np.finfo(dtype=float).eps)
-            self.densities.append(density)  
-        
-        # prob mass of each interval
-        self.width = 1 / len(self.intervals)  
-
+     
     def mean(self):
         cum_ = 0.0
-        for interval in self.intervals:
-            cum_ += (interval[1] + interval[0]) / 2 * self.width
+        for interval in self.intervals[1: -1]:     # drop intervals with infinite approximations for mean computation
+            cum_ += (interval.right + interval.left) / 2 * interval.prob
         return cum_
 
     def rvs(self, size=1):
         def _sample_single_var():
             # first sample an interval
-            interval_idx = np.random.randint(0, len(self.intervals), 1)[0]  # overweight extremes
-            # interval_idx = random.choices(range(len(self.intervals)), weights=self.densities, k=1)[0]
+            weights = [interval.prob for interval in self.intervals]
+            interval_idx = random.choices(range(len(self.intervals)), weights=weights, k=1)[0]
             interval = self.intervals[interval_idx]
             # inside this interval, sample uniformly
-            return np.random.uniform(interval[0], interval[1], size=1)[0]
+            return np.random.uniform(interval.left, interval.right, size=1)[0]
 
         samples = []
         for _ in range(size):
@@ -123,31 +138,30 @@ class PointwiseInterpolatedDist(stats.rv_continuous):
         return np.array(samples)
 
     def cdf(self, x) -> float:
-        if x < min(self.qk):
-            return 0
-        elif x > max(self.qk):
-            return 1
-        
-        for i, interval in enumerate(self.intervals):
-            left, right = interval                  
+        for i, interval in enumerate(self.intervals):  
+            left = interval.left
+            right = interval.right             
             if x < right and x >= left:
                 # cumulated weights of previous intervals
                 cum_weight = self.pk[i]
                 # plus the cumulated weights at the current interval
-                cum_weight += (x - left) / (right - left) * self.width
+                cum_weight += (x - left) / (right - left) * interval.prob
                 return cum_weight
 
     def ppf(self, q) -> float:
-        if q > 1 or q < 0:
+        if q >= 1 or q <= 0:
             return np.nan
         
-        for i, percentile in enumerate(self.pk):
-            if q <= percentile:
-                interval = self.intervals[i-1]
-                left, right = interval
+        for i in range(len(self.intervals) - 1):
+            if q > self.intervals[i].cum_prob and q < self.intervals[i + 1].cum_prob:
+                interval = self.intervals[i]
                 break
+            else:
+                interval = self.intervals[-1]
         
-        ratio = (q - percentile) / self.width 
-        return ratio * (right - left) + left
+        ratio = (q - interval.cum_prob) / interval.prob
+        left = interval.left
+        right = interval.right
+        return left + ratio * (right - left) 
         
 

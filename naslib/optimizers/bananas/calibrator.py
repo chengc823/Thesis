@@ -15,7 +15,7 @@ from naslib.optimizers.bananas.distribution import Distribution, GaussianDist, P
 def calibration_metrics(obs_and_dist: list[tuple[float, Distribution]], percentiles: list[float]) -> float:
     def assess_single_quantile(obs_and_dist: list[tuple[float, Distribution]], p):
         freq_p = 0
-        for obs, dist in obs_and_dist:
+        for i, (obs, dist) in enumerate(obs_and_dist):
             if dist.cdf(obs) <= p:
                 freq_p += 1
         score_p = freq_p / len(obs_and_dist)
@@ -139,7 +139,7 @@ class SplitCPCalibrator(BaseCalibrator):
             quantile = np.quantile(self.conformity_scores, adj_p) * std + mean
             quantiles.append(quantile)
 
-        return PointwiseInterpolatedDist(values=(percentiles, quantiles), std=std)
+        return PointwiseInterpolatedDist(values=(percentiles, np.array(quantiles)))
 
 
 

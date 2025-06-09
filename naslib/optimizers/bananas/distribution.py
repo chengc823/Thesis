@@ -23,6 +23,9 @@ class Distribution(Protocol):
     def rvs(self, size: int) -> list[float]:
         """Sample variates from the distribution."""
 
+    def pdf(self, x: float) -> float:
+        """Probability density function."""
+
     def cdf(self, x: float) -> float:
         """Cumulative distribution function.
         
@@ -52,6 +55,9 @@ class GaussianDist:
 
     def rvs(self, size: int) -> list[float]:
         return self.dist.rvs(size=size)
+    
+    def pdf(self, x: float) -> float:
+        return self.dist.pdf(x=x)
 
     def cdf(self, x: float) -> float:
         return self.dist.cdf(x=x)
@@ -88,7 +94,6 @@ class Interval:
     cum_prob: float
 
 
-
 class PointwiseInterpolatedDist:
     """
     values: (pk, qk) where pk are percentiles between 0 and 1, and xk are
@@ -114,12 +119,19 @@ class PointwiseInterpolatedDist:
             prob = pk[i] - pk[i-1]
             interval = Interval(left=left, right=right, prob=prob, density=prob / (right - left + np.finfo(float).eps), cum_prob=pk[i-1])
             self.intervals.append(interval)
-     
+    
     def mean(self):
-        cum_ = 0.0
-        for interval in self.intervals[1: -1]:     # drop intervals with infinite approximations for mean computation
-            cum_ += (interval.right + interval.left) / 2 * interval.prob
-        return cum_
+        margin = 10
+        x = np.linspace(self.intervals[0].right - margin, self.intervals[-1].left + margin, 1000)
+        y = [self.pdf(x_i) * x_i for x_i in x]
+        return np.trapz(y=y, x=x)
+    
+    def std(self):
+        mu = self.mean()
+        margin = 10
+        x = np.linspace(self.intervals[0].right - margin, self.intervals[-1].left + margin, 1000)
+        y = [self.pdf(x_i) * (x_i - mu)**2 for x_i in x]
+        return np.sqrt(np.trapz(y=y, x=x))
 
     def rvs(self, size=1):
         def _sample_single_var():
@@ -147,6 +159,13 @@ class PointwiseInterpolatedDist:
                 # plus the cumulated weights at the current interval
                 cum_weight += (x - left) / (right - left) * interval.prob
                 return cum_weight
+            
+    def pdf(self, x) -> float:
+        for i, interval in enumerate(self.intervals):  
+            left = interval.left
+            right = interval.right             
+            if x < right and x >= left:
+                return interval.density
 
     def ppf(self, q) -> float:
         if q >= 1 or q <= 0:

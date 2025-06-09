@@ -66,24 +66,12 @@ class GaussianDist:
         return self.dist.ppf(q=q)
 
     def expected_gain(self, x, ei_factor: float = 5.0):
+        mu = self.dist.mean()
         scaled_std = self.dist.std() / ei_factor
-        gam = (x - self.dist.mean()) / scaled_std
-        ei = self.dist.mean() + scaled_std * (self.dist.pdf(gam) / (1 - self.dist.cdf(gam)))
-
-        # gam = (self.dist.mean() - x) / scaled_std
-        # ei = scaled_std * (gam * self.dist.cdf(gam) + self.dist.pdf(gam))
+        gam = (mu - x) / scaled_std
+        ei = (mu - x) * stats.norm.cdf(gam) + scaled_std * stats.norm.pdf(gam)
         return ei
 
-
-        predictions = predictor.query([arch_encoding], info)
-    #         mean = np.mean(predictions)
-    #         std = np.std(predictions)
-    #         factored_std = std / ei_calibration_factor
-    #         max_y = ytrain.max()
-    #         gam = (mean - max_y) / factored_std
-    #         ei_value = factored_std * (gam * norm.cdf(gam) + norm.pdf(gam))
-    #         return ei_value
-        ...
 
 @dataclass
 class Interval:
@@ -182,5 +170,11 @@ class PointwiseInterpolatedDist:
         left = interval.left
         right = interval.right
         return left + ratio * (right - left) 
-        
+    
+    def expected_gain(self, x):
+        margin = 10
+        x_array = np.linspace(x, self.intervals[-1].left + margin, 1000)
+        y = [self.pdf(x_i) * (x_i - x) for x_i in x_array]
+        return np.trapz(y=y, x=x_array)
+
 

@@ -1,46 +1,15 @@
-from __future__ import annotations
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from typing import Type, Callable, Literal, Any
-import scipy.stats as stats
-import math
+from typing import Type
+from numpy.typing import ArrayLike
 import numpy as np
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, KFold
 from naslib.search_spaces.core import Graph
 from naslib.predictors.base import Predictor
 from naslib.predictors.ensemble import Ensemble
 from naslib.config import CalibratorType
-from naslib.optimizers.bananas.distribution import Distribution, GaussianDist, PointwiseInterpolatedDist
+from naslib.optimizers.bananas.distribution import GaussianDist, PointwiseInterpolatedDist
+from naslib.optimizers.bananas.calibration_utils import conformity_scoring_normalise, ConditionalEstimation, TrainCalDataSet
 
-
-
-def calibration_metrics(obs_and_condest: list[tuple[float, ConditionalEstimation]], percentiles: list[float]) -> float:
-    """A metric measures the precision of calibration."""
-    def assess_single_quantile(obs_and_condest: list[tuple[float, ConditionalEstimation]], p):
-        freq_p = 0
-        for i, (obs, condest) in enumerate(obs_and_condest):
-            if condest.distribution.cdf(obs) <= p:
-                freq_p += 1
-        score_p = freq_p / len(obs_and_condest)
-        return (score_p - p)**2
-
-    score = []
-    for p_j in percentiles:
-        p_j_score = assess_single_quantile(obs_and_condest=obs_and_condest, p=p_j)
-        score.append(p_j_score)
-    return np.sum(score)
-
-
-def conformity_scoring_normalise(value: float, mean: float, std: float) -> float:
-    """Conformity scoring function based on normalising value."""
-    assert std >= 0
-    return (value - mean) / std
-
-
-@dataclass
-class ConditionalEstimation:
-    point_prediction: Any
-    distribution: Distribution
 
 
 class BaseCalibrator(ABC):
@@ -69,8 +38,6 @@ class BaseCalibrator(ABC):
         Note: percentiles is only required if the distribution is discrete.
         """
         raise NotImplementedError 
-    
-
 
 
 class Gaussian(BaseCalibrator):
@@ -86,22 +53,12 @@ class Gaussian(BaseCalibrator):
         return ConditionalEstimation(point_prediction=predictions, distribution=GaussianDist(loc=mean, scale=std))
     
 
-class SplitCPCalibrator(BaseCalibrator):
+class BaseCPCalibrator(BaseCalibrator):
 
-    def _split(self, X: list[Graph], y: list[float]) -> tuple[list[Graph], list[Graph], list[float], list[float]]:
-        """Split the dataset into a train set and a calibration set
-        
-        Returns: a tuple representing (X_train, X_cal, y_train, y_cal).
-        """
-        # get trainaing set size and calibration set size
-        cal_size = int(len(X) * self.train_cal_split)
-        # randomly sample calibration set
-        obs_indices = np.arange(0, len(X))
-        train_indices, cal_indices = train_test_split(obs_indices, test_size=cal_size, random_state=self.seed)
-        print(f"Train set size: {len(train_indices)}; Calibration set size: {len(cal_indices)}")
-
+    @staticmethod
+    def _get_train_cal_dataset(X: list[Graph], y: list[float], train_indices: ArrayLike, cal_indices: ArrayLike) -> TrainCalDataSet:
         X_train, X_cal, y_train, y_cal = [], [], [], []
-        for idx in obs_indices:
+        for idx in range(len(X)):
             X_i, y_i = X[idx], y[idx]
             if idx in train_indices:
                 X_train.append(X_i)
@@ -111,6 +68,40 @@ class SplitCPCalibrator(BaseCalibrator):
                 y_cal.append(y_i)
         
         return X_train, X_cal, y_train, y_cal
+
+    def get_conditional_estimation(self, data: Graph, percentiles = [0.05, 0.1, 0.5, 0.9, 0.95]) -> ConditionalEstimation:
+        assert self._is_calibrated
+        if isinstance(self.predictor, Ensemble):
+            preds = np.squeeze(self.predictor.query([data]))
+            mean = np.mean(preds)
+            std = np.std(preds)
+        else:
+            raise NotImplementedError
+
+        quantiles = []
+        for p in percentiles:
+            n_cal = len(self.conformity_scores)
+            adj_p = min((n_cal + 1) * p / n_cal, 1.0)  # adjusted percentil for finite sample
+            quantile = np.quantile(self.conformity_scores, adj_p) * std + mean
+            quantiles.append(quantile)
+
+        return ConditionalEstimation(point_prediction=preds, distribution=PointwiseInterpolatedDist(values=(percentiles, np.array(quantiles))))
+
+    
+class SplitCPCalibrator(BaseCPCalibrator):
+    """Uncertainty calibrator using split Conformal Prediction."""
+
+    def _split(self, X: list[Graph], y: list[float]) -> TrainCalDataSet:
+        """Split the dataset into a train set and a calibration set"""
+
+        # get trainaing set size and calibration set size
+        cal_size = int(len(X) * self.train_cal_split)
+        # randomly sample calibration set
+        obs_indices = np.arange(0, len(X))
+        train_indices, cal_indices = train_test_split(obs_indices, test_size=cal_size, random_state=self.seed)
+        print(f"Train set size={len(train_indices)}; Calibration set size={len(cal_indices)}")
+        
+        return self._get_train_cal_dataset(X=X, y=y, train_indices=train_indices, cal_indices=cal_indices)
 
     def calibrate(self, data: tuple[list[Graph], list[float]]):
         X, y = data
@@ -132,24 +123,40 @@ class SplitCPCalibrator(BaseCalibrator):
         self.num_seen_obs = len(X)
         self._is_calibrated = True
 
-    def get_conditional_estimation(self, data: Graph, percentiles = [0.05, 0.1, 0.5, 0.9, 0.95]) -> ConditionalEstimation:
-        assert self._is_calibrated
 
-        if isinstance(self.predictor, Ensemble):
-            preds = np.squeeze(self.predictor.query([data]))
-            mean = np.mean(preds)
-            std = np.std(preds)
-        else:
-            raise NotImplementedError
+class CrossValCPCalibrator(BaseCPCalibrator):
+    """Uncertainty calibrator using cross-validation based Conformal Prediction."""
 
-        quantiles = []
-        for p in percentiles:
-            n_cal = len(self.conformity_scores)
-            adj_p = min((n_cal + 1) * p / n_cal, 1.0)  # adjusted percentil for finite sample
-            quantile = np.quantile(self.conformity_scores, adj_p) * std + mean
-            quantiles.append(quantile)
+    def _cross_val_split(self, X: list[Graph], y: list[float]) -> list[TrainCalDataSet]:
+        obs_indices = np.arange(0, len(X))
+        kfolds = KFold(n_splits=self.train_cal_split).split(obs_indices)
+       
+        data_folds = []
+        for i, (train_indices, cal_indices) in enumerate(kfolds):
+            print(f"Running fold {i}: train set size={len(train_indices)}; calibration set size={len(cal_indices)}")
+            train_cal_dataset = self._get_train_cal_dataset(X=X, y=y, train_indices=train_indices, cal_indices=cal_indices)
+            data_folds.append(train_cal_dataset)
+        return data_folds
+                 
+    def calibrate(self, data: tuple[list[Graph], list[float]]):
+        X, y = data
+        cv_splits = self._cross_val_split(X=X, y=y)
 
-        return ConditionalEstimation(point_prediction=preds, distribution=PointwiseInterpolatedDist(values=(percentiles, np.array(quantiles))))
+        self.conformity_scores = []
+        for X_train, X_cal, y_train, y_cal in cv_splits:
+            self.predictor.fit(X_train, y_train)
+            for X_i, y_i in zip(X_cal, y_cal):
+                if isinstance(self.predictor, Ensemble):
+                    preds_i = np.squeeze(self.predictor.query([X_i]))
+                    mean_i = np.mean(preds_i)
+                    std_i = np.std(preds_i)
+                else:
+                    raise NotImplementedError
+                self.conformity_scores.append(self.conformity_func(value=y_i, mean=mean_i, std=std_i))
+
+        assert len(self.conformity_scores) == len(X)
+        self.num_seen_obs = len(X)
+        self._is_calibrated = True
 
 
 
@@ -159,4 +166,5 @@ def get_calibrator_class(calibrator_type: CalibratorType) -> Type[BaseCalibrator
             return Gaussian
         case CalibratorType.CP_SPLIT:
             return SplitCPCalibrator
-    
+        case CalibratorType.CP_CROSSVAL:
+            return CrossValCPCalibrator

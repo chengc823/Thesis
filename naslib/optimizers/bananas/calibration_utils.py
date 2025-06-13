@@ -20,17 +20,11 @@ class ConditionalEstimation:
 # Calibration Score function
 def calibration_metrics(obs_and_condest: list[tuple[float, ConditionalEstimation]], percentiles: list[float]) -> float:
     """A metric measures the precision of calibration."""
-    def assess_single_quantile(obs_and_condest: list[tuple[float, ConditionalEstimation]], p):
-        freq_p = 0
-        for i, (obs, condest) in enumerate(obs_and_condest):
-            if condest.distribution.cdf(obs) <= p:
-                freq_p += 1
-        score_p = freq_p / len(obs_and_condest)
-        return (score_p - p)**2
-
+    cdfs = np.array([condest.distribution.cdf(obs) for obs, condest in obs_and_condest])
     score = []
     for p_j in percentiles:
-        p_j_score = assess_single_quantile(obs_and_condest=obs_and_condest, p=p_j)
+        p_j_hat = sum(cdfs <= p_j) / len(cdfs)
+        p_j_score = (p_j_hat - p_j) ** 2
         score.append(p_j_score)
     return np.sum(score)
 

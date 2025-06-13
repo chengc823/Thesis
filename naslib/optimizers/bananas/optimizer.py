@@ -5,7 +5,8 @@ import torch
 import numpy as np
 from naslib.optimizers.base import MetaOptimizer
 import naslib.optimizers.bananas.acquisition_functions as acq
-from naslib.optimizers.bananas.calibrator import get_calibrator_class, calibration_metrics
+from naslib.optimizers.bananas.calibrator import get_calibrator_class
+from naslib.optimizers.bananas.calibration_utils import calibration_metrics
 from naslib.optimizers.bananas.distribution import get_quantile_levels
 from naslib.predictors.base import Predictor
 from naslib.predictors.ensemble import Ensemble
@@ -297,9 +298,12 @@ class Bananas(MetaOptimizer):
             self._set_scores(self.next_batch.pop()) 
             # add distribution conditional on the next archtecture into list
             self.conditional_estimations.append(self.next_batch_estimations.pop())
-            # compute calibration score
+            # compute calibration score when there are more obs than the number of quantiles
             self.obs_and_condest = list(zip(self._get_data()[1], self.conditional_estimations))
-            self.calibration_score = calibration_metrics(obs_and_condest=self.obs_and_condest[self.num_init:], percentiles=self.percentiles)
+            calibration_score = np.nan
+            if len(self.obs_and_condest) > self.num_init + len(self.percentiles):
+                calibration_score = calibration_metrics(obs_and_condest=self.obs_and_condest[self.num_init:], percentiles=self.percentiles)
+            self.calibration_score = calibration_score
 
               
     # def _get_best_candidates(self, candidates: list[torch.nn.Module]):

@@ -1,7 +1,6 @@
 from enum import Enum
-from pydantic import BaseModel, model_validator, Field
+from pydantic import BaseModel, model_validator
 from typing import Literal, Any
-
 
 
 class SearchSpaceType(str, Enum):
@@ -43,8 +42,6 @@ class ACQType(str, Enum):
     PI = "pi"
     EI = "ei"
     EXPLOIT_ONLY = "exploit_only"
-
-
 
 
 class NASConfig(BaseModel):
@@ -95,41 +92,7 @@ class NASConfig(BaseModel):
         return values
     
 
-   
-    
-    
-    
-   
-
-   
-
-    # gpu:  int | None = None
-
-
-# class EvalConfig(BaseModel):
- #   epochs: int = 2
-   
-  #  grad_clip: int = 5
- #   checkpoint_freq: int = 5
-
- #   drop_path_prob: float = 0.2
-  #  auxiliary_weight: float = 0.4
-
-    #: number of nodes for distributed training
-  #  world_size: int = 1
-    #: node rank for distributed training
-  #  rank: int = 0
-    #: url used to set up distributed training
-  #  dist_url: str = "tcp://127.0.0.1:8888"
-    #: distributed backend
-   # dist_backend: str = "nccl"
- #   multiprocessing_distributed: bool = True
-  #  gpu:  int | None = None
-
-
 class FullConfig(BaseModel):
-   # model_path: str | None  = None
-   # data_path: str | None = None
     #: Use multi-processing distributed training to launch N processes per node, which has N GPUs. 
     # This is the fastest way to use PyTorch for either single node or multi node data parallel training
     multiprocessing_distributed: bool = True
@@ -138,14 +101,9 @@ class FullConfig(BaseModel):
     optimizer: str = "bananas"
     #: random seed
     seed: int 
-
     search_space: SearchSpaceType = SearchSpaceType.NB201
     dataset: Literal["cifar10", "cifar100", "ImageNet16-120"]
-
     search: NASConfig 
-    # #: perform evaluation only
-    # eval_only: bool = False
-    # evaluation: EvalConfig = EvalConfig()
 
     #: Resume from last checkpoint
     resume: bool = False
@@ -155,17 +113,11 @@ class FullConfig(BaseModel):
     out_dir: str 
     save_arch_weights: bool = True
     plot_arch_weights: bool = False
- #  save: str | None = None
-  #  opts: tuple | None = None
 
     @property
     def save(self):
-      #  self.search.seed = self.seed
-      #  self.evaluation.multiprocessing_distributed = self.multiprocessing_distributed
-      #  self.search.gpu = self.gpu
-
-      #  self.save = 
-       # self.opts = None
+        search_space = f"{self.search_space}/{self.dataset}"
+        search_strat = f"acq={self.search.acq_fn_type.value}/num_to_mutate={self.search.num_arches_to_mutate}/num_init={self.search.num_init}"
         algo_base = f"{self.optimizer}__{self.search.predictor_type.value}__{self.search.calibrator_type.value}"
         match self.search.calibrator_type:
             case CalibratorType.GAUSSIAN:
@@ -173,7 +125,7 @@ class FullConfig(BaseModel):
             case _:
                 algo = algo_base + f"__train_cal_split={self.search.train_cal_split}__num_quantiles={self.search.num_quantiles}".replace(".", "")
 
-        full_path = f"{self.out_dir}/{self.search_space}/{self.dataset}/acq={self.search.acq_fn_type.value}/{algo}/num_init={self.search.num_init}/seed={self.seed}"
+        full_path = f"{self.out_dir}/{search_space}/{search_strat}/{algo}/seed={self.seed}"
         return full_path
     
     def info(self) -> str:

@@ -63,12 +63,10 @@ class MLPPredictor(Predictor):
     def __init__(
         self,
         encoding_type=EncodingType.ADJACENCY_ONE_HOT,
-    #    ss_type="nasbench201",
         hpo_wrapper=False,
         hparams_from_file=False
     ):
         self.encoding_type = encoding_type
-     #   self.ss_type = ss_type
         self.hpo_wrapper = hpo_wrapper
         self.default_hyperparams = {
             "num_layers": 20,

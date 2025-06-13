@@ -20,7 +20,6 @@ class EncodingType(str, Enum):
 
 
 class PredictorType(str, Enum):
-    MLP = "mlp"
     ENSEMBLE_MLP = "ensemble_mlp"
     QUANTILE = "quantile"
 
@@ -31,9 +30,8 @@ class CalibratorType(str, Enum):
     #: Calibrators based on Conformal Predictions
     CP_SPLIT = "CP_split"
     CP_CROSSVAL = "CP_cv"
-    CP_QUANTILE = "CP_quantile"
-    CP_BOOSTING = "CP_boosting"
-    CP_BOOSTING_NBHD = "CP_boosting_NBHD"
+    CP_BOOSTING = "CP_bootstrap"
+    CP_BOOSTING_NBHD = "CP_bootstrap_NBHD"
 
 
 class ACQType(str, Enum):

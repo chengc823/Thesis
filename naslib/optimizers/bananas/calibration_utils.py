@@ -18,8 +18,13 @@ class ConditionalEstimation:
 
 
 # Calibration Score function
-def calibration_metrics(obs_and_condest: list[tuple[float, ConditionalEstimation]], percentiles: list[float]) -> float:
-    """A metric measures the precision of calibration."""
+def rmsce_calibration(obs_and_condest: list[tuple[float, ConditionalEstimation]], percentiles: list[float]) -> float:
+    """Return root mean squared calibration error.
+    
+    The calibration error consists of $(p_j - \tilde{p_j})^2$ where $p_j$ is a given quantile
+    in [0, 1] and $\tilde{p_j}$ is the coverage of this quantile for the predictions, eg the percent of time this
+    quantile was above the target.
+    """
     cdfs = np.array([condest.distribution.cdf(obs) for obs, condest in obs_and_condest])
     score = []
     for p_j in percentiles:

@@ -4,12 +4,12 @@ import torch
 import numpy as np
 from naslib.optimizers.base import MetaOptimizer
 import naslib.optimizers.bananas.acquisition_functions as acq
-from naslib.optimizers.bananas.calibrator import get_calibrator_class
+from naslib.optimizers.bananas.calibrator import get_calibrator_class, BaseCalibrator
 from naslib.optimizers.bananas.calibration_utils import rmsce_calibration
 from naslib.optimizers.bananas.distribution import get_quantile_levels
-from naslib.predictors.base import Predictor
 from naslib.predictors.ensemble import Ensemble
 from naslib.predictors.mlp import MLPPredictor
+from naslib.predictors.quantile_regressor import QuantileRegressor
 from naslib.search_spaces.core.graph import Graph
 from naslib.search_spaces.core.query_metrics import Metric
 from naslib.config import FullConfig, PredictorType, EncodingType, ACQType
@@ -17,19 +17,6 @@ from naslib.utils.tools import count_parameters_in_MB
 
 
 logger = logging.getLogger(__name__)
-
-
-
-def _get_predictor(predictor_type: PredictorType, encoding_type: EncodingType, **kwargs) -> Predictor:
-
-    match predictor_type:
-        case PredictorType.ENSEMBLE_MLP:
-            predictor = Ensemble(base_predictor=MLPPredictor(encoding_type=encoding_type), **kwargs)
-        case PredictorType.QUANTILE:
-            # TODO
-            ...
-    return predictor
-
 
 
 class Bananas(MetaOptimizer):
@@ -100,6 +87,18 @@ class Bananas(MetaOptimizer):
         xtrain = [m.arch for m in self.train_data]
         ytrain = [m.accuracy for m in self.train_data]
         return xtrain, ytrain
+    
+    def _get_calibrator(self) -> BaseCalibrator:
+        base_predictor = MLPPredictor(encoding_type=self.encoding_type)
+        
+        if self.predictor_type == PredictorType.ENSEMBLE_MLP:
+            predictor = Ensemble(base_predictor=base_predictor, **self.predictor_params)
+        elif self.predictor_type == PredictorType.QUANTILE:
+            predictor = QuantileRegressor(base_predictor=base_predictor, quantiles=self.percentiles[1:-1]) # the first and last quantiles are inserted
+
+        return get_calibrator_class(predictor_type=self.predictor_type, calibrator_type=self.calibrator_type)(
+            predictor=predictor, train_cal_split=self.train_cal_split, seed=self.seed, **self.calibrator_params
+        )
 
     def _get_new_candidates(self, ytrain) -> list[torch.nn.Module]:
         # optimize the acquisition function to output k new architectures
@@ -148,10 +147,7 @@ class Bananas(MetaOptimizer):
                 print(f"TRAINING surrogate predictor for epoch={epoch}.")
                 # train and calibrate a surrogate model
                 X, y = self._get_data()
-                predictor = _get_predictor(predictor_type=self.predictor_type, encoding_type=self.encoding_type, **self.predictor_params)
-                calibrator = get_calibrator_class(calibrator_type=self.calibrator_type)(
-                    predictor=predictor, train_cal_split=self.train_cal_split, seed=self.seed, **self.calibrator_params
-                )
+                calibrator = self._get_calibrator()
                 calibrator.calibrate(data=(X, y))
 
                 # get candidates for next exploration 

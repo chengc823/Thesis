@@ -1,3 +1,5 @@
+import torch.nn as nn
+
 class Predictor:
     def __init__(self, ss_type=None, encoding_type=None):
         self.ss_type = ss_type
@@ -22,7 +24,7 @@ class Predictor:
         """
         pass
 
-    def fit(self, xtrain, ytrain, info=None):
+    def fit(self, xtrain, ytrain, loss: nn.Module = nn.L1Loss(), info=None):
         """
         This can be called any number of times during the NAS algorithm.
         input: list of architectures, list of architecture accuracies

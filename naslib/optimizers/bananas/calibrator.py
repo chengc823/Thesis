@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Type
+import torch.nn as nn
 from numpy.typing import ArrayLike
 import numpy as np
 from sklearn.model_selection import train_test_split, KFold
@@ -44,7 +45,7 @@ class Gaussian(BaseCalibrator):
     
     def calibrate(self, data: tuple[list[Graph], list[float]]):
         X_train, y_train = data
-        self.predictor.fit(X_train, y_train)
+        self.predictor.fit(X_train, y_train, loss=nn.L1Loss())
 
     def get_conditional_estimation(self, data: Graph, percentiles=None) -> ConditionalEstimation:
         predictions = np.squeeze(self.predictor.query([data]))
@@ -108,7 +109,7 @@ class SplitCPCalibrator(BaseCPCalibrator):
         # split the data into train and validate
         X_train, X_cal, y_train, y_cal = self._split(X=X, y=y)
         # fit the predictor
-        self.predictor.fit(X_train, y_train)
+        self.predictor.fit(X_train, y_train, loss=nn.L1Loss())
         # calbrate 
         self.conformity_scores = []
         for X_i, y_i in zip(X_cal, y_cal):
@@ -144,7 +145,7 @@ class CrossValCPCalibrator(BaseCPCalibrator):
 
         self.conformity_scores = []
         for X_train, X_cal, y_train, y_cal in cv_splits:
-            self.predictor.fit(X_train, y_train)
+            self.predictor.fit(X_train, y_train, loss=nn.L1Loss())
             for X_i, y_i in zip(X_cal, y_cal):
                 if isinstance(self.predictor, Ensemble):
                     preds_i = np.squeeze(self.predictor.query([X_i]))

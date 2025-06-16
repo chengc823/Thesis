@@ -1,4 +1,3 @@
-from typing import Literal
 import numpy as np
 import os
 import json
@@ -82,8 +81,7 @@ class MLPPredictor(Predictor):
         predictor = FeedforwardNet(**kwargs)
         return predictor
 
-    def fit(self, xtrain, ytrain, train_info=None, epochs=500, loss: Literal["mae", "mse"]="mae", verbose=0):
-
+    def fit(self, xtrain, ytrain, train_info=None, epochs=500, loss: nn.Module = nn.L1Loss(), verbose=0):  # "mae" is used; if "mse" nn.MSELoss()
         if self.hparams_from_file and self.hparams_from_file not in ['False', 'None'] \
         and os.path.exists(self.hparams_from_file):
             self.hyperparams = json.load(open(self.hparams_from_file, 'rb'))['mlp']
@@ -129,13 +127,7 @@ class MLPPredictor(Predictor):
         self.model.to(device)
         optimizer = optim.Adam(self.model.parameters(), lr=lr, betas=(0.9, 0.99))
 
-        if loss == "mse":
-            criterion = nn.MSELoss().to(device)
-        elif loss == "mae":
-            criterion = nn.L1Loss().to(device)
-
         self.model.train()
-
         for e in range(epochs):
             meters = AverageMeterGroup()
             for b, batch in enumerate(data_loader):
@@ -144,7 +136,7 @@ class MLPPredictor(Predictor):
                 target = batch[1].to(device)
                 prediction = self.model(input).view(-1)
 
-                loss_fn = criterion(prediction, target)
+                loss_fn = loss.to(device)(prediction, target)
                 # add L1 regularization
                 params = torch.cat(
                     [

@@ -4,7 +4,7 @@ import scipy.stats as stats
 import random
 import numpy as np
 
-def get_quantile_levels(num_quantiles: int):
+def get_quantile_levels(num_quantiles: int, log: bool =True):
     if num_quantiles > 100:
         raise NotImplementedError("num_quantiles should not be larger than 100.")
     
@@ -12,7 +12,8 @@ def get_quantile_levels(num_quantiles: int):
     # replace the first one and the last one 
     levels[0] = 0.001
     levels[-1] = 0.999
-    print(f"Predicting {len(levels)} quantiles: {levels}.")
+    if log:
+        print(f"Predicting {len(levels)} quantiles: {levels}.")
     return levels
 
 

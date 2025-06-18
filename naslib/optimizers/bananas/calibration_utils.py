@@ -32,11 +32,3 @@ def rmsce_calibration(obs_and_condest: list[tuple[float, ConditionalEstimation]]
         p_j_score = (p_j_hat - p_j) ** 2
         score.append(p_j_score)
     return np.sum(score)
-
-
-# Conformity score functions
-def conformity_scoring_normalise(value: float, mean: float, std: float) -> float:
-    """Conformity scoring function based on normalising value."""
-    assert std >= 0
-    return (value - mean) / std
-

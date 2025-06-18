@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import copy
 from typing import Type
 import torch.nn as nn
 from numpy.typing import ArrayLike
@@ -10,7 +11,7 @@ from naslib.predictors.ensemble import Ensemble
 from naslib.predictors.quantile_regressor import QuantileRegressor
 from naslib.config import CalibratorType, PredictorType
 from naslib.optimizers.bananas.distribution import GaussianDist, PointwiseInterpolatedDist
-from naslib.optimizers.bananas.calibration_utils import conformity_scoring_normalise, ConditionalEstimation, TrainCalDataSet
+from naslib.optimizers.bananas.calibration_utils import ConditionalEstimation, TrainCalDataSet
 
 
 class BaseCalibrator(ABC):
@@ -70,26 +71,58 @@ class EnsembleCalibrationMixin:
     """
         - Conformity scoring function: (y - y_hat) / sd_hat.
     """
+    @staticmethod
+    def conformity_score_fn(value: float, mean: float, std: float) -> float:
+        """Conformity scoring function based on normalising value."""
+        assert std >= 0
+        return (value - mean) / std
+
     def get_conformity_score(self, predictor: Ensemble, X_i, y_i) -> float:
         preds_i = np.squeeze(predictor.query([X_i]))
         mean_i = np.mean(preds_i)
         std_i = np.std(preds_i)
-        return conformity_scoring_normalise(value=y_i, mean=mean_i, std=std_i)
+        return self.conformity_score_fn(value=y_i, mean=mean_i, std=std_i)
+    
+
+class QuantileCalibrationMixin:
+    """
+        - Conformity scoring function: max(Q_alpha(x)_hat - y, y - Q_(1-alpha)(x)).
+    """
+    @staticmethod
+    def conformity_score_fn(value: float, quantile_pred: float, alpha: float):
+        """Conformity scoring function for CQR."""
+        def _get_sign(alpha: float):
+            if alpha == 0.5:
+                return 0.0
+            elif alpha < 0.5:
+                return 1.0
+            elif alpha > 0.5:
+                return -1.0
+            
+        sign = _get_sign(alpha=alpha)
+        return sign * (quantile_pred - value)
+
+    def get_conformity_score(self, predictor: QuantileRegressor, X_i, y_i) -> dict[float, float]:
+        quantile_preds = predictor.query([X_i])
+        conformity_scores = {}
+        for alpha, pred in quantile_preds.items():
+            conformity_scores[alpha] = self.conformity_score_fn(value=y_i, quantile_pred=pred, alpha=alpha)
+        return conformity_scores
 
     def get_conditional_estimation(self, data, percentiles = [0.05, 0.1, 0.5, 0.9, 0.95]) -> ConditionalEstimation:
-        preds = np.squeeze(self.predictor.query([data]))
-        mean = np.mean(preds)
-        std = np.std(preds)
-        
+        assert hasattr(self, "predictor") and hasattr(self, "conformity_scores")
+        quantile_preds = self.predictor.query([data])
+        assert set(quantile_preds.keys()) == set(self.conformity_scores.keys()) == set(percentiles)
+    
         quantiles = []
         for p in percentiles:
-            n_cal = len(self.conformity_scores)
-            adj_p = min((n_cal + 1) * p / n_cal, 1.0)  # adjusted percentil for finite sample
-            quantile = np.quantile(self.conformity_scores, adj_p) * std + mean
+            pred = quantile_preds[p]
+            target_p =  1 - p if p < 0.5 else p
+            correction = np.quantile(self.conformity_scores[p], target_p)
+            quantile = pred - correction
             quantiles.append(quantile)
+        return ConditionalEstimation(point_prediction=quantile_preds, distribution=PointwiseInterpolatedDist(values=(percentiles, np.array(quantiles))))
 
-        return ConditionalEstimation(point_prediction=preds, distribution=PointwiseInterpolatedDist(values=(percentiles, np.array(quantiles))))
-    
 
 class SplitCPMixin:
     
@@ -116,9 +149,45 @@ class EnsembleSplitCPCalibrator(SplitCPMixin, EnsembleCalibrationMixin, BaseCali
         # split the data into train and validate
         X_train, X_cal, y_train, y_cal = self._split(X=X, y=y)
         # fit the predictor
+        assert isinstance(self.predictor, Ensemble)
         self.predictor.fit(X_train, y_train, loss=nn.L1Loss())
         # calbrate 
         self.conformity_scores = [self.get_conformity_score(predictor=self.predictor, X_i=X_i, y_i=y_i) for X_i, y_i in zip(X_cal, y_cal)]
+        self._is_calibrated = True
+
+    def get_conditional_estimation(self, data, percentiles = [0.05, 0.1, 0.5, 0.9, 0.95]) -> ConditionalEstimation:
+        assert hasattr(self, "predictor") and hasattr(self, "conformity_scores")
+        preds = np.squeeze(self.predictor.query([data]))
+        mean = np.mean(preds)
+        std = np.std(preds)
+        
+        quantiles = []
+        for p in percentiles:
+            n_cal = len(self.conformity_scores)
+            adj_p = min((n_cal + 1) * p / n_cal, 1.0)  # adjusted percentil for finite sample
+            quantile = np.quantile(self.conformity_scores, adj_p) * std + mean
+            quantiles.append(quantile)
+        return ConditionalEstimation(point_prediction=preds, distribution=PointwiseInterpolatedDist(values=(percentiles, np.array(quantiles))))
+
+
+class QuantileSplitCPCalibrator(SplitCPMixin, QuantileCalibrationMixin, BaseCalibrator):
+    """Uncertainty calibrator based on ensemble predictor and split Conformal Prediction."""
+    
+    def calibrate(self, data: tuple[list[Graph], list[float]]):
+        """Get conformity scores using the calibration dataset."""
+        X, y = data
+        self.num_seen_obs = len(X)
+        # split the data into train and validate
+        X_train, X_cal, y_train, y_cal = self._split(X=X, y=y)
+        # fit the predictor
+        assert isinstance(self.predictor, QuantileRegressor)
+        self.predictor.fit(X_train, y_train)
+        # calbrate 
+        self.conformity_scores = {alpha: [] for alpha in self.predictor.quantiles}
+        for X_i, y_i in zip(X_cal, y_cal):
+            scores_i = self.get_conformity_score(predictor=self.predictor, X_i=X_i, y_i=y_i)
+            for alpha in self.predictor.quantiles:
+                self.conformity_scores[alpha].append(scores_i[alpha])
         self._is_calibrated = True
 
 
@@ -145,12 +214,60 @@ class EnsembleCrossValCPCalibrator(CrossValCPMixin, EnsembleCalibrationMixin, Ba
         cv_splits = self._cross_val_split(X=X, y=y)
 
         self.conformity_scores = []
+        self.fitted_predictors = []
         for X_train, X_cal, y_train, y_cal in cv_splits:
-            self.predictor.fit(X_train, y_train, loss=nn.L1Loss())
+            assert isinstance(self.predictor, Ensemble)
+            predictor = copy.deepcopy(self.predictor)
+            predictor.fit(X_train, y_train, loss=nn.L1Loss())
+            self.fitted_predictors.append(predictor)
             for X_i, y_i in zip(X_cal, y_cal):
-                self.conformity_scores.append(self.get_conformity_score(predictor=self.predictor, X_i=X_i, y_i=y_i))
+                self.conformity_scores.append(self.get_conformity_score(predictor=predictor, X_i=X_i, y_i=y_i))
 
         assert len(self.conformity_scores) == len(X)
+        self._is_calibrated = True
+
+    def get_conditional_estimation(self, data, percentiles = [0.05, 0.1, 0.5, 0.9, 0.95]) -> ConditionalEstimation:
+        assert hasattr(self, "predictor") and hasattr(self, "conformity_scores")
+
+        preds = []
+        mean = []
+        std = []
+        for predictor in self.fitted_predictors:     
+            preds_j = np.squeeze(predictor.query([data]))
+            preds.append(preds_j)
+            mean.append(np.mean(preds_j))
+            std.append(np.std(preds_j))
+        # aggregate over folds
+        mean = np.mean(mean)
+        std = np.mean(std)
+        
+        quantiles = []
+        for p in percentiles:
+            n_cal = len(self.conformity_scores)
+            adj_p = min((n_cal + 1) * p / n_cal, 1.0)  # adjusted percentil for finite sample
+            quantile = np.quantile(self.conformity_scores, adj_p) * std + mean
+            quantiles.append(quantile)
+        return ConditionalEstimation(point_prediction=preds, distribution=PointwiseInterpolatedDist(values=(percentiles, np.array(quantiles))))
+
+    
+
+class QuantileCrossValCPCalibrator(CrossValCPMixin, QuantileCalibrationMixin, BaseCalibrator):
+    """Uncertainty calibrator based on ensemble predictor and cross-validation based Conformal Prediction."""
+                 
+    def calibrate(self, data: tuple[list[Graph], list[float]]):
+        X, y = data
+        self.num_seen_obs = len(X)
+        cv_splits = self._cross_val_split(X=X, y=y)
+
+        self.conformity_scores = {alpha: [] for alpha in self.predictor.quantiles}
+        for X_train, X_cal, y_train, y_cal in cv_splits:
+            assert isinstance(self.predictor, QuantileRegressor)
+            self.predictor.fit(X_train, y_train)
+            for X_i, y_i in zip(X_cal, y_cal):
+                scores_i = self.get_conformity_score(predictor=self.predictor, X_i=X_i, y_i=y_i)
+                for alpha in self.predictor.quantiles:
+                    self.conformity_scores[alpha].append(scores_i[alpha])
+
         self._is_calibrated = True
 
 
@@ -159,6 +276,8 @@ def get_calibrator_class(predictor_type: PredictorType, calibrator_type: Calibra
     calibrator_map = {
         (PredictorType.ENSEMBLE_MLP, CalibratorType.GAUSSIAN): Gaussian,
         (PredictorType.ENSEMBLE_MLP, CalibratorType.CP_SPLIT): EnsembleSplitCPCalibrator,
-        (PredictorType.ENSEMBLE_MLP, CalibratorType.CP_CROSSVAL): EnsembleCrossValCPCalibrator
+        (PredictorType.ENSEMBLE_MLP, CalibratorType.CP_CROSSVAL): EnsembleCrossValCPCalibrator,
+        (PredictorType.QUANTILE, CalibratorType.CP_SPLIT): QuantileSplitCPCalibrator,
+        (PredictorType.QUANTILE, CalibratorType.CP_CROSSVAL): QuantileCrossValCPCalibrator
     }
     return calibrator_map[(predictor_type, calibrator_type)]

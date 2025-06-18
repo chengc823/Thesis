@@ -1,6 +1,6 @@
 name: nas_cp
 channels:
-   # The company channel should be prioritized to avoid fetching a package from a public repository that holds the same name.
+  - pytorch
   - conda-forge
   - nodefaults
 
@@ -17,12 +17,11 @@ dependencies:
   - tqdm~=4.64.1
   - ipywidgets~=8.0.4
   - scipy~=1.11
+  - pytorch
+  - torchvision
+  - torchaudio
   - pip
   - pip:
-    - pybnn==0.0.5
-    - torch
-    - torchvision
-    - torchaudio
     - termcolor
     - fvcore
     - dill

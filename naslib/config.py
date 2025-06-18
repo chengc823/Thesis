@@ -31,7 +31,6 @@ class CalibratorType(str, Enum):
     CP_SPLIT = "CP_split"
     CP_CROSSVAL = "CP_cv"
     CP_BOOSTING = "CP_bootstrap"
-    CP_BOOSTING_NBHD = "CP_bootstrap_NBHD"
 
 
 class ACQType(str, Enum):
@@ -50,7 +49,7 @@ class NASConfig(BaseModel):
     #: Number of architectures being sampled and evaluated
     epochs: int = 150
     #: Architecture encoding type
-    encoding_type: EncodingType = EncodingType.PATH
+    encoding_type: EncodingType | None = EncodingType.PATH
     
     # BO-related parameters
     #: Number of initially sampled data points before fitting the surrogate model for the first time

@@ -90,7 +90,6 @@ class Trainer(object):
             self.optimizer.new_epoch(e)
             end_time = time.time()
             train_acc, train_loss, valid_acc, valid_loss, test_acc, test_loss, train_time = self.optimizer.train_statistics()
-            calibration_score = self.optimizer.calibration_score 
 
             self.search_trajectory.train_acc.append(train_acc)
             self.search_trajectory.train_loss.append(train_loss)
@@ -100,7 +99,7 @@ class Trainer(object):
             self.search_trajectory.test_loss.append(test_loss)
             self.search_trajectory.runtime.append(end_time - start_time)
             self.search_trajectory.train_time.append(train_time)
-            self.search_trajectory.calibration_score.append(calibration_score)
+            self.search_trajectory.calibration_score.append(self.optimizer.calibration_score)
 
             self.train_top1.avg = train_acc
             self.val_top1.avg = valid_acc
@@ -112,15 +111,14 @@ class Trainer(object):
             self._log_and_reset_accuracies(e, summary_writer)
 
         with open(f'{self.save}/search_log.pt', "wb") as f:
-            pickle.dump(self.optimizer.obs_and_condest, f)
+            pickle.dump((self.optimizer.history, self.optimizer.obs_and_condest), f)
 
         if self.config.save_arch_weights:
             logger.info(f"Saving architectural weight tensors: {self.save}/arch_weights.pt")
             best_arch = self.optimizer.get_final_architecture()
             arch_weights = best_arch.edges.data()
             with open(f'{self.save}/arch_weights.pt', "wb") as f:
-                pickle.dump(best_arch, f)
-                pickle.dump(arch_weights, f)
+                pickle.dump((best_arch, arch_weights), f)
         if self.config.plot_arch_weights:
             plot_architectural_weights(arch_weights)
 

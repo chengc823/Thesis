@@ -23,16 +23,15 @@ class QuantileRegressor(Predictor):
     def __init__(self, base_predictor: Predictor, quantiles: list[float]):
         self.base_preidctor = base_predictor
         self.quantiles = quantiles
-        print(f"Predicting {len(self.quantiles)} quantiles: {self.quantiles}.")
         self.quantile_regressors = {quantile: copy.deepcopy(self.base_preidctor) for quantile in quantiles}
 
     def fit(self, xtrain, ytrain, train_info=None):
         train_errors = {}
         for quantile in self.quantiles:
            estimator = self.quantile_regressors[quantile]
-           train_error = estimator.fit(xtrain, ytrain, train_info, loss_criterion=PinBallLoss(alpha=quantile))
+           train_error = estimator.fit(xtrain, ytrain, train_info, loss=PinBallLoss(alpha=quantile))
            self.quantile_regressors[quantile] = estimator
-           train_errors.append(train_error)
+           train_errors[quantile]= train_error
 
         return train_errors
 

@@ -12,6 +12,7 @@ def get_quantile_levels(num_quantiles: int):
     # replace the first one and the last one 
     levels[0] = 0.001
     levels[-1] = 0.999
+    print(f"Predicting {len(levels)} quantiles: {levels}.")
     return levels
 
 

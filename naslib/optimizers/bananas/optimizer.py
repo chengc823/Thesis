@@ -12,7 +12,7 @@ from naslib.predictors.mlp import MLPPredictor
 from naslib.predictors.quantile_regressor import QuantileRegressor
 from naslib.search_spaces.core.graph import Graph
 from naslib.search_spaces.core.query_metrics import Metric
-from naslib.config import FullConfig, PredictorType, EncodingType, ACQType
+from naslib.config import FullConfig, PredictorType, ACQType
 from naslib.utils.tools import count_parameters_in_MB 
 
 
@@ -94,7 +94,7 @@ class Bananas(MetaOptimizer):
         if self.predictor_type == PredictorType.ENSEMBLE_MLP:
             predictor = Ensemble(base_predictor=base_predictor, **self.predictor_params)
         elif self.predictor_type == PredictorType.QUANTILE:
-            predictor = QuantileRegressor(base_predictor=base_predictor, quantiles=self.percentiles[1:-1]) # the first and last quantiles are inserted
+            predictor = QuantileRegressor(base_predictor=base_predictor, quantiles=self.percentiles)
 
         return get_calibrator_class(predictor_type=self.predictor_type, calibrator_type=self.calibrator_type)(
             predictor=predictor, train_cal_split=self.train_cal_split, seed=self.seed, **self.calibrator_params

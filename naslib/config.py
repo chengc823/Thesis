@@ -33,6 +33,7 @@ class CalibratorType(str, Enum):
     CP_BOOSTING = "CP_bootstrap"
 
 
+
 class ACQType(str, Enum):
     ITS = "its"
     UCB = "ucb"
@@ -42,8 +43,7 @@ class ACQType(str, Enum):
 
 
 class NASConfig(BaseModel):
-    # #: Random seed for search
-    # seed: int = 99
+    #:Random seed for search
     #: Whether or not and the frequency to setup checkpoints 
     checkpoint_freq: int | None = None
     #: Number of architectures being sampled and evaluated

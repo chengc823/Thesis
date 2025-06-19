@@ -200,6 +200,9 @@ class NasBench201SearchSpace(Graph):
         if self.op_indices is None:
             self.op_indices = convert_naslib_to_op_indices(self)
         return self.op_indices
+    
+    def get_arch_str(self) -> str:
+        return convert_op_indices_to_str(op_indices=self.get_op_indices())
 
     def get_hash(self) -> tuple:
         return tuple(self.get_op_indices())

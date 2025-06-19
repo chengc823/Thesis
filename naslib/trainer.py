@@ -19,7 +19,6 @@ from naslib.utils.tools import AverageMeter, Checkpointer, AttrDict
 logger = logging.getLogger(__name__)
 
 
-
 class Trainer(object):
     """
     Default implementation that handles dataloading and preparing batches, the
@@ -111,7 +110,14 @@ class Trainer(object):
             self._log_and_reset_accuracies(e, summary_writer)
 
         with open(f'{self.save}/search_log.pt', "wb") as f:
-            pickle.dump((self.optimizer.history, self.optimizer.obs_and_condest), f)
+            arch_info = []
+            for item in self.optimizer.history:
+                graph_op_indices = item.arch.get_op_indices()
+                graph_str = item.arch.get_arch_str()
+                graph_encoding = item.arch.encode(encoding_type=self.config.search.encoding_type)
+                arch_info.append((graph_op_indices, graph_str, graph_encoding))
+
+            pickle.dump((arch_info, self.optimizer.obs_and_condest), f)
 
         if self.config.save_arch_weights:
             logger.info(f"Saving architectural weight tensors: {self.save}/arch_weights.pt")

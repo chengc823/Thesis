@@ -147,28 +147,19 @@ class EnsembleSplitCPCalibrator(SplitCPMixin, EnsembleCalibrationMixin, BaseCali
         mean = np.mean(preds)
         std = np.std(preds)
     
-       # norm_dist = GaussianDist(loc=mean, scale=std)
         quantiles = []
         for p in percentiles:
             n_cal = len(self.conformity_scores)
-        
             if p < 0.5:
                 target_p = min((1 - 2 * p) * (1 + 1 / n_cal), 1) # adjusted percentil for finite sample
-                
-                # 1 - p 
                 correction = np.quantile(self.conformity_scores, target_p) * std
-                quantile = mean - correction # pred - correction
+                quantile = mean - correction
             elif p > 0.5:
                 target_p = min((2 * p - 1) * (1 + 1 / n_cal), 1)
                 correction = np.quantile(self.conformity_scores, target_p) * std
                 quantile = mean + correction
-
             else:
                 quantile = mean
-
-
-            # adj_p = min((n_cal + 1) * p / n_cal, 1.0)  # adjusted percentil for finite sample
-            # quantile = np.quantile(self.conformity_scores, adj_p) * std + mean
             quantiles.append(quantile)
         return ConditionalEstimation(point_prediction=preds, distribution=PointwiseInterpolatedDist(values=(percentiles, np.array(quantiles))))
 
@@ -258,12 +249,20 @@ class EnsembleCrossValCPCalibrator(CrossValCPMixin, EnsembleCalibrationMixin, Ba
         # aggregate over folds
         mean = np.mean(mean)
         std = np.mean(std)
-        
+
         quantiles = []
         for p in percentiles:
             n_cal = len(self.conformity_scores)
-            adj_p = min((n_cal + 1) * p / n_cal, 1.0)  # adjusted percentil for finite sample
-            quantile = np.quantile(self.conformity_scores, adj_p) * std + mean
+            if p < 0.5:
+                target_p = min((1 - 2 * p) * (1 + 1 / n_cal), 1) # adjusted percentil for finite sample
+                correction = np.quantile(self.conformity_scores, target_p) * std
+                quantile = mean - correction
+            elif p > 0.5:
+                target_p = min((2 * p - 1) * (1 + 1 / n_cal), 1)
+                correction = np.quantile(self.conformity_scores, target_p) * std
+                quantile = mean + correction
+            else:
+                quantile = mean
             quantiles.append(quantile)
         return ConditionalEstimation(point_prediction=preds, distribution=PointwiseInterpolatedDist(values=(percentiles, np.array(quantiles))))
 

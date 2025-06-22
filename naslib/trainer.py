@@ -109,14 +109,13 @@ class Trainer(object):
             self._log_to_json()
             self._log_and_reset_accuracies(e, summary_writer)
 
+        arch_info = []
+        for item in self.optimizer.history:
+            graph_op_indices = item.arch.get_op_indices()
+            graph_str = item.arch.get_arch_str()
+            graph_encoding = item.arch.encode(encoding_type=self.config.search.encoding_type)
+            arch_info.append((graph_op_indices, graph_str, graph_encoding))
         with open(f'{self.save}/search_log.pt', "wb") as f:
-            arch_info = []
-            for item in self.optimizer.history:
-                graph_op_indices = item.arch.get_op_indices()
-                graph_str = item.arch.get_arch_str()
-                graph_encoding = item.arch.encode(encoding_type=self.config.search.encoding_type)
-                arch_info.append((graph_op_indices, graph_str, graph_encoding))
-
             pickle.dump((arch_info, self.optimizer.obs_and_condest), f)
 
         if self.config.save_arch_weights:

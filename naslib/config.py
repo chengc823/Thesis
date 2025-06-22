@@ -30,7 +30,7 @@ class CalibratorType(str, Enum):
     #: Calibrators based on Conformal Predictions
     CP_SPLIT = "CP_split"
     CP_CROSSVAL = "CP_cv"
-    CP_BOOSTING = "CP_bootstrap"
+    CP_BOOTSTRAP = "CP_bootstrap"
 
 
 

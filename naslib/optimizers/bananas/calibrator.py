@@ -8,6 +8,7 @@ from sklearn.model_selection import train_test_split, KFold
 from sklearn.utils import resample
 from naslib.search_spaces.core import Graph
 from naslib.predictors.base import Predictor
+from naslib.predictors.mlp import MLPPredictor
 from naslib.predictors.ensemble import Ensemble
 from naslib.predictors.quantile_regressor import QuantileRegressor
 from naslib.config import CalibratorType, PredictorType
@@ -133,7 +134,6 @@ class EnsembleSplitCPCalibrator(SplitCPMixin, EnsembleCalibrationMixin, BaseCali
     def calibrate(self, data: tuple[list[Graph], list[float]]):
         """Get conformity scores using the calibration dataset."""
         X, y = data
-        self.num_seen_obs = len(X)
         # split the data into train and validate
         X_train, X_cal, y_train, y_cal = self._split(X=X, y=y)
         # fit the predictor
@@ -170,7 +170,6 @@ class QuantileSplitCPCalibrator(SplitCPMixin, QuantileCalibrationMixin, BaseCali
     def calibrate(self, data: tuple[list[Graph], list[float]]):
         """Get conformity scores using the calibration dataset."""
         X, y = data
-        self.num_seen_obs = len(X)
         # split the data into train and validate
         X_train, X_cal, y_train, y_cal = self._split(X=X, y=y)
         # fit the predictor
@@ -223,7 +222,6 @@ class EnsembleCrossValCPCalibrator(CrossValCPMixin, EnsembleCalibrationMixin, Ba
                  
     def calibrate(self, data: tuple[list[Graph], list[float]]):
         X, y = data
-        self.num_seen_obs = len(X)
         cv_splits = self._cross_val_split(X=X, y=y)
 
         self.conformity_scores = []
@@ -273,7 +271,6 @@ class QuantileCrossValCPCalibrator(CrossValCPMixin, QuantileCalibrationMixin, Ba
                  
     def calibrate(self, data: tuple[list[Graph], list[float]]):
         X, y = data
-        self.num_seen_obs = len(X)
         cv_splits = self._cross_val_split(X=X, y=y)
 
         self.fitted_predictors = []
@@ -315,57 +312,70 @@ class QuantileCrossValCPCalibrator(CrossValCPMixin, QuantileCalibrationMixin, Ba
         return ConditionalEstimation(point_prediction=quantile_preds, distribution=PointwiseInterpolatedDist(values=(percentiles, np.array(quantiles))))
     
 
-# class BoostrapMixin:
+class EnsembleBootstrapCPCalibrator(EnsembleCalibrationMixin, BaseCalibrator):
+    """Uncertainty calibrator based on ensemble predictor and split Conformal Prediction."""
 
-#     def _resample(self):
-#         ...
-
-
-
-# class EnsembleBootstrapCPCalibrator(BoostrapMixin, EnsembleCalibrationMixin, BaseCalibrator):
-#     """Uncertainty calibrator based on ensemble predictor and split Conformal Prediction."""
+    def _resample(self, X: list[Graph], y: list[float]) -> tuple[ArrayLike, list[Graph], list[float]]:
+        """Sample with replacement from the full dataset. The size of the sampled set is identical to the given dataset."""
+        indices = np.arange(len(X))
+        bt_indices = resample(indices, replace=True, n_samples=len(X))
     
-#     def calibrate(self, data: tuple[list[Graph], list[float]]):
-#         """Get conformity scores using the calibration dataset."""
-#         X, y = data
-#         self.num_seen_obs = len(X)
-        
-        
-        
-        
-        
-        
-        # split the data into train and validate
-       
-       
-       
-       
-       
-       
-    #    X_train, X_cal, y_train, y_cal = self._split(X=X, y=y)
-    #     # fit the predictor
-    #     self.predictor.fit(X_train, y_train, loss=nn.L1Loss())
-    #     # calbrate 
-        
-    #     X_cal_bs, y_cal_b = resample(X_cal, y_cal, n_samples=, replace=False, stratify=y, random_state=0)
+        bt_X, bt_y = [], []
+        for i in bt_indices:
+            bt_X.append(X[i])
+            bt_y.append(y[i])
+        return bt_indices, bt_X, bt_y
 
+    def calibrate(self, data: tuple[list[Graph], list[float]]):
+        """Get conformity scores using the calibration dataset."""
+        X, y = data
+        # fit boostrap models
+        self.fitted_predictors = []
+        predictors = self.predictor.get_ensemble()
+        for predictor in predictors():
+            assert isinstance(predictor, MLPPredictor)
+            bootstrap_indices, bootstrapped_X, bootstrapped_y = self._resample(X=X, y=y)
+            predictor.fit(bootstrapped_X, bootstrapped_y)
+            predictor.indices = bootstrap_indices
+            self.fitted_predictors.append(predictor)
 
-    #     self.conformity_scores = [self.get_conformity_score(predictor=self.predictor, X_i=X_i, y_i=y_i) for X_i, y_i in zip(X_cal, y_cal)]
-    #     self._is_calibrated = True
+        # compute conformity scores using
+        conformity_scores = []
+        for idx, (X_i, y_i) in enumerate(zip(X, y)):
+            loo_preds = []   # leave-one-out prediction using all fitted models that are not fitted on (X_i, y_i)
+            for predictor in self.fitted_predictors:
+                if idx in predictor.indices:
+                    continue
+                loo_preds.append(predictor.query[X_i])
+            if len(loo_preds) < 2:
+                print(f"{idx}-th data point does not have sufficient predictions and is not included in any calibration set.") 
+                continue
 
-    # def get_conditional_estimation(self, data, percentiles = [0.05, 0.1, 0.5, 0.9, 0.95]) -> ConditionalEstimation:
-    #     preds = np.squeeze(self.predictor.query([data]))
-    #     mean = np.mean(preds)
-    #     std = np.std(preds)
-        
-    #     quantiles = []
-    #     for p in percentiles:
-    #         n_cal = len(self.conformity_scores)
-    #         adj_p = min((n_cal + 1) * p / n_cal, 1.0)  # adjusted percentil for finite sample
-    #         quantile = np.quantile(self.conformity_scores, adj_p) * std + mean
-    #         quantiles.append(quantile)
-    #     return ConditionalEstimation(point_prediction=preds, distribution=PointwiseInterpolatedDist(values=(percentiles, np.array(quantiles))))
+            mean = np.mean(loo_preds)
+            std = np.std(loo_preds)
+            conformity_scores.append(self.conformity_score_fn(value=y_i, mean=mean, std=std))
+            self.conformity_scores = conformity_scores
 
+    def get_conditional_estimation(self, data, percentiles = [0.05, 0.1, 0.5, 0.9, 0.95]) -> ConditionalEstimation:
+        preds = np.squeeze([predictor.query([data]) for predictor in self.fitted_predictors])
+        mean = np.mean(preds)
+        std = np.std(preds)
+    
+        quantiles = []
+        for p in percentiles:
+            n_cal = len(self.conformity_scores)
+            if p < 0.5:
+                target_p = min((1 - 2 * p) * (1 + 1 / n_cal), 1) # adjusted percentil for finite sample
+                correction = np.quantile(self.conformity_scores, target_p) * std
+                quantile = mean - correction
+            elif p > 0.5:
+                target_p = min((2 * p - 1) * (1 + 1 / n_cal), 1)
+                correction = np.quantile(self.conformity_scores, target_p) * std
+                quantile = mean + correction
+            else:
+                quantile = mean
+            quantiles.append(quantile)
+        return ConditionalEstimation(point_prediction=preds, distribution=PointwiseInterpolatedDist(values=(percentiles, np.array(quantiles))))      
 
 
 def get_calibrator_class(predictor_type: PredictorType, calibrator_type: CalibratorType) -> Type[BaseCalibrator]:
@@ -373,7 +383,7 @@ def get_calibrator_class(predictor_type: PredictorType, calibrator_type: Calibra
         (PredictorType.ENSEMBLE_MLP, CalibratorType.GAUSSIAN): Gaussian,
         (PredictorType.ENSEMBLE_MLP, CalibratorType.CP_SPLIT): EnsembleSplitCPCalibrator,
         (PredictorType.ENSEMBLE_MLP, CalibratorType.CP_CROSSVAL): EnsembleCrossValCPCalibrator,
-      #  (PredictorType.ENSEMBLE_MLP, CalibratorType.CP_BOOTSTRAP): EnsembleBootstrapCPCalibrator,
+        (PredictorType.ENSEMBLE_MLP, CalibratorType.CP_BOOTSTRAP): EnsembleBootstrapCPCalibrator,
         (PredictorType.QUANTILE, CalibratorType.CP_SPLIT): QuantileSplitCPCalibrator,
         (PredictorType.QUANTILE, CalibratorType.CP_CROSSVAL): QuantileCrossValCPCalibrator
     }

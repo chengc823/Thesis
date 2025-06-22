@@ -312,8 +312,13 @@ class QuantileCrossValCPCalibrator(CrossValCPMixin, QuantileCalibrationMixin, Ba
         return ConditionalEstimation(point_prediction=quantile_preds, distribution=PointwiseInterpolatedDist(values=(percentiles, np.array(quantiles))))
     
 
-class EnsembleBootstrapCPCalibrator(EnsembleCalibrationMixin, BaseCalibrator):
+class EnsembleBootstrapCPCalibrator(BaseCalibrator):
     """Uncertainty calibrator based on ensemble predictor and split Conformal Prediction."""
+
+    @staticmethod
+    def conformity_score_fn(value: float, mean: float) -> float:
+        """Conformity scoring function based on absolute residual."""
+        return abs(value - mean)
 
     def _resample(self, X: list[Graph], y: list[float]) -> tuple[ArrayLike, list[Graph], list[float]]:
         """Sample with replacement from the full dataset. The size of the sampled set is identical to the given dataset."""
@@ -332,7 +337,7 @@ class EnsembleBootstrapCPCalibrator(EnsembleCalibrationMixin, BaseCalibrator):
         # fit boostrap models
         self.fitted_predictors = []
         predictors = self.predictor.get_ensemble()
-        for predictor in predictors():
+        for predictor in predictors:
             assert isinstance(predictor, MLPPredictor)
             bootstrap_indices, bootstrapped_X, bootstrapped_y = self._resample(X=X, y=y)
             predictor.fit(bootstrapped_X, bootstrapped_y)
@@ -346,31 +351,29 @@ class EnsembleBootstrapCPCalibrator(EnsembleCalibrationMixin, BaseCalibrator):
             for predictor in self.fitted_predictors:
                 if idx in predictor.indices:
                     continue
-                loo_preds.append(predictor.query[X_i])
-            if len(loo_preds) < 2:
-                print(f"{idx}-th data point does not have sufficient predictions and is not included in any calibration set.") 
+                loo_preds.append(predictor.query([X_i]))
+            if len(loo_preds) < 1:
+                print(f"{idx}-th data point does not have sufficient LOO predictions and is not included in any calibration set.") 
                 continue
 
             mean = np.mean(loo_preds)
-            std = np.std(loo_preds)
-            conformity_scores.append(self.conformity_score_fn(value=y_i, mean=mean, std=std))
+            conformity_scores.append(self.conformity_score_fn(value=y_i, mean=mean))
             self.conformity_scores = conformity_scores
 
     def get_conditional_estimation(self, data, percentiles = [0.05, 0.1, 0.5, 0.9, 0.95]) -> ConditionalEstimation:
         preds = np.squeeze([predictor.query([data]) for predictor in self.fitted_predictors])
         mean = np.mean(preds)
-        std = np.std(preds)
     
         quantiles = []
         for p in percentiles:
             n_cal = len(self.conformity_scores)
             if p < 0.5:
                 target_p = min((1 - 2 * p) * (1 + 1 / n_cal), 1) # adjusted percentil for finite sample
-                correction = np.quantile(self.conformity_scores, target_p) * std
+                correction = np.quantile(self.conformity_scores, target_p)
                 quantile = mean - correction
             elif p > 0.5:
                 target_p = min((2 * p - 1) * (1 + 1 / n_cal), 1)
-                correction = np.quantile(self.conformity_scores, target_p) * std
+                correction = np.quantile(self.conformity_scores, target_p)
                 quantile = mean + correction
             else:
                 quantile = mean

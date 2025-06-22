@@ -9,6 +9,7 @@ def get_quantile_levels(num_quantiles: int, log: bool =True):
         raise NotImplementedError("num_quantiles should not be larger than 100.")
     
     levels = np.linspace(0, 1, num=num_quantiles + 1)[1:-1] # avoid get 0 and 1
+    levels = np.concatenate([np.array([0.001]), levels, np.array([0.999])])
     if log:
         print(f"Predicting {len(levels)} quantiles: {levels}.")
     return levels
@@ -90,9 +91,8 @@ class PointwiseInterpolatedDist:
     def __init__(self, values: tuple[np.array, np.array]):
         pk, qk = values
         # Assume the population extremums are infinite values and extend quatiles
-        avg_delta_q = max(np.diff(qk))
-        pk = np.concatenate([np.array([0, 0.001]), pk, np.array([0.999, 1])])
-        qk = np.concatenate([np.array([-np.finfo(np.float32).max, qk[0] - avg_delta_q]), qk, np.array([qk[-1] + avg_delta_q, np.finfo(np.float32).max])])
+        pk = np.concatenate([np.array([0]), pk, np.array([1])])
+        qk = np.concatenate([np.array([-np.finfo(np.float32).max]), qk, np.array([np.finfo(np.float32).max])])
 
         assert len(pk) == len(qk)
         self.pk = pk

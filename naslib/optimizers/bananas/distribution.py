@@ -38,7 +38,7 @@ class Distribution(Protocol):
         q: a float between 0 and 1 representing quantile level 
         """
 
-    def explected_gain(self, x: float) -> float:
+    def expected_gain(self, x: float) -> float:
         """Expected value of the distribution larger than a given value.
         
         x: value of a variate sampled from the distributrion.

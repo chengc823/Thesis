@@ -165,9 +165,9 @@ class Bananas(MetaOptimizer):
                         case ACQType.UCB:
                             acq_score = acq.upper_confidence_bound(distribution=distribution, **self.acq_fn_params)
                         case ACQType.PI:
-                            acq_score = acq.probability_of_improvement(distribution=distribution, threhold=max(y), **self.acq_fn_params)
+                            acq_score = acq.probability_of_improvement(distribution=distribution, threshold=max(y), **self.acq_fn_params)
                         case ACQType.EI:
-                            acq_score = acq.expected_improvement(distribution=distribution, threhold=max(y), **self.acq_fn_params)
+                            acq_score = acq.expected_improvement(distribution=distribution, threshold=max(y), **self.acq_fn_params)
                     acq_values.append(acq_score)
                     conditional_estimation.append(model_condest)
 

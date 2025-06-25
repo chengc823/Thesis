@@ -12,8 +12,8 @@ def upper_confidence_bound(distribution: Distribution, explore_factor: float = 0
     return distribution.ppf(q=explore_factor)
 
 
-def probability_of_improvement(distribution: Distribution, threhold: float, **kwags) -> float:
-    return 1 - distribution.cdf(x=threhold)
+def probability_of_improvement(distribution: Distribution, threshold: float, **kwags) -> float:
+    return 1 - distribution.cdf(x=threshold)
 
 
 def exploit_only(distribution: Distribution, **kwargs) -> float:
@@ -21,4 +21,4 @@ def exploit_only(distribution: Distribution, **kwargs) -> float:
 
 
 def expected_improvement(distribution: Distribution, threshold: float, **kwargs) -> float:
-    return distribution.explected_gain(x=threshold, **kwargs)
+    return distribution.expected_gain(x=threshold, **kwargs)

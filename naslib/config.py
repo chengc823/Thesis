@@ -68,7 +68,7 @@ class NASConfig(BaseModel):
     #: Acquisition functions
     acq_fn_type: ACQType = ACQType.ITS
     acq_fn_params: dict[str, Any]
-    acq_fn_optimization: Literal["random_sampling", "mutation"] = "mutation"
+    acq_fn_optimization: Literal["random_sampling", "mutation", "dynamic"] = "mutation"
     #: Mutation parameters (only relevant if "mutation" is used)
     #: the number of best ever-found models to be mutated
     num_arches_to_mutate: int = 2

@@ -135,6 +135,16 @@ class Bananas(MetaOptimizer):
         return candidates
 
     def new_epoch(self, epoch):
+        # update acquisition function
+        if self.config.search.acq_fn_optimization == "dynamic":
+            if epoch < self.config.search.epochs * 0.5:
+                self.acq_fn_optimization = "random_sampling"
+                self.num_arches_to_mutate = None
+            else:
+                self.acq_fn_optimization = "mutation"
+                self.num_arches_to_mutate = max((self.config.search.epochs - epoch) // 20 * 2, 2)
+
+        # run new epoch
         if epoch < self.num_init:
             model = self._sample_new_model()
             self._set_scores(model)
@@ -145,6 +155,7 @@ class Bananas(MetaOptimizer):
             if len(self.next_batch) == 0:
                 
                 print(f"TRAINING surrogate predictor for epoch={epoch}.")
+                print(f"acq_fn_optimization={self.acq_fn_optimization}, num_arches_to_nutate={self.num_arches_to_mutate}")
                 # train and calibrate a surrogate model
                 X, y = self._get_data()
                 calibrator = self._get_calibrator()

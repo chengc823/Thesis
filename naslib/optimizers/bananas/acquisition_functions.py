@@ -5,7 +5,7 @@ def idependent_thompson_sampling(distribution: Distribution, **kwargs) -> float:
     return distribution.rvs(size=1)[0]
 
 
-def upper_confidence_bound(distribution: Distribution, explore_factor: float = 0.5, **kwargs) -> float:
+def upper_confidence_bound(distribution: Distribution, explore_factor: float = 0.75, **kwargs) -> float:
     """
     explore_factor: The percentile at which the quantile value is estimated.
     """

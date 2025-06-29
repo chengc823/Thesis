@@ -13,6 +13,7 @@ class Ensemble(Predictor):
     ):
         self.base_preidctor = base_predictor
         self.num_ensemble = num_ensemble
+        print(f"Ensemble consists of {self.num_ensemble} base learners.")
         self.hpo_wrapper = hpo_wrapper
         self.hyperparams = None
         self.ensemble = None

@@ -68,7 +68,7 @@ class NASConfig(BaseModel):
     #: Acquisition functions
     acq_fn_type: ACQType = ACQType.ITS
     acq_fn_params: dict[str, Any]
-    acq_fn_optimization: Literal["random_sampling", "mutation", "dynamic"] = "mutation"
+    acq_fn_optimization: Literal["random_sampling", "mutation", "dynamic"] | None = "mutation"
     #: Mutation parameters (only relevant if "mutation" is used)
     #: the number of best ever-found models to be mutated
     num_arches_to_mutate: int = 2
@@ -114,11 +114,15 @@ class FullConfig(BaseModel):
     @property
     def save(self):
         search_space = f"{self.search_space}/{self.dataset}"
+        if self.search.acq_fn_optimization == "random_sampling" or self.search.acq_fn_optimization == "dynamic":
+            self.search.num_arches_to_mutate = None
         search_strat = f"acq={self.search.acq_fn_type.value}/num_to_mutate={self.search.num_arches_to_mutate}/num_init={self.search.num_init}"
         algo_base = f"{self.optimizer}__{self.search.predictor_type.value}__{self.search.calibrator_type.value}"
         match self.search.calibrator_type:
             case CalibratorType.GAUSSIAN:
                 algo = algo_base + f"__num_quantiles={self.search.num_quantiles}"
+            case CalibratorType.CP_BOOTSTRAP:
+                algo = algo_base + f"__num_ensemble={self.search.predictor_params['num_ensemble']}__num_quantiles={self.search.num_quantiles}"
             case _:
                 algo = algo_base + f"__train_cal_split={self.search.train_cal_split}__num_quantiles={self.search.num_quantiles}".replace(".", "")
 

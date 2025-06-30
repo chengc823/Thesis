@@ -5,6 +5,7 @@
 
 
 % Add packages
+\usepackage[colorlinks=false]{hyperref}
 \usepackage[utf8]{inputenc}
 \usepackage{emptypage}
 \usepackage{enumitem}
@@ -34,7 +35,7 @@
 % Cover page
 \frontmatter \subject{Master Thesis} % change to appropriate type
 \title{\LARGE 
-	Uncertainty Estimation with Online Conformal Prediction in Neural Architecture Search: \\ 
+	Uncertainty Calibration with Online Conformal Prediction in Neural Architecture Search: \\ 
 	An Evaluation under the BANANAS Framework 
 }
 \author{
@@ -180,29 +181,75 @@ Besides, […] proposes a CP algorithm that samples datapoints using Monte-Carlo
 
 This thesis will primarily focus on NAS-Bench-201 due to comparison concerns.
 \section{NAS-Bench-201}
-\section{Robust dataset}
-\section{Others} NAS-Benchmark-101 / 301 and DARST
 
 
 % chapter 4
 \chapter{Methodology}
-\label{Method}
+This section presents with details how the CP-based uncertainty calibration is integrated into the BANANAS framework in an online setting. An algorithm outlines the overall procedure in Section \ref{sec:overview}. 
+ 
 
-\section{Baseline}
-BANANAS + Split Conformal Prediction
+f. A visualization of the methodological steps is also provided in Figure 4.1. The deep learning and corresponding post-processing techniques for extraction of solar systems from images are described in Section 4.1. Inference of system properties is explained in Section 4.2. Finally, Section 4.3 presents ap- proaches to create correspondences between the different data sources described in Chapter 3.
 
-\section{Enhancement}
-\subsection{Conformity scores}
-\subsection{Conformal Quantile Regression}
-\subsection{Conformal Prediction with Cross-validation / Jackknife+}
-\subsection{Conformal Prediction with Boosting}
+\section{The BANANAS +Conformal Prediction Framework}
+\label{sec:overview}
+
+
+\begin{algorithm}[t]
+  \caption{The BANANAS +Conformal Prediction Framework}
+  \label{alg:OCP}
+  \begin{algorithmic}[1]
+    \textbf{Input - NAS parameters:}
+    search space $\mathcal{A}$, evaluation dataset $\mathcal{D}$, exploration budget $T$, 
+    the number of initially sampled architectures $t_{0}$, acquisition function $\phi$, surrogate model $\mathcal{M}$ proxying the true objective function, function $\myfunc{f(\cdot)}$ returning validation error of an architecture after training. \newline
+    \textbf{Input - Calibration parameters:} a function $\myfunc{C(\cdot)$ to create calibration set, a conformity score function $\myfunc{s(\cdot)}$, and an array of desired quantile levels $q$. \vskip
+    \vspace{0.7em}
+    \STATE Draw $t_{0}$ architectures {$\{a_{0}, a_{1},..., a_{t_{0}}\}$} uniformly at random from $\mathcal{A}$ and train each individual architecture on $\mathcal{D}$.
+    \vspace{0.7em}
+   	\STATE $\mathcal{A}_{t_{0}} \leftarrow{\{a_{0}, a_{1},..., a_{t_{0}}\}$},
+   	\vspace{0.7em}	
+    \FOR {$t$ in $t_{0},...,T$}
+    	\begin{enumerate}
+    	    \itemsep0em 
+			\item Apply $\myfunc{C(\cdot)$ and split the trained $t_{0}$ architectures into two disjoint datasets; use them as a training set $\mathcal{A}_{t, train}$, and a calibration set $\mathcal{A}_{t, cal}$.
+			\item Train the surrogate model $\mathcal{M}$ on $\{a, \myfunc{f(a)}\}, a \in \mathcal{A}_{t, train}$ using the path encoding to represent each architecture. 
+			\item Compute the conformity scores $\myfunc{s}$ on $\mathcal{A}_{t, cal}$.
+			\item Generate a set of candidate architectures from $\mathcal{A}$. 
+			\FOR {each $a_{i}$ in candidates}
+				\begin{enumerate}
+				\item Estimate the quantile value for each level in $q$ and calibrate with conformity scores computed in the previous step.
+				\item Fit a distribution $d$ based on the quantile values.
+				\item Compute the acquisition score $\myfunc{\phi(a_{i})}$.
+				\end{enumerate}
+			\ENDFOR
+			
+			\item Denote $a_{t+1}$ as the candidate architecture with maximum $\myfunc{\phi(a)}$; evaluate $\myfunc{f(a_{t+1})}$.
+			\item $\mathcal{A}_{t+1} \leftarrow{\mathcal{A}_{t} \cup \{{a_{t+1}\}}$
+		\end{enumerate}
+    \ENDFOR 
+    \STATE \textbf{Output:} $a^{*}=\operatorname*{argmin}_{t=0,...,T} f(a_{t})$    
+  \end{algorithmic}
+\end{algorithm}
+
+
+
+
+\section{Distribution Estimation}
+\label{sec:distest}
+\section{Uncertainty Calibration Algorithms}
+\section{Acquisition Function}
+
+
+
+{Conformal Prediction with Cross-validation / Jackknife+}
+{Conformal Prediction with Bootstrapping}
 \subsection{...}
 .......
 
-\section{Evaluation Metrics}
-
 % chapter 5
 \chapter{Experiments and Results}
+
+\section{Evaluation Metrics}
+
 \label{Results}
 
 % chapter 6

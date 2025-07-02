@@ -1,6 +1,7 @@
 % Do not change document class, margins, fonts, etc.
 \documentclass[a4paper,oneside,bibliography=totoc]{scrbook}
 \setlength{\parindent}{0pt}
+\setlength{\parindent}{15pt}
 \newtheorem{definition}{Definition} \newtheorem{proposition}{Proposition}
 
 
@@ -93,7 +94,23 @@ NAS is a subfield of AutoML.
 \end{description}}
 
 \subsection{BANANAS}
-BANANAS is an Bayesian Optimization based search strategy. Give an introduction how Bayesian Optimization works. We list the five engineering decisions and review each field's related works. Maybe briefly cite Gaussian Process.
+\label{sec:bananas}
+Bayesian Optimization with Neural Architectures for Neural Architecture Search (BANANAS)
+
+
+
+
+BANANAS is an Bayesian Optimization based search strategy. 
+
+
+
+Bayesian optimization is a sequential decision-making process that seeks to find a global minimum x⋆ ∈ argminx∈X f(x) of an unknown black-box objective function f : X → R over an input space X ⊆ RD. 
+
+
+
+
+
+Give an introduction how Bayesian Optimization works. We list the five engineering decisions and review each field's related works. Maybe briefly cite Gaussian Process.
 
 \begin{description}[leftmargin=0cm]
 	\item [Architecture Encoding]
@@ -158,7 +175,7 @@ Starting from i.i.d data, and provide an intuitive demonstration how the predict
 \end{description}}
 
 \subsection{Online Conformal Prediction}
-\subsection{Split Conformal Prediction}
+
 \subsection{Limitations and Extensions}
 Limitations of split conformal predictions:
 - Distribution shift. The conformal prediction is built on the core assumption of exchangeability, which means the data points are identically distributed. However, this assumption is hard to meet in real-world application. For example, with time-series data this assumption is generally violated due to the temporal relationships. 
@@ -174,39 +191,45 @@ Besides, […] proposes a CP algorithm that samples datapoints using Monte-Carlo
 
 
 
-
 % chapter 3
-\chapter{Datasets Description}
-\label{Dataset}
-
-This thesis will primarily focus on NAS-Bench-201 due to comparison concerns.
-\section{NAS-Bench-201}
-
-
-% chapter 4
 \chapter{Methodology}
-This section presents with details how the CP-based uncertainty calibration is integrated into the BANANAS framework in an online setting. An algorithm outlines the overall procedure in Section \ref{sec:overview}. 
- 
+To address the limitations of the Gaussian assumption in uncertainty estimation, this work introduces a new framework that integrates conformal prediction-based uncertainty calibration into the BANANAS framework in an online setting. An algorithm outlining the overall procedure is presented in Section \ref{sec:overview}, followed by detailed descriptions of each methodological step. Section \ref{sec:cp} presents different conformal predictions algorithms to be explored. Next, methods for the estimation and evaluation of the conditional distribution of each candidate architecture are discussed in Section \ref{sec:distest}. Finally, in Section \ref{sec:acq} we introduce how the calibrated distribution can be combined with different acquisition functions and acquisition search strategies.
 
-f. A visualization of the methodological steps is also provided in Figure 4.1. The deep learning and corresponding post-processing techniques for extraction of solar systems from images are described in Section 4.1. Inference of system properties is explained in Section 4.2. Finally, Section 4.3 presents ap- proaches to create correspondences between the different data sources described in Chapter 3.
 
-\section{The BANANAS +Conformal Prediction Framework}
+\section{The BANANAS + Conformal Prediction Framework}
 \label{sec:overview}
+
+Refer to Section {\ref{sec:bananas} for a detailed introduction of the original BANANAS algorithm. In this section, we highlight the key ideas of the uncertainty calibration mechanism, as outlined in Step 1 to 6 of the inner iteration in Algorithm {\ref{alg:OCP}.
+
+Bayesian Optimization is a kind of sequential decision-making task. In the applications of neural architecture search, the typical goal is to find the architecture that has the best evaluation performance on a fixed dataset under a given search budget. At each ietration $t$, a surrogate model is trained on all architectures evaluated at step $\{0, 1, 2..., t-1\}$, to predict the validation accuracy $f(a)$ of unseen architectures for the next search.
+
+In the standard BANANAS framework, the surrogate model consists of an ensemble of $m$ feedforward neural networks. At iteration $t$, a set of candidate architectures is sampled, and a conditional distribution is estimated for each candidate based on the ensemble predictions, as expressed below:
+\begin{equation}
+\hat{f}(a) \sim \mathcal{N} \left( 
+\frac{1}{m} \sum_{i=1}^{m} f_i(a),\ 
+\sqrt{\frac{1}{m} \sum_{i=1}^{m} \left(f_i(a) - \frac{1}{m} \sum_{j=1}^{m} f_j(a) \right)^2}
+\right)
+\label{eq:ensemble_gaussian}
+\end{equation}
+
+
+
+
 
 
 \begin{algorithm}[t]
-  \caption{The BANANAS +Conformal Prediction Framework}
+  \caption{The BANANAS + Conformal Prediction Framework}
   \label{alg:OCP}
   \begin{algorithmic}[1]
     \textbf{Input - NAS parameters:}
     search space $\mathcal{A}$, evaluation dataset $\mathcal{D}$, exploration budget $T$, 
-    the number of initially sampled architectures $t_{0}$, acquisition function $\phi$, surrogate model $\mathcal{M}$ proxying the true objective function, function $\myfunc{f(\cdot)}$ returning validation error of an architecture after training. \newline
+    the number of initially sampled architectures $t_{0}$, acquisition function $\phi$, surrogate model $\mathcal{M}$ that approximates the true objective function, function $\myfunc{f(\cdot)}$ returning validation error of an architecture after training. \newline
     \textbf{Input - Calibration parameters:} a function $\myfunc{C(\cdot)$ to create calibration set, a conformity score function $\myfunc{s(\cdot)}$, and an array of desired quantile levels $q$. \vskip
     \vspace{0.7em}
     \STATE Draw $t_{0}$ architectures {$\{a_{0}, a_{1},..., a_{t_{0}}\}$} uniformly at random from $\mathcal{A}$ and train each individual architecture on $\mathcal{D}$.
-    \vspace{0.7em}
+    \vspace{0.3em}
    	\STATE $\mathcal{A}_{t_{0}} \leftarrow{\{a_{0}, a_{1},..., a_{t_{0}}\}$},
-   	\vspace{0.7em}	
+   	\vspace{0.3em}	
     \FOR {$t$ in $t_{0},...,T$}
     	\begin{enumerate}
     	    \itemsep0em 
@@ -216,8 +239,9 @@ f. A visualization of the methodological steps is also provided in Figure 4.1. T
 			\item Generate a set of candidate architectures from $\mathcal{A}$. 
 			\FOR {each $a_{i}$ in candidates}
 				\begin{enumerate}
+				\itemsep0em 
 				\item Estimate the quantile value for each level in $q$ and calibrate with conformity scores computed in the previous step.
-				\item Fit a distribution $d$ based on the quantile values.
+				\item Fit a distribution $d_{i}$ based on the estimated quantile values.
 				\item Compute the acquisition score $\myfunc{\phi(a_{i})}$.
 				\end{enumerate}
 			\ENDFOR
@@ -233,24 +257,29 @@ f. A visualization of the methodological steps is also provided in Figure 4.1. T
 
 
 
+\section{Uncertainty Calibration Algorithms}
+\label{sec:cp}
+\subsection{Split Conformal Prediction}
+\subsection{Cross Conformal Prediction}
 \section{Distribution Estimation}
 \label{sec:distest}
-\section{Uncertainty Calibration Algorithms}
-\section{Acquisition Function}
+\section{Acquisition Function and Search Strategy}
+\label{sec:acq}
 
 
 
 {Conformal Prediction with Cross-validation / Jackknife+}
 {Conformal Prediction with Bootstrapping}
-\subsection{...}
+
 .......
-
+% chapter 4
+\chapter{Dataset}
+\label{Dataset}
+We run experiments of both algorithms on the widely used benchmark dataset NAS-Bench-201, and compare the performance of BANANAS + CP to the original BANANAS algorithms to assess the role of uncertainty calibration.
 % chapter 5
-\chapter{Experiments and Results}
+\chapter{Experiment Results}
 
-\section{Evaluation Metrics}
 
-\label{Results}
 
 % chapter 6
 \chapter{Conclusion}

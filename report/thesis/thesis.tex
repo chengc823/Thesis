@@ -1,7 +1,6 @@
 % Do not change document class, margins, fonts, etc.
 \documentclass[a4paper,oneside,bibliography=totoc]{scrbook}
-\setlength{\parindent}{0pt}
-\setlength{\parindent}{15pt}
+\setlength{\parindent}{25pt}
 \newtheorem{definition}{Definition} \newtheorem{proposition}{Proposition}
 
 
@@ -25,7 +24,8 @@
 \usepackage{lipsum} % you do not need this
 
 % Citation style
-\usepackage{natbib}
+\usepackage{cite
+\usepackage{csquotes}
 \bibliographystyle{chicagoa}
 \setcitestyle{authoryear,round,semicolon,aysep={},yysep={,}} \let\cite\citep
 
@@ -196,29 +196,13 @@ Besides, […] proposes a CP algorithm that samples datapoints using Monte-Carlo
 To address the limitations of the Gaussian assumption in uncertainty estimation, this work introduces a new framework that integrates conformal prediction-based uncertainty calibration into the BANANAS framework in an online setting. An algorithm outlining the overall procedure is presented in Section \ref{sec:overview}, followed by detailed descriptions of each methodological step. Section \ref{sec:cp} presents different conformal predictions algorithms to be explored. Next, methods for the estimation and evaluation of the conditional distribution of each candidate architecture are discussed in Section \ref{sec:distest}. Finally, in Section \ref{sec:acq} we introduce how the calibrated distribution can be combined with different acquisition functions and acquisition search strategies.
 
 
-\section{The BANANAS + Conformal Prediction Framework}
+\section{The BANANAS--CP Framework}
 \label{sec:overview}
 
-Refer to Section {\ref{sec:bananas} for a detailed introduction of the original BANANAS algorithm. In this section, we highlight the key ideas of the uncertainty calibration mechanism, as outlined in Step 1 to 6 of the inner iteration in Algorithm {\ref{alg:OCP}.
+Refer to Section {\ref{sec:bananas} for a detailed introduction of the original BANANAS algorithm. In this section, we emphasis the key ideas of the uncertainty calibration mechanism, as outlined in Step 1 to 6 of the inner iteration in Algorithm {\ref{alg:OCP}.
 
-Bayesian Optimization is a kind of sequential decision-making task. In the applications of neural architecture search, the typical goal is to find the architecture that has the best evaluation performance on a fixed dataset under a given search budget. At each ietration $t$, a surrogate model is trained on all architectures evaluated at step $\{0, 1, 2..., t-1\}$, to predict the validation accuracy $f(a)$ of unseen architectures for the next search.
-
-In the standard BANANAS framework, the surrogate model consists of an ensemble of $m$ feedforward neural networks. At iteration $t$, a set of candidate architectures is sampled, and a conditional distribution is estimated for each candidate based on the ensemble predictions, as expressed below:
-\begin{equation}
-\hat{f}(a) \sim \mathcal{N} \left( 
-\frac{1}{m} \sum_{i=1}^{m} f_i(a),\ 
-\sqrt{\frac{1}{m} \sum_{i=1}^{m} \left(f_i(a) - \frac{1}{m} \sum_{j=1}^{m} f_j(a) \right)^2}
-\right)
-\label{eq:ensemble_gaussian}
-\end{equation}
-
-
-
-
-
-
-\begin{algorithm}[t]
-  \caption{The BANANAS + Conformal Prediction Framework}
+\begin{algorithm}[htbp]
+  \caption{The BANANAS--CP Framework}
   \label{alg:OCP}
   \begin{algorithmic}[1]
     \textbf{Input - NAS parameters:}
@@ -241,7 +225,7 @@ In the standard BANANAS framework, the surrogate model consists of an ensemble o
 				\begin{enumerate}
 				\itemsep0em 
 				\item Estimate the quantile value for each level in $q$ and calibrate with conformity scores computed in the previous step.
-				\item Fit a distribution $d_{i}$ based on the estimated quantile values.
+				\item Fit a distribution $F_{i}$ based on the estimated quantile values.
 				\item Compute the acquisition score $\myfunc{\phi(a_{i})}$.
 				\end{enumerate}
 			\ENDFOR
@@ -255,17 +239,48 @@ In the standard BANANAS framework, the surrogate model consists of an ensemble o
 \end{algorithm}
 
 
+Bayesian Optimization is a form of sequential decision-making task. In the applications of neural architecture search, the typical goal is to find the architecture that has the best evaluation performance on a fixed dataset under a given search budget. At each ietration $t$, a surrogate model is trained on all architectures evaluated at step $\{0, 1, 2..., t-1\}$, to predict the validation accuracy $f(a)$ of unseen architectures for the next search.
 
+In the standard BANANAS setting, the surrogate model consists of an ensemble of $m$ feedforward neural networks. At iteration $t$, a set of candidate architectures is sampled, and a conditional Gaussian distribution is estimated for each candidate based on the ensemble predictions, as expressed below:
+\begin{equation}
+\hat{f}(a) \sim \mathcal{N} \left( 
+\frac{1}{m} \sum_{i=1}^{m} f_i(a),\ 
+\sqrt{\frac{1}{m} \sum_{i=1}^{m} \left(f_i(a) - \frac{1}{m} \sum_{j=1}^{m} f_j(a) \right)^2}
+\right)
+\label{eq:ensemble_gaussian}
+\end{equation}
+\noindent
+where $a$ denotes an architecture sampled from the search space, and $f_i(a)$ is the prediction of the $i$-th ensemble model for architecture $a$.
+
+In the BANANAS--CP framework, a key distinction is that all previously evaluated architectures are split into a training set and a calibration set. Then, the surrogate model is trained exclusively using samples in the training set, while the calibration set is used to compute conformity scores for quantile calibration. In practice, at each iteration $t$, the surrogate model estimates a distribution $\hat{F}$ for an unseen architecture over its validation accuracy on the target dataset, typically either based on a specific distribution assumption or a probabilistic modeling approach, e.g., Bayesian Neural Network. Following the definition in \cite{deshpande2024online}, calibration means that for any quantile level $p\in [0, 1]$, the empirical fraction of data-points below the $p$-th percentile of the predicted distribution $\hat{F}$ should converge to $p$ as the sample size goes to infinity. For example, if p = 80\%, then the 80th percentile of $\hat{F}$ is set to the threshold value such that 80\% of previously evaluated architectures fall below, thereby aligning with the empirical coverage. In an online setting, the objective of the calibration process can be defined as:
+
+\begin{equation}
+\frac{1}{T} \sum_{t=1}^{T} \mathbb{I} \left\{ y_t \leq Q_t(p) \right\} \rightarrow p \quad \text{for all } p \in [0,1]
+\label{eq:onlinecal}
+\end{equation}
+as $t \rightarrow \infty$, where $\mathbb{I}$ is the indicator function and $Q_t(p)$ represents the distribution $\hat{F}$ in the format of quantile function. 
+
+Next, as in the standard  Bayesian Optimization process, the acquisition function picks the architecture for the next evaluation based on the conditional distribution of all sampled candidates.
 
 \section{Uncertainty Calibration Algorithms}
 \label{sec:cp}
+This section describes different algorithms to split the full dataset into a training set and a calibration set, and the popular choices of conformity scoring functions to measure the 
+
 \subsection{Split Conformal Prediction}
+To begin, 
 \subsection{Cross Conformal Prediction}
+
+
+
+
+
+
+
 \section{Distribution Estimation}
+with ensemble, with quantile regressor.
 \label{sec:distest}
 \section{Acquisition Function and Search Strategy}
 \label{sec:acq}
-
 
 
 {Conformal Prediction with Cross-validation / Jackknife+}
@@ -277,8 +292,8 @@ In the standard BANANAS framework, the surrogate model consists of an ensemble o
 \label{Dataset}
 We run experiments of both algorithms on the widely used benchmark dataset NAS-Bench-201, and compare the performance of BANANAS + CP to the original BANANAS algorithms to assess the role of uncertainty calibration.
 % chapter 5
-\chapter{Experiment Results}
-
+\chapter{Experiments and Results}
+\section{Setup}
 
 
 % chapter 6
@@ -288,6 +303,7 @@ Summary + Future Work
 
 
 % Reference
+\bibliographystyle{plain}
 \bibliography{references}
 
 % Appendix

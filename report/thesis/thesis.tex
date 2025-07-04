@@ -135,6 +135,7 @@ Understanding uncertainty is important for real-world application of artificial 
 But these techniques are limited in several perspectives. First, quantifying uncertainty requires training models for several times, which means that the models cannot be applied for real-time prediction or in an online-learning setup. Second, some models are pre-trained and are only accessible via API. Besides, models (pre-)trained on certain datasets may struggle to generalize across different domains or contexts. 
 
 \section{Conformal Prediction}
+\label{sec: reviewCP}
 
 \subsection{Theoretical Background}
 Starting from i.i.d data, and provide an intuitive demonstration how the prediction interval is constructed (can add a figure illustrating why conformal prediction works, i.e., symmetry). From the most intuitive expression to the finite-sample adjusted expression. 
@@ -175,6 +176,9 @@ Starting from i.i.d data, and provide an intuitive demonstration how the predict
 \end{description}}
 
 \subsection{Online Conformal Prediction}
+\subsection{Split Conformal Prediction}
+Split Conformal Prediction (SCP), also known as Inductive Conformal Prediction (ICP), was first introduced in \cite{papadopoulos2002inductive} to address the aforementioned inefficient computation problem of OCP by replacing the transductive inference with inductive inference. SCP aims to learn a general prediction rule about the data using the training set. Then, this rule can be applied directly to obtain predictions when new data arrives in sequence, without re-using the training data repeatedly.
+
 
 \subsection{Limitations and Extensions}
 Limitations of split conformal predictions:
@@ -239,9 +243,9 @@ Refer to Section {\ref{sec:bananas} for a detailed introduction of the original 
 \end{algorithm}
 
 
-Bayesian Optimization is a form of sequential decision-making task. In the applications of neural architecture search, the typical goal is to find the architecture that has the best evaluation performance on a fixed dataset under a given search budget. At each ietration $t$, a surrogate model is trained on all architectures evaluated at step $\{0, 1, 2..., t-1\}$, to predict the validation accuracy $f(a)$ of unseen architectures for the next search.
+Bayesian optimization is a form of sequential decision-making task. In the applications of neural architecture search, the typical goal is to find the architecture that has the best evaluation performance on a fixed dataset under a given search budget. At each ietration $t$, a surrogate model is trained on all architectures evaluated at step $\{0, 1, 2..., t-1\}$, to predict the validation accuracy $f(a)$ of unseen architectures for the next search.
 
-In the standard BANANAS setting, the surrogate model consists of an ensemble of $m$ feedforward neural networks. At iteration $t$, a set of candidate architectures is sampled, and a conditional Gaussian distribution is estimated for each candidate based on the ensemble predictions, as expressed below:
+In the standard BANANAS setting, the surrogate model is an ensemble of $m$ feedforward neural networks, typically $m=5$. At iteration $t$, a set of candidate architectures is sampled, and a conditional Gaussian distribution is estimated for each candidate based on the ensemble predictions, as expressed below:
 \begin{equation}
 \hat{f}(a) \sim \mathcal{N} \left( 
 \frac{1}{m} \sum_{i=1}^{m} f_i(a),\ 
@@ -260,20 +264,20 @@ In the BANANAS--CP framework, a key distinction is that all previously evaluated
 \end{equation}
 as $t \rightarrow \infty$, where $\mathbb{I}$ is the indicator function and $Q_t(p)$ represents the distribution $\hat{F}$ in the format of quantile function. 
 
-Next, as in the standard  Bayesian Optimization process, the acquisition function picks the architecture for the next evaluation based on the conditional distribution of all sampled candidates.
+Next, as in the standard  Bayesian optimization process, the acquisition function picks the architecture for the next evaluation based on the conditional distribution of all sampled candidates.
 
 \section{Uncertainty Calibration Algorithms}
 \label{sec:cp}
-This section describes different algorithms to split the full dataset into a training set and a calibration set, and the popular choices of conformity scoring functions to measure the 
-
+As reviewed in \ref{sec: reviewCP}, numerous conformal prediction algorithms have been proposed in recent research. This work identifies several approaches applicable in NAS for dividing a dataset into a training set and a calibration set. This section provides an overview of these splitting strategies, as well as the conformity scoring functions that are commonly used for regression problems.
 \subsection{Split Conformal Prediction}
-To begin, 
+To begin, a natural choice for a baseline strategy is the Split Conformal Prediction (SCP), which is the simplest and most computationally efficient technique in the CP family.
+
 \subsection{Cross Conformal Prediction}
 
+{Conformal Prediction with Cross-validation / Jackknife+}
 
 
-
-
+\subsection{Conformal Prediction with Bootstrapping}
 
 
 \section{Distribution Estimation}
@@ -283,23 +287,24 @@ with ensemble, with quantile regressor.
 \label{sec:acq}
 
 
-{Conformal Prediction with Cross-validation / Jackknife+}
-{Conformal Prediction with Bootstrapping}
+
 
 .......
 % chapter 4
 \chapter{Dataset}
 \label{Dataset}
-We run experiments of both algorithms on the widely used benchmark dataset NAS-Bench-201, and compare the performance of BANANAS + CP to the original BANANAS algorithms to assess the role of uncertainty calibration.
+To compare the performance of BANANAS--CP with the original BANANAS algorithms and assess the role of uncertainty calibration, we run experiments on the widely used benchmark dataset NAS-Bench-201.
 % chapter 5
 \chapter{Experiments and Results}
 \section{Setup}
+\section{Baseline}
 
 
 % chapter 6
 \chapter{Conclusion}
 \label{Conclude}
-Summary + Future Work
+This chapter presents the central findings of this work as well as their critical discussion. Finally, it highlights limitations and corresponding opportunities for further research.
+
 
 
 % Reference

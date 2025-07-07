@@ -246,7 +246,7 @@ Refer to Section {\ref{sec:bananas} for a detailed introduction of the original 
 
 Bayesian optimization is a form of sequential decision-making task. In the applications of neural architecture search, the typical goal is to find the architecture that has the best evaluation performance on a fixed dataset under a given search budget. At each ietration $t$, a surrogate model is trained on all architectures evaluated at step $\{0, 1, 2..., t-1\}$, to predict the validation accuracy $f(a)$ of unseen architectures for the next search.
 
-In the standard BANANAS setting, the surrogate model is an ensemble of $m$ feedforward neural networks, typically $m=5$. At iteration $t$, a set of candidate architectures is sampled, and a conditional Gaussian distribution is estimated for each candidate based on the ensemble predictions, as expressed below:
+In the standard BANANAS setting, the surrogate model is an ensemble of $m$ feedforward neural networks (FNNs), typically $m=5$. At iteration $t$, a set of candidate architectures is sampled, and a conditional Gaussian distribution is estimated for each candidate based on the ensemble predictions, as expressed below:
 \begin{equation}
 \hat{f}(a) \sim \mathcal{N} \left( 
 \frac{1}{m} \sum_{i=1}^{m} f_i(a),\ 
@@ -272,13 +272,14 @@ Next, as in the standard  Bayesian optimization process, the acquisition functio
 As reviewed in \ref{sec: reviewCP}, numerous conformal prediction algorithms have been proposed in recent research. This work identifies several approaches applicable in NAS for building a calibration set and computing non-conformity scores. This section provides an overview of these splitting strategies, as well as the conformity scoring functions that are commonly used for regression problems.
 \subsection{Split Conformal Prediction}
 \label{sec:scp}
-To begin, a natural choice for a baseline calibration strategy is the Split Conformal Prediction (SCP). In this section, we start by introducing the standard SCP procedure, then proceed with the adaptions required to incorporate it into BANANAS-CP. The standard SCP can be summarized in Algorithm \ref{alg:SCP}:
+To begin, a natural choice for a baseline calibration strategy is the Split Conformal Prediction (SCP). In this section, we start by introducing the standard SCP procedure, then proceed with the adaptions required to incorporate it into BANANAS-CP. Implementation steps of SCP can be summarized in Algorithm \ref{alg:SCP}. For instance, imagine a regression task where the non-conformity level is measured by the absolute residual, i.e. $|y_i - \hat{y}(x_i)|$. In this case, the algorithm produces a prediction interval for the test point with a width of $\left[\hat{y}_{test} - \hat{q}\;,\; \hat{y}_{test} + \hat{q}\right]$, where $\hat{q}$ is as defined in Step 6.
+
 \begin{algorithm}[htbp]
   \caption{Split Conformal Prediction}
   \label{alg:SCP}
   \begin{algorithmic}[1]
     \textbf{Input:} 
-    A set of observations $\{(x_{i}, y_{i})\}_{i=1}^n$, a prediction algorithm $h(\cdot)$, a non-conformity measure $\myfunc{s(\cdot)}$, significance level $\alpha$, fraction of data assigned to the training set $p_{train}$, test data $x_{n+1}$. \vskip
+    A set of observations $\{(x_{i}, y_{i})\}_{i=1}^n$, a prediction algorithm $h(\cdot)$, a non-conformity measure $\myfunc{s(\cdot)}$, nominal mis-coverage rate $\alpha$, fraction of data assigned to the training set $p_{train}$, test data $x_{n+1}$. \vskip
     \textbf{Output:} a prediction set $\mathcal{C}_{\alpha}(x_{n+1})}$ that covers $y_{n+1}$ with probability $1-\alpha$. \vskip
     \vspace{0.3em}
     \STATE Allocate at random a proportion of $p_{train}$ of the observations to the training set $\mathcal{D}_{train}$ and use the rest for calibration $\mathcal{D}_{cal}$.
@@ -287,18 +288,34 @@ To begin, a natural choice for a baseline calibration strategy is the Split Conf
     \FOR {$(x_i, y_i)$ in $\mathcal{D}_{cal}$}
 		$S \gets S \cup \{s(h(x_i), y_i)\}$
 	\ENDFOR
-	\STATE Return $\mathcal{C}_{\alpha}(x_{n+1}) \leftarrow \{y \,|\, s((h(x_{n+1}), y) \leq q\}$, where $q=\lceil(1-\alpha)(n_s+1)\rceil$ smallest of $S$, with $n_s = |S|$.
+	\STATE Return $\mathcal{C}_{\alpha}(x_{n+1}) \leftarrow \{y \,|\, s((h(x_{n+1}), y) \leq q\}$, where $q$ is the $\lceil(1-\alpha)(n_s+1)\rceil$-th smallest value of $S$, with $n_s = |S|$.
     \end{algorithmic}
 \end{algorithm}
 
-
-
-
-
+In this work, we explore SCP in combination with different prediction algorithms. Firstly, we follow the settings in BANANAS and use an ensemble of five FNNs as the underlying surrogate model. In this case, note that the bounds of the prediction set as identified in Algorithm \ref{alg:SCP} should not be simply interpreted as the quantile values of a distribution, since the prediction algorithm does not directly model the $\alpha$-quantile of the variable Y, i.e., ${Q_Y(\alpha)= F_{Y}^{-1}(\alpha) = \inf \left\{y\colon F_{Y}(y)\geq \alpha\},$\alpha \in [0, 1]}$ and $F_Y$ is the CDF of the distribution. Thus, the ensemble predictor must be used in conjunction with a valid distribution assumption to obtain the quantile values. Motivated by the goal of achieving a completely distribution-agnostic solution, we next replace the ensemble model with a quantile regressor that directly models the quantiles of the distribution. In the remainder of this section, we discuss the configurations designated for each prediction algorithm.
 
 \begin{description}[leftmargin=0cm]
-	\item [Ensemble Predictor]
-	\item [Quantile Regressor]
+	\item [Ensemble Predictor] Following the settings in the original BANANAS, an ensemble by default consists of five neural networks. Each neural network is a fully-connected multi-layer perceptron with 20 layers of width 20, and is trained using the Adam optimizer with a learning rate of 0.01. The loss function for training is the mean absolute error (MAE). Similarly, we assume that the validation accuracy of each unseen candidate architecture $a$ follows a Gaussian distribution, which is parameterized by the predictive mean ($\hat{\mu}$) and standard deviation ($\hat{\sigma}$) provided by the ensemble model, as demonstrated in equation \ref{eq:ensemble_gaussian}. For a specific significance level $\alpha$ (suppose $\alpha<0.5$), a two-sided confidence interval can be written as:
+		\begin{equation}
+		\left[
+			\hat{\mu} - \Phi^{-1}_{1 - \alpha/2} \cdot \hat{\sigma}\; ,\; 
+			\hat{\mu} + \Phi^{-1}_{1 - \alpha/2} \cdot \hat{\sigma}
+		\right]
+		\label{math:gaussianinterval}
+		\end{equation}
+		
+	where $\Phi^{-1}_{1 - \alpha/2}$ denotes the $(1-\frac{\alpha}{2})$-th quantile of the standard normal distribution. 
+	
+	Now, take a closer look at the formula \ref{math:gaussianinterval} and recall the example based on absolute residuals, which is presented earlier in this section, we observe that the derived confidence interval under the Gaussian assumption takes exactly the same form as the prediction interval produced by CP when the conformity scoring function is chosen as:
+		\begin{equation}
+			s(\cdot) = \frac{|y_i - \hat{y}(x_i)|}{\hat\sigma(x_i)}
+		\label{cpscore}
+		\end{equation}
+	
+	Hence, the bounds of the CP-derived prediction interval can be approximately interpreted as empirically calibrated quantile estimates under the Gaussian assumption. Note that the absolute residual can be seen as a special case of equation \ref{cpscore}, where the empirical standard deviation estimate is disregarded and set to 1. In fact, this scaled absolute residual (equation \ref{cpscore}) is a widely adopted conformity score in practice. Ideally, we would like the CP-derived prediction interval also demonstrates local adaptivity, i.e., the prediction interval should have a larger width if the prediction task is difficult and vice versa. The scaled absolute residual accounts for heteroskedasticity and is able to adjust the width of the prediction band by multiplying the standard deviation estimate. In contrast, the band produced under a pure residual score has constant-width everywhere regardless of the input, which may limit its effectiveness in application. Therefore, in this work, we use the scaled absolute residual as the (non-)conformity scoring function for ensemble predictors, unless otherwise specified.
+	
+	\item [Quantile Regressor] 
+	
 \end{description}}
 
 
@@ -312,11 +329,10 @@ To begin, a natural choice for a baseline calibration strategy is the Split Conf
 
 
 
-\subsection{Cross Conformal Prediction}
+\subsection{Conformal Prediction with Cross-validation / Jackknife+}}
 small datatset challenge
-{Conformal Prediction with Cross-validation / Jackknife+}
 
-process for partitioning dataset and compute the non-conformity scores, which corresponds to Step 1 to 3 of the inner iteration in Algorithm {\ref{alg:OCP}
+process for partitioning dataset and compute the non-conformity scores, which corresponds to Step 1 to 3 of the inner iteration in Algorithm {\ref{alg:OCP}.
 
 
 \subsection{Conformal Prediction with Bootstrapping}

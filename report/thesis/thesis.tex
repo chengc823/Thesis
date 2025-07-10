@@ -201,7 +201,7 @@ Besides, […] proposes a CP algorithm that samples datapoints using Monte-Carlo
 
 % chapter 3
 \chapter{Methodology}
-To address the limitations of the Gaussian assumption in uncertainty estimation, this work introduces a new framework that integrates conformal prediction-based uncertainty calibration into the BANANAS framework in an online setting. An algorithm outlining the overall procedure is presented in Section \ref{sec:overview}, followed by detailed descriptions of each methodological step. Section \ref{sec:cp} presents different conformal predictions algorithms to be explored. Next, methods for the estimation and evaluation of the conditional distribution of each candidate architecture are discussed in Section \ref{sec:distest}. Finally, in Section \ref{sec:acq} we introduce how the calibrated distribution can be combined with different acquisition functions and acquisition search strategies.
+To address the limitations of the Gaussian assumption in uncertainty estimation, this work introduces a new framework that integrates conformal prediction-based uncertainty calibration into the BANANAS framework in an online setting. An algorithm outlining the overall procedure is presented in Section \ref{sec:overview}, followed by detailed descriptions of each methodological step. Section \ref{sec:cp} presents different conformal predictions algorithms to be explored. Next, methods for the estimation and evaluation of the conditional distribution of each candidate architecture are discussed in Section \ref{sec:distest}. Finally, in Section \ref{sec:acq} we introduce how the calibrated distribution can be combined with different acquisition functions and acquisition search strategies in the Bayesian optimization process.
 
 
 \section{The BANANAS--CP Framework}
@@ -232,7 +232,7 @@ Refer to Section {\ref{sec:bananas} for a detailed introduction of the original 
 			\FOR {each $a_{i}$ in candidates}
 				\begin{enumerate}
 				\itemsep0em 
-				\item Estimate the quantile value for each level in $q$ and calibrate with conformity scores computed in the previous step.
+				\item Estimate the value for each quantile level $q_i$ in $q$ and calibrate using conformity scores computed in the previous step, with $q_i$ implying a mis-coverage rate $2q_i$ or $2(1-q_i)$ for conformal prediction.
 				\item Fit a distribution $F_{i}$ based on the estimated quantile values.
 				\item Compute the acquisition score $\myfunc{\phi(a_{i})}$.
 				\end{enumerate}
@@ -244,8 +244,7 @@ Refer to Section {\ref{sec:bananas} for a detailed introduction of the original 
     \ENDFOR 
     \STATE \textbf{Output:} $a^{*}=\operatorname*{argmin}_{t=1,...,T} f(a_{t})$    
   \end{algorithmic}
-\end{algorithm}
-
+  \end{algorithm}
 
 Bayesian optimization is a form of sequential decision-making task. In the applications of neural architecture search, the typical goal is to find the architecture that has the best evaluation performance on a fixed dataset under a given search budget. At each ietration $t$, a surrogate model is trained on all architectures evaluated at step $\{0, 1, 2..., t-1\}$, to predict the validation accuracy $f(a)$ of unseen architectures for the next search.
 
@@ -315,7 +314,7 @@ In this work, we explore SCP in combination with different prediction algorithms
 		\label{cpscore}
 		\end{equation}
 	
-	Hence, the bounds of the CP-derived prediction interval can be \textit{approximately} interpreted as empirically calibrated quantile estimates under the Gaussian assumption, provided that $\tau$ is chosen appropriately. Note that the absolute residual can be seen as a special case of equation \ref{cpscore}, where the empirical standard deviation estimate is disregarded and set to 1. In fact, this scaled absolute residual (equation \ref{cpscore}) is a widely adopted conformity score in practice. Ideally, we would like the CP-derived prediction interval also demonstrates local adaptivity, i.e., the prediction interval should have a larger width if the prediction task is difficult and vice versa. The scaled absolute residual accounts for heteroskedasticity and is able to adjust the width of the prediction band by multiplying the standard deviation estimate. In contrast, the band produced under a pure residual score has constant-width everywhere regardless of the input, which may limit its effectiveness in application. Therefore, in this work, we use the scaled absolute residual as the (non-)conformity scoring function for ensemble predictors, unless otherwise specified.
+	Hence, the bounds of the CP-derived prediction interval can be \textit{approximately} interpreted as empirically calibrated quantile estimates under the Gaussian assumption, provided that the significance level is chosen appropriately. Note that the absolute residual can be seen as a special case of equation \ref{cpscore}, where the empirical standard deviation estimate is disregarded and set to 1. In fact, this scaled absolute residual (equation \ref{cpscore}) is a widely adopted conformity score in practice. Ideally, we would like the CP-derived prediction interval also demonstrates local adaptivity, i.e., the prediction interval should have a larger width if the prediction task is difficult and vice versa. The scaled absolute residual accounts for heteroskedasticity and is able to adjust the width of the prediction band by multiplying the standard deviation estimate. In contrast, the band produced under a pure residual score has constant-width everywhere regardless of the input, which may limit its effectiveness in application. Therefore, in this work, we use the scaled absolute residual as the (non-)conformity scoring function for ensemble predictors, unless otherwise specified.
 	
 	\item [Quantile Regressor] We now explain how a quantile regressor can be leveraged to build a probabilistic surrogate for Bayesian optimization, following previously established methods \cite{romano2019conformalized, salinas2023optimizing}.
 	
@@ -340,8 +339,8 @@ In this work, we explore SCP in combination with different prediction algorithms
 	
 	Quantile regression in the BANANAS-CP framework is implemented by training a dedicated neural network for each quantile level $q_i$ in the array $q$ as defined in Algorithm \ref{alg:OCP} using the corresponding Pinball loss $\ell_{q_i}(y, \hat{y})$.
 	
-	 While quantile regression can model the shape of any continuous distribution given enough data, the predictions are not guaranteed to be well calibrated in practice. In fact, it is not uncommon that quantile regression generates non-monotonic predictions, a phenomenon referred as quantile crossing. To address this issue, we apply a post-hoc calibration upon the predicted quantiles using the Conformal Quantile Regression (CQR) method from \cite{romano2019conformalized}. The authors develop a novel conformity score tailored for quantile estimation and the key idea of calibration is to offset the original quantile predictions by the conformity threshold that is computed on a calibration set.
-	 
+	 While quantile regression can model the shape of any continuous distribution given enough data, the predictions are not guaranteed to be well calibrated in practice. In fact, it is not uncommon that quantile regression generates non-monotonic predictions, a phenomenon referred as quantile crossing. To address this issue, we apply a post-hoc calibration upon the predicted quantiles using the Conformal Quantile Regression (CQR) from \cite{romano2019conformalized}. This method consists of a novel conformity score tailored for quantile estimation and the key idea of calibration is to apply quantile-aware offsets, which are computed on the calibration set, on the original predicted quantiles. 
+		 
 	 \begin{figure}[t]	
 		\includegraphics[scale=0.56]{pinball_loss_and_CQR}
 		\refstepcounter{figure}
@@ -351,7 +350,7 @@ In this work, we explore SCP in combination with different prediction algorithms
 		}
 	\end{figure}
 	 
-	 A related work is \cite{salinas2023optimizing} that employs CQR to obtain quantiles with robust coverage during hyperparameter tuning via Bayesian optimization. Specifically, the calibrated quantiles are used to select the candidate for the next search, where a set of candidates is first sampled uniformly at random, and then for each of those candidates a random quantile is simply picked and is treated as the acquisition scores (Figure \ref{fig:CQR}). We follow their notation and interpretation in defining the conformity score for a quantile surrogate:  
+	 A related work is \cite{salinas2023optimizing} that employs CQR to obtain quantiles with robust coverage during hyperparameter tuning via Bayesian optimization. Specifically, the calibrated quantiles are used to select the candidate for the next search, where a set of candidates is first sampled uniformly at random, and then for each of those candidates a random quantile is simply picked and is treated as the acquisition score (Figure \ref{fig:CQR}). We follow their notation and interpretation in defining the conformity score for a quantile surrogate:  
 	 
 	 \begin{equation}
 		E_i = \max \big\{\hat{q}_{\alpha_j}(x_i) - y_i, \; y_i - \hat{q}_{1-\alpha_j}(x_i) \big\}
@@ -362,9 +361,9 @@ In this work, we explore SCP in combination with different prediction algorithms
 
 
 \subsection{Conformal Prediction with Cross-validation}}
-Solving a NAS problem is usually computationally expensive, as each neural architecture evaluation incurs the cost of fully training and validating the underlying model on the target dataset. Motivated by the fact that NAS based on Bayesian optimization is typically allocated with a budget of 100 to 200 trials, an additional heuristic for constructing the calibration set via cross-validation (hereafter: CrossVal-CP) is proposed to address the small dataset issue faced by SCP.
+Solving a NAS problem is usually computationally expensive, as each neural architecture evaluation incurs the cost of fully training and validating the underlying model on the target dataset. Motivated by the fact that NAS based on Bayesian optimization is typically allocated with a budget of 100 to 200 trials, an additional heuristic for constructing the calibration set via cross-validation (hereafter: CrossVal-CP) is employed to avoid reducing the sample size for obtaining a holdout set as performed in SCP.
 
-At each step, the evaluated architectures are devided at random into $K$ folds. A dedicated surrogate model is trained on $K-1$ folds, while the remaining one is used as the calibration set to calculate the conformity scores. This process is repeated for $K$ times over each individual fold. Finally, conformity scores from all calibration folds are combined to form the overall calibration set, on which the quantile is computed to determine the calibration offset. For an unseen data point, the prediction is obtained by aggregating the predictions of the $K$ trained models. This approach is formally presented in Algorithm \ref{alg:CVCP}. 
+At each step, the evaluated architectures are devided at random into $K$ folds. A dedicated surrogate model is trained on $K-1$ folds, while the remaining one is used as the calibration set to calculate the conformity scores. This process is repeated for $K$ times over each individual fold. Finally, conformity scores from all calibration folds are combined to form the overall calibration set, on which the quantile is computed to determine the calibration offset. For an unseen data point, the prediction is obtained by aggregating the predictions of the $K$ trained models \cite{vovk2015cross}. This approach is formally described in Algorithm \ref{alg:CVCP}. 
 
 \begin{algorithm}[htbp]
   \caption{Conformal Prediction with Cross-validation}
@@ -374,7 +373,7 @@ At each step, the evaluated architectures are devided at random into $K$ folds. 
     A set of observations $\{(x_{i}, y_{i})\}_{i=1}^n$, number of folds $K$, a prediction algorithm $h(\cdot)$, a non-conformity measure $\myfunc{s(\cdot)}$, nominal mis-coverage rate $\tau$, test data $x_{n+1}$. \vskip
     \textbf{Output:} a prediction set $\mathcal{C}_{\tau}(x_{n+1})}$ that covers $y_{n+1}$ with probability $1-\tau$. \vskip
     \vspace{0.5em}
-    \STATE Initialise a scoring set $S=\emptyset$
+    \STATE Initialise a conformity scoring set $S=\emptyset$
     \STATE Split the observations $\{(x_{i}, y_{i})\}_{i=1}^n$ into $K$ folds at random. $I_k$ denotes the index set containing indices of samples in the $k$-th fold.
     \FOR {$k$ in 1, 2, ..., K}
 		\begin{enumerate}
@@ -388,18 +387,47 @@ At each step, the evaluated architectures are devided at random into $K$ folds. 
     \end{algorithmic}
 \end{algorithm}
 
-Note that the only distinction between SCP and CrossVal-CP is how the calibration set is constructed. Since it does not place any additional restriction for the choices of the underlying surrogate, Cross-Val can be applied in conjunction with either ensemble predictor or quantile regressor. See Section \ref{sec:scp} for detailed configurations.
-
-
+Note that the only distinction between SCP and CrossVal-CP is how the calibration set is constructed. Since it does not place any additional restriction on the choices of the underlying surrogate, CrossVal-CP can be applied in conjunction with either ensemble predictor or quantile regressor in the same way as SCP. See Section \ref{sec:scp} for detailed configurations.
 
 \subsection{Conformal Prediction with Bootstrapping}
+Inspired by the fact that BANANAS is built on an ensemble surrogate, we further explore incorporating Jackknife+-after-boostrap \cite{kim2020predictive}, a wrapper for predictive inference designed specifically for use with ensemble learners, into the calibration step. This approach is referred as Bootstrap-CP in the following sections.
+
+In contrast to fitting $m$ neural networks on the same training data with different random weights initializations, as applied in the BANANAS framework, a different technique to build an ensemble model is via bootstrapping. Specifically, the ensemble method starts by creating multiple training datasets by resampling the available data points with replacement. In the next step, multiple models are trained on each of the bootstrapped subsets, and their predictions are aggregated to produce the single final prediction \cite{breiman96}. The technique offers more accurate and stable estimates than a single model and has shown superior performance in application.
+
+Jackknife+ is a type of CP algorithm that is closely related to the leave-one-out (LOO) method \cite{barber2020jackknife}. Given a set of observations $\{(x_{i}, y_{i})\}_{i=1}^n$, the idea is to fit an LOO estimator $\hat{h}_{/i}$ using all available data except for the $i$-th sample. Then, the predictive interval around the $i$-th point is obtained by offsetting the prediction from $\hat{h}_{/i}$ with the quantile of all LOO conformity scores.  Equivalently, Jackknife+ can be viewed as a special case of CrossVal-CP when the number of folds is exactly set to $K=n$.
+
+Jackknife+-after-boostrap \cite{kim2020predictive} integrates both approaches and provides a cost-efficient wrapper by leveraging only the available bootstrapped sets and their corresponding fitted models, thereby avoid retraining ensembles on each individual bootstrapped sample. \cite{pmlr-v139-xu21h} extends this method to online setting and proves its efficiency. Compared to the CP algorithms described in earlier sections, Bootstrap-CP requires no data splitting as bootstrap ensemble is trained on random subsets from the full data. 
+
+Implementation of Bootstrap-CP is outlined in Algorithm \ref{alg:BtCP}. In particular, if a data point appears in all bootstrapped samples, it is then excluded from the computation of conformity scores since it has no associated LOO estimator. Besides, Bootstrap-CP is only applied with the ensemble model. In summary, the BANANAS-CP framework is finally evaluated under five various predictor+CP configurations.
+
+\begin{algorithm}[t]
+  \caption{Conformal Prediction with Bootstrapping}
+  \label{alg:BtCP}
+  \begin{algorithmic}[1]
+    \textbf{Input:} 
+    A set of observations $\{(x_{i}, y_{i})\}_{i=1}^n$, number of bootstraps $B$, a prediction algorithm $h(\cdot)$, a non-conformity measure $\myfunc{s(\cdot)}$, nominal mis-coverage rate $\tau$, test data $x_{n+1}$. \vskip
+    \textbf{Output:} a prediction set $\mathcal{C}_{\tau}(x_{n+1})}$ that covers $y_{n+1}$ with probability $1-\tau$. \vskip
+    \vspace{0.5em}
+    \STATE Initialise a conformity scoring set $S=\emptyset$
+    \STATE Sample all available data with replacement and create $B$ subsets. $I_b$ denotes the indices of data points included in the $b$-th sample.
+    \FOR {$b$ in 1, 2, ..., B}
+		\begin{enumerate}
+    		\item Train $\hat{h}_{-k}(\cdot)$ on $\{(x_{i}, y_{i}) \mid i \notin I_k\}$
+    		\item Compute conformity score on the $k$-th fold $S_k=\{s((\hat{h}_{-k}(x_{i}), y_i) \mid i \in I_k\}$
+    		\item $S \leftarrow{S \cup S_k}$
+    	\end{enumerate}
+   	\ENDFOR
+	\STATE Predict $x_{n+1}$: $h(x_{n+1}) \leftarrow aggregate(\{\hat{h}_{-1}(x_{n+1}), ..., \hat{h}_{-K}(x_{n+1})\})$ 
+	\STATE Return $\mathcal{C}_{\tau}(x_{n+1}) \leftarrow \{y \,|\, s((h(x_{n+1}), y) \leq q\}$, where $q$ is the $\lceil(1-\tau)(n_s+1)\rceil$-th smallest value of $S$, with $n_s = |S|$.
+    \end{algorithmic}
+\end{algorithm}
+
+
 
 \section{Distribution Estimation}
 \label{sec:distest}
 \section{Acquisition Function and Search Strategy}
 \label{sec:acq}
-
-
 
 
 .......

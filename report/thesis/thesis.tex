@@ -2,10 +2,10 @@
 \documentclass[a4paper,oneside,bibliography=totoc]{scrbook}
 \setlength{\parindent}{25pt}
 \newtheorem{definition}{Definition} \newtheorem{proposition}{Proposition}
-
+\usepackage{appendix}
 
 % Add packages
-\usepackage[colorlinks=false]{hyperref}
+\usepackage[colorlinks=true, urlcolor=blue, linkcolor=black]{hyperref}
 \usepackage[utf8]{inputenc}
 \usepackage{emptypage}
 \usepackage{enumitem}
@@ -455,6 +455,13 @@ This chapter presents the central findings of this work as well as their critica
 
 % Appendix
 \appendix
+\chapter{Program Code and Data Resources}
+The source code and a documentation are available at the GitHub repository: \url{https://github.com/chengc823/Thesis.}
+The datasets used for experiments and algorithm evaluations are sourced from the NASLib repository: \url{https://github.com/automl/NASLib/tree/Develop}.
+
+In case of access or permission issues to the private repository, please reach out at: chechen@mail.uni-mannheim.de.
+
+
 \chapter{Additional Experimental Results}
 
 

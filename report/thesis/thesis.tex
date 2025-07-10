@@ -394,11 +394,11 @@ Inspired by the fact that BANANAS is built on an ensemble surrogate, we further 
 
 In contrast to fitting $m$ neural networks on the same training data with different random weights initializations, as applied in the BANANAS framework, a different technique to build an ensemble model is via bootstrapping. Specifically, the ensemble method starts by creating multiple training datasets by resampling the available data points with replacement. In the next step, multiple models are trained on each of the bootstrapped subsets, and their predictions are aggregated to produce the single final prediction \cite{breiman96}. The technique offers more accurate and stable estimates than a single model and has shown superior performance in application.
 
-Jackknife+ is a type of CP algorithm that is closely related to the leave-one-out (LOO) method \cite{barber2020jackknife}. Given a set of observations $\{(x_{i}, y_{i})\}_{i=1}^n$, the idea is to fit an LOO estimator $\hat{h}_{/i}$ using all available data except for the $i$-th sample. Then, the predictive interval around the $i$-th point is obtained by offsetting the prediction from $\hat{h}_{/i}$ with the quantile of all LOO conformity scores.  Equivalently, Jackknife+ can be viewed as a special case of CrossVal-CP when the number of folds is exactly set to $K=n$.
+Jackknife+ is a type of CP algorithm that is closely related to the leave-one-out (LOO) method \cite{barber2020jackknife}. Given a set of observations $\{(x_{i}, y_{i})\}_{i=1}^n$, the idea is to fit an LOO estimator $\hat{h}_{-i}$ using all available data except for the $i$-th sample. Then, the predictive interval around the $i$-th point is obtained by offsetting the prediction from $\hat{h}_{-i}$ with the quantile of all LOO conformity scores.  Equivalently, Jackknife+ can be viewed as a special case of CrossVal-CP when the number of folds is exactly set to $K=n$.
 
-Jackknife+-after-boostrap \cite{kim2020predictive} integrates both approaches and provides a cost-efficient wrapper by leveraging only the available bootstrapped sets and their corresponding fitted models, thereby avoid retraining ensembles on each individual bootstrapped sample. \cite{pmlr-v139-xu21h} extends this method to online setting and proves its efficiency. Compared to the CP algorithms described in earlier sections, Bootstrap-CP requires no data splitting as bootstrap ensemble is trained on random subsets from the full data. 
+Jackknife+-after-boostrap \cite{kim2020predictive} integrates both approaches and provides a cost-efficient wrapper by leveraging only the available bootstrapped sets and their corresponding fitted models, thereby avoiding re-fitting ensembles on each individual bootstrapped sample. \cite{pmlr-v139-xu21h} extends this method to online setting and proves its efficiency for time-series data. In contrast to the CP algorithms described in earlier sections, Bootstrap-CP requires no data splitting and the bootstrap ensemble is trained on random subsets from the full data, which reduces the chance of overfitting.
 
-Implementation of Bootstrap-CP is outlined in Algorithm \ref{alg:BtCP}. In particular, if a data point appears in all bootstrapped samples, it is then excluded from the computation of conformity scores since it has no associated LOO estimator. Besides, Bootstrap-CP is only applied with the ensemble model. In summary, the BANANAS-CP framework is finally evaluated under five various predictor+CP configurations.
+Implementation of Bootstrap-CP is shown in Algorithm \ref{alg:BtCP}. Specifically, if a data point appears in all bootstrapped samples, it is then excluded from the computation of conformity scores since it has no associated LOO estimator. In this case, the absolute residual is used for measuring conformity, due to potentially insufficient LOO outputs for standard deviation estimation. Additionally, Bootstrap-CP is only applied with the ensemble model and this concludes our experiment settings and the BANANAS-CP framework is finally evaluated under five various predictor+CP configurations.
 
 \begin{algorithm}[t]
   \caption{Conformal Prediction with Bootstrapping}
@@ -408,16 +408,17 @@ Implementation of Bootstrap-CP is outlined in Algorithm \ref{alg:BtCP}. In parti
     A set of observations $\{(x_{i}, y_{i})\}_{i=1}^n$, number of bootstraps $B$, a prediction algorithm $h(\cdot)$, a non-conformity measure $\myfunc{s(\cdot)}$, nominal mis-coverage rate $\tau$, test data $x_{n+1}$. \vskip
     \textbf{Output:} a prediction set $\mathcal{C}_{\tau}(x_{n+1})}$ that covers $y_{n+1}$ with probability $1-\tau$. \vskip
     \vspace{0.5em}
-    \STATE Initialise a conformity scoring set $S=\emptyset$
     \STATE Sample all available data with replacement and create $B$ subsets. $I_b$ denotes the indices of data points included in the $b$-th sample.
-    \FOR {$b$ in 1, 2, ..., B}
-		\begin{enumerate}
-    		\item Train $\hat{h}_{-k}(\cdot)$ on $\{(x_{i}, y_{i}) \mid i \notin I_k\}$
-    		\item Compute conformity score on the $k$-th fold $S_k=\{s((\hat{h}_{-k}(x_{i}), y_i) \mid i \in I_k\}$
-    		\item $S \leftarrow{S \cup S_k}$
-    	\end{enumerate}
-   	\ENDFOR
-	\STATE Predict $x_{n+1}$: $h(x_{n+1}) \leftarrow aggregate(\{\hat{h}_{-1}(x_{n+1}), ..., \hat{h}_{-K}(x_{n+1})\})$ 
+    \STATE Train $\hat{h}_{b}(\cdot)$ on $\{(x_{i}, y_{i}) \mid i \in I_b\}$ for $b$ in 1, 2, ..., B
+    \STATE Initialise a conformity scoring set $S=\emptyset$
+    \FOR {$i$ in 1, 2, ..., n}
+    	\begin{enumerate}
+    		\STATE Initialize an empty for LOO estimates $LOO_i=\emptyset$
+    		\STATE For {$b$ in 1, 2, ..., B},  if {$i$ \notin \; $I_b$}\;: $LOO_i \leftarrow{LOO_i \cup \hat{h}_b(x_i)}$ 
+			\STATE S \gets S \cup s\big(aggregate(LOO_i),\; y_i\big)
+		\end{enumerate}
+    \ENDFOR
+	\STATE Predict $x_{n+1}$: $h(x_{n+1}) \leftarrow aggregate(\{\hat{h}_{1}(x_{n+1}), ..., \hat{h}_{B}(x_{n+1})\})$ 
 	\STATE Return $\mathcal{C}_{\tau}(x_{n+1}) \leftarrow \{y \,|\, s((h(x_{n+1}), y) \leq q\}$, where $q$ is the $\lceil(1-\tau)(n_s+1)\rceil$-th smallest value of $S$, with $n_s = |S|$.
     \end{algorithmic}
 \end{algorithm}

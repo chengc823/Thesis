@@ -80,6 +80,7 @@ Some contents
 \section{Related Work}
 \section{Contributions and Limitations}
 \section{Outline}
+Having gained an overview of the research question and the background, the remainder of this thesis is organized as follows. First, Chapter 2 reviews the related works on neural architecture search, uncertainty quantification, and in particular, conformal prediction. In Chapter 3, after proposing a novel framework to incorporate uncertainty calibration into the architecture search process in Section \ref{sec:overview}, we describe its methodological steps in more detail. In Section \ref{sec:cp}, we identify different types of conformal prediction algorithms that are applicable for NAS, and consider the use of the underlying surrogate models. In Section \ref{sec:distest} and Section \ref{sec:acq}, we further examine how the calibrated predictions can be applied in a Bayesian optimization process. In Chapter 4, we describe the benchmark dataset used for conducting experiments and comparing algorithm performance against the state-of-the-art techniques. In Chapter 5, we present the experiment setups and provide interpretations of the results. Finally, Chapter 6 concludes this work and discusses potential future work.
 
 
 % chapter 2
@@ -201,7 +202,7 @@ Besides, […] proposes a CP algorithm that samples datapoints using Monte-Carlo
 
 % chapter 3
 \chapter{Methodology}
-To address the limitations of the Gaussian assumption in uncertainty estimation, this work introduces a new framework that integrates conformal prediction-based uncertainty calibration into the BANANAS framework in an online setting. An algorithm outlining the overall procedure is presented in Section \ref{sec:overview}, followed by detailed descriptions of each methodological step. Section \ref{sec:cp} presents different conformal predictions algorithms to be explored. Next, methods for the estimation and evaluation of the conditional distribution of each candidate architecture are discussed in Section \ref{sec:distest}. Finally, in Section \ref{sec:acq} we introduce how the calibrated distribution can be combined with different acquisition functions and acquisition search strategies in the Bayesian optimization process.
+To address the limitations of the Gaussian assumption in uncertainty estimation, this work introduces a new framework that integrates conformal prediction-based uncertainty calibration into the BANANAS framework in an online setting. An algorithm outlining the overall procedure is presented in Section \ref{sec:overview}, followed by detailed descriptions of each methodological step. Section \ref{sec:cp} presents different conformal predictions algorithms to be explored. Next in Section \ref{sec:distest}, methods for the estimation and evaluation of the conditional distribution of each candidate architecture are discussed. Finally, in Section \ref{sec:acq} we introduce how the calibrated distribution can be combined with different acquisition functions and acquisition search strategies in the Bayesian optimization process.
 
 
 \section{The BANANAS--CP Framework}
@@ -257,24 +258,26 @@ In the standard BANANAS setting, the surrogate model is an ensemble of $m$ feedf
 \label{eq:ensemble_gaussian}
 \end{equation}
 \noindent
-where $a$ denotes an architecture sampled from the search space, and $f_i(a)$ is the prediction of the $i$-th ensemble model for architecture $a$.
+where $a$ denotes an architecture sampled from the search space, and $f_i(a)$ is the predicted accuracy from the $i$-th base learner of the ensemble for architecture $a$.
 
-In the BANANAS--CP framework, a key distinction is that all previously evaluated architectures are split into a training set and a calibration set. Then, the surrogate model is trained exclusively using samples in the training set, while the calibration set is used to compute conformity scores for quantile calibration. In practice, at each iteration $t$, the surrogate model estimates a distribution $\hat{F}$ for an unseen architecture over its validation accuracy on the target dataset, typically either based on a specific distribution assumption or a probabilistic modeling approach, e.g., Bayesian Neural Network. Following the definition in \cite{deshpande2024online}, calibration means that for any quantile level $p\in [0, 1]$, the empirical fraction of data-points below the $p$-th percentile of the predicted distribution $\hat{F}$ should converge to $p$ as the sample size goes to infinity. For example, if p = 80\%, then the 80th percentile of $\hat{F}$ is set to the threshold value such that 80\% of previously evaluated architectures fall below, thereby aligning with the empirical coverage. In an online setting, the objective of the calibration process can be defined as:
+In the BANANAS--CP framework, a key distinction is that all architectures evaluated at step $\{0, 1, 2..., t-1\}$ are divided disjointly into a training set and a calibration set. Then, the surrogate model is trained exclusively using samples in the training set, while the calibration set is used to compute conformity scores for quantile calibration. In practice, at each iteration $t$, the surrogate model estimates a conditional distribution $\hat{F}$ for an unseen architecture over its validation accuracy on the target dataset, either based on a specific distribution assumption or a probabilistically-interpretable modeling approach, e.g. quantile regression. Following the definition in \cite{deshpande2024online, pmlr-v80-kuleshov18a}, calibration means that for any quantile level $p\in [0, 1]$, the empirical fraction of data-points below the $p$-th percentile of the predicted distribution $\hat{F}$ should converge to $p$ as the sample size goes to infinity. For example, if p = 80\%, then the 80th percentile of $\hat{F}$ is set to the threshold value such that 80\% of previously evaluated architectures fall below, thereby aligning with the empirical coverage. In an online setting, the objective of the calibration process can be defined as:
 
 \begin{equation}
 \frac{1}{T} \sum_{t=1}^{T} \mathbb{I} \left\{ y_t \leq Q_t(p) \right\} \rightarrow p \quad \text{for all } p \in [0,1]
 \label{eq:onlinecal}
 \end{equation}
-as $t \rightarrow \infty$, where $\mathbb{I}$ is the indicator function and $Q_t(p)$ represents the distribution $\hat{F}$ in the format of quantile function \cite{pmlr-v80-kuleshov18a, salinas2023optimizing}. 
+as $t \rightarrow \infty$, where $\mathbb{I}$ is the indicator function and $Q_t(p)$ represents the distribution $\hat{F}$ in the format of quantile function \cite{deshpande2024online, pmlr-v80-kuleshov18a}. 
 
 Next, as in the standard  Bayesian optimization process, the acquisition function picks the architecture for the next evaluation based on the conditional distribution of all sampled candidates.
 
 \section{Uncertainty Calibration Algorithms}
 \label{sec:cp}
-As reviewed in Section \ref{sec: reviewCP}, numerous conformal prediction algorithms have been proposed in recent research. This work identifies several approaches applicable in NAS for building a calibration set and computing non-conformity scores. This section provides an overview of these splitting strategies, as well as the conformity scoring functions that are commonly used for regression problems.
+As reviewed in Section \ref{sec: reviewCP}, numerous conformal prediction algorithms have been proposed in recent research. This work identifies several approaches applicable in NAS for building a calibration set and computing conformity scores. This section provides an overview of these splitting strategies, as well as the conformity scoring functions that are commonly used for regression problems.
 \subsection{Split Conformal Prediction}
 \label{sec:scp}
-To begin, a natural choice for a baseline calibration strategy is the Split Conformal Prediction (SCP). In this section, we start by introducing the standard SCP procedure, then proceed with the adaptions required to incorporate it into BANANAS-CP. Implementation steps of SCP can be summarized in Algorithm \ref{alg:SCP}. For instance, imagine a regression task where the non-conformity level is measured by the absolute residual, i.e. $|y_i - \hat{y}(x_i)|$. In this case, the algorithm produces a prediction interval for the test point with a width of $\left[\hat{y}_{test} - \hat{q}\;,\; \hat{y}_{test} + \hat{q}\right]$, where $\hat{q}$ is the conformity threshold.
+To begin, a natural choice for a baseline calibration strategy is the Split Conformal Prediction (SCP). In this section, we start by introducing the standard SCP procedure, then proceed with the adaptions required to incorporate it into the BANANAS-CP framework. 
+
+Implementation steps of SCP are summarized in Algorithm \ref{alg:SCP}. Imagine a regression task where the non-conformity level is measured by the absolute residual, i.e. $|y_i - \hat{y}(x_i)|$. In this case, the algorithm produces a prediction interval for the test point with a width of $\left[\hat{y}_{test} - \hat{q}\;,\; \hat{y}_{test} + \hat{q}\right]$, where $\hat{q}$ is the conformity threshold as defined in line 6.
 
 \begin{algorithm}[htbp]
   \caption{Split Conformal Prediction}
@@ -294,10 +297,10 @@ To begin, a natural choice for a baseline calibration strategy is the Split Conf
     \end{algorithmic}
 \end{algorithm}
 
-In this work, we explore SCP in combination with different prediction algorithms. Firstly, we follow the settings in BANANAS and use an ensemble of five FNNs as the underlying surrogate model. In this case, note that the bounds of the prediction set as identified in Algorithm \ref{alg:SCP} should not be simply interpreted as the quantile values of a distribution, since the prediction algorithm does not directly model the $\tau$-quantile of the variable Y, i.e., ${Q_Y(\tau)= F_{Y}^{-1}(\tau) = \inf \left\{y\colon F_{Y}(y)\geq \tau\}$, with $\tau \in [0, 1]}$ and $F_Y$ is the CDF of the distribution. Thus, the ensemble predictor must be used in conjunction with a valid distribution assumption to obtain the quantile values. Motivated by the goal of achieving a completely distribution-agnostic solution, we next replace the ensemble model with a quantile regressor that directly models the quantiles of the distribution. In the remainder of this section, we discuss the configurations designated for each prediction algorithm.
+In this work, we explore SCP in combination with different prediction algorithms. First, we follow the settings in BANANAS and use an ensemble of five FNNs as the underlying surrogate model. In this case, note that the bounds of the prediction set as identified in Algorithm \ref{alg:SCP} should not be simply interpreted as the quantile values of a distribution, since the prediction algorithm does not directly model the $\tau$-quantile of the variable Y, i.e., ${Q_Y(\tau)= F_{Y}^{-1}(\tau) = \inf \left\{y\colon F_{Y}(y)\geq \tau\}$, with $\tau \in [0, 1]}$ denoting a quantile level and $F_Y$ its cumulative distribution function. Thus, the ensemble predictor must be used in conjunction with a valid distribution assumption to obtain valid quantile values. Motivated by the goal of achieving a completely distribution-agnostic solution, we next replace the ensemble model with a quantile regressor that directly models the quantiles of a distribution. In the remainder of this section, we discuss the configurations designated for each prediction algorithm.
 
 \begin{description}[leftmargin=0cm]
-	\item [Ensemble Predictor] Following the settings in the original BANANAS, an ensemble by default consists of five neural networks. Each neural network is a fully-connected multi-layer perceptron with 20 layers of width 20, and is trained using the Adam optimizer with a learning rate of 0.01. The loss function for training is the mean absolute error (MAE). Similarly, we assume that the validation accuracy of each unseen candidate architecture $a$ follows a Gaussian distribution, which is parameterized by the predictive mean ($\hat{\mu}$) and standard deviation ($\hat{\sigma}$) provided by the ensemble model, as demonstrated in equation \ref{eq:ensemble_gaussian}. For a specific significance level $\alpha$ (suppose $\alpha<0.5$), the central quantile interval can be written as:
+	\item [Ensemble Predictor] Following the settings in the original BANANAS, an ensemble by default consists of five neural networks, where each neural network is a fully-connected multi-layer perceptron with 20 layers of width 20. The neural networks are trained by minimizing the mean absolute error (MAE), using the Adam optimizer with a learning rate of 0.01. In parallel to BANANAS, we assume that the validation accuracy of each unseen candidate architecture $a$ follows a Gaussian distribution, which is parameterized by the predictive mean ($\hat{\mu}$) and standard deviation ($\hat{\sigma}$) provided by the ensemble model, as demonstrated in equation \ref{eq:ensemble_gaussian}. For a specific significance level $\alpha$ (suppose $\alpha<0.5$), the central quantile interval can be written as:
 		\begin{equation}	
 	\left[	
 		\hat{\mu} - \Phi^{-1}_{1 - \alpha/2} \cdot \hat{\sigma}	\; ,\; 
@@ -308,24 +311,24 @@ In this work, we explore SCP in combination with different prediction algorithms
 		
 	where $\Phi^{-1}_{1 - \alpha/2}$ denotes the $(1-\frac{\alpha}{2})$-th quantile of the standard normal distribution. 
 	
-	Now, take a closer look at the formula \ref{math:gaussianinterval} and recall the example based on the absolute residuals, which is presented earlier in this section. We observe that the confidence interval under the Gaussian assumption takes a close form to the prediction interval produced by CP when the conformity scoring function is chosen as:
+	Now, take a closer look at the formula \ref{math:gaussianinterval} and recall the example based on the absolute residuals, which is presented earlier in this section. We observe that the confidence interval under the Gaussian assumption takes a close form to the prediction interval produced by CP when the conformity scoring function is exactly chosen as:
 		\begin{equation}
 			s(\cdot) = \frac{|y_i - \hat{y}(x_i)|}{\hat\sigma(x_i)}
 		\label{cpscore}
 		\end{equation}
 	
-	Hence, the bounds of the CP-derived prediction interval can be \textit{approximately} interpreted as empirically calibrated quantile estimates under the Gaussian assumption, provided that the significance level is chosen appropriately. Note that the absolute residual can be seen as a special case of equation \ref{cpscore}, where the empirical standard deviation estimate is disregarded and set to 1. In fact, this scaled absolute residual (equation \ref{cpscore}) is a widely adopted conformity score in practice. Ideally, we would like the CP-derived prediction interval also demonstrates local adaptivity, i.e., the prediction interval should have a larger width if the prediction task is difficult and vice versa. The scaled absolute residual accounts for heteroskedasticity and is able to adjust the width of the prediction band by multiplying the standard deviation estimate. In contrast, the band produced under a pure residual score has constant-width everywhere regardless of the input, which may limit its effectiveness in application. Therefore, in this work, we use the scaled absolute residual as the (non-)conformity scoring function for ensemble predictors, unless otherwise specified.
+	Hence, the bounds of the CP-derived prediction interval can be \textit{approximately} interpreted as empirically calibrated quantile estimates under the Gaussian assumption, provided that the conformity scoring function is chosen appropriately. Note that the absolute residual can be seen as a special case of equation \ref{cpscore} as well, where the empirical standard deviation estimate is disregarded and fixed at one. In fact, this scaled absolute residual (equation \ref{cpscore}) is a popular choice for measuring conformity in practice. Ideally, we would like the CP-derived prediction interval also demonstrates local adaptivity, i.e., the prediction interval should have a larger width if the prediction task is difficult and smaller otherwise. The scaled absolute residual accounts for heteroskedasticity and is able to adjust the width of the prediction band by multiplying the standard deviation estimate. In contrast, the band produced with a pure residual score has constant-width everywhere regardless of the input, which limits its effectiveness in application. Therefore, in this work, we use the scaled absolute residual as the conformity scoring function for ensemble predictors, unless otherwise specified.
 	
-	\item [Quantile Regressor] We now explain how a quantile regressor can be leveraged to build a probabilistic surrogate for Bayesian optimization, following previously established methods \cite{romano2019conformalized, salinas2023optimizing}.
+	\item [Quantile Regressor] We now explain how a quantile regressor can be leveraged to build a probabilistic surrogate for Bayesian optimization. We follow the methods established previously in \cite{romano2019conformalized, salinas2023optimizing}.
 	
 	
-	We start by providing a brief introduction into quantile regression \cite{koenker1978regression}. Let $(x, y) \sim F_{(X, Y)}$ denote data drawn from a joint distribution that is characterized by its cumulative distribution function $F$, the aim of the conditional quantile regression is to estimate a given quantile of the conditional distribution of $Y$ given $X=x$. The conditional quantile function for $\alpha$-quantile is:
+	We start with a brief introduction into the quantile regression \cite{koenker1978regression}. Suppose $(x, y) \sim F_{(X, Y)}$ denote data drawn from a joint distribution that is characterized by its cumulative distribution function $F$, the aim of the conditional quantile regression is to estimate a given quantile of the conditional distribution of $Y$ given $X=x$. The conditional quantile function for $\alpha$-quantile is:
 		\begin{equation}
 			Q(\alpha) = \inf \left\{ y \in \mathbb{R} : \mathbb{P}(Y \leq y \mid X) \geq \alpha \right\}
 		\label{quantilefunc}
 		\end{equation}
 		
-	and can be estimated by minimizing the Pinball loss \cite{koenker1978regression}:
+	and can be estimated by minimizing the Pinball loss on the training data \cite{koenker1978regression}:
 		\begin{equation}
 			\ell_\alpha(y, \hat{y}) = 
 			\begin{cases}
@@ -350,20 +353,20 @@ In this work, we explore SCP in combination with different prediction algorithms
 		}
 	\end{figure}
 	 
-	 A related work is \cite{salinas2023optimizing} that employs CQR to obtain quantiles with robust coverage during hyperparameter tuning via Bayesian optimization. Specifically, the calibrated quantiles are used to select the candidate for the next search, where a set of candidates is first sampled uniformly at random, and then for each of those candidates a random quantile is simply picked and is treated as the acquisition score (Figure \ref{fig:CQR}). We follow their notation and interpretation in defining the conformity score for a quantile surrogate:  
+	 A close work is \cite{salinas2023optimizing} that employs CQR to obtain quantiles with robust coverage during hyperparameter tuning via Bayesian optimization. Specifically, the calibrated quantiles are used to select the candidate for the next search, where a set of candidates is first sampled uniformly at random, and then for each of those candidates a random quantile is simply picked and is treated as the acquisition score (Figure \ref{fig:CQR}). We follow their notation and interpretation in defining the conformity score for a quantile surrogate:  
 	 
 	 \begin{equation}
 		E_i = \max \big\{\hat{q}_{\alpha_j}(x_i) - y_i, \; y_i - \hat{q}_{1-\alpha_j}(x_i) \big\}
 	 \label{scoreCQR}
 	 \end{equation}
 	 
-	 Note that the sign of the score is positive when the target $y_i$ is outside of the interval and negative when the target falls inside the predicted interval. This allows the conformity score to account for both overcoverage and undercoverage cases. In addition, the score amplitude always measures the distance to the closer quantile between $\hat{q}_{\alpha_j}(x_i)$ and $\hat{q}_{1-\alpha_j}(x_i)$ \cite{romano2019conformalized, salinas2023optimizing}.	 
+	 where $\hat{q}_{\alpha}(x_i)$ denotes the predicted $\alpha$-quantile at $x_i$. Note that the sign of the score is positive when the target $y_i$ is outside of the interval and negative when the target falls inside the predicted interval. This allows the conformity score to account for both overcoverage and undercoverage cases. In addition, the score amplitude always measures the distance to the closer quantile between $\hat{q}_{\alpha_j}(x_i)$ and $\hat{q}_{1-\alpha_j}(x_i)$ \cite{romano2019conformalized, salinas2023optimizing}.	 
 
 
 \subsection{Conformal Prediction with Cross-validation}}
 Solving a NAS problem is usually computationally expensive, as each neural architecture evaluation incurs the cost of fully training and validating the underlying model on the target dataset. Motivated by the fact that NAS based on Bayesian optimization is typically allocated with a budget of 100 to 200 trials, an additional heuristic for constructing the calibration set via cross-validation (hereafter: CrossVal-CP) is employed to avoid reducing the sample size for obtaining a holdout set as performed in SCP.
 
-At each step, the evaluated architectures are devided at random into $K$ folds. A dedicated surrogate model is trained on $K-1$ folds, while the remaining one is used as the calibration set to calculate the conformity scores. This process is repeated for $K$ times over each individual fold. Finally, conformity scores from all calibration folds are combined to form the overall calibration set, on which the quantile is computed to determine the calibration offset. For an unseen data point, the prediction is obtained by aggregating the predictions of the $K$ trained models \cite{vovk2015cross}. This approach is formally described in Algorithm \ref{alg:CVCP}. 
+The CrossVal-CP method is a natural extension of SCP and is first formally presented in  \cite{vovk2015cross}. At each step, the evaluated architectures are devided at random into $K$ folds. A dedicated surrogate model is trained on $K-1$ folds, while the remaining one is used as the calibration set to calculate the conformity scores. This process is repeated for $K$ times over each individual fold. Finally, conformity scores from all calibration folds are combined to form the overall calibration set, on which the quantile is computed to determine the calibration offset. For an unseen data point, the prediction is obtained by aggregating the predictions of the $K$ trained models.  Algorithm \ref{alg:CVCP} summarizes this procedure. 
 
 \begin{algorithm}[htbp]
   \caption{Conformal Prediction with Cross-validation}
@@ -392,13 +395,7 @@ Note that the only distinction between SCP and CrossVal-CP is how the calibratio
 \subsection{Conformal Prediction with Bootstrapping}
 Inspired by the fact that BANANAS is built on an ensemble surrogate, we further explore incorporating Jackknife+-after-boostrap \cite{kim2020predictive}, a wrapper for predictive inference designed specifically for use with ensemble learners, into the calibration step. This approach is referred as Bootstrap-CP in the following sections.
 
-In contrast to fitting $m$ neural networks on the same training data with different random weights initializations, as applied in the BANANAS framework, a different technique to build an ensemble model is via bootstrapping. Specifically, the ensemble method starts by creating multiple training datasets by resampling the available data points with replacement. In the next step, multiple models are trained on each of the bootstrapped subsets, and their predictions are aggregated to produce the single final prediction \cite{breiman96}. The technique offers more accurate and stable estimates than a single model and has shown superior performance in application.
-
-Jackknife+ is a type of CP algorithm that is closely related to the leave-one-out (LOO) method \cite{barber2020jackknife}. Given a set of observations $\{(x_{i}, y_{i})\}_{i=1}^n$, the idea is to fit an LOO estimator $\hat{h}_{-i}$ using all available data except for the $i$-th sample. Then, the predictive interval around the $i$-th point is obtained by offsetting the prediction from $\hat{h}_{-i}$ with the quantile of all LOO conformity scores.  Equivalently, Jackknife+ can be viewed as a special case of CrossVal-CP when the number of folds is exactly set to $K=n$.
-
-Jackknife+-after-boostrap \cite{kim2020predictive} integrates both approaches and provides a cost-efficient wrapper by leveraging only the available bootstrapped sets and their corresponding fitted models, thereby avoiding re-fitting ensembles on each individual bootstrapped sample. \cite{pmlr-v139-xu21h} extends this method to online setting and proves its efficiency for time-series data. In contrast to the CP algorithms described in earlier sections, Bootstrap-CP requires no data splitting and the bootstrap ensemble is trained on random subsets from the full data, which reduces the chance of overfitting.
-
-Implementation of Bootstrap-CP is shown in Algorithm \ref{alg:BtCP}. Specifically, if a data point appears in all bootstrapped samples, it is then excluded from the computation of conformity scores since it has no associated LOO estimator. In this case, the absolute residual is used for measuring conformity, due to potentially insufficient LOO outputs for standard deviation estimation. Additionally, Bootstrap-CP is only applied with the ensemble model and this concludes our experiment settings and the BANANAS-CP framework is finally evaluated under five various predictor+CP configurations.
+In contrast to fitting $m$ neural networks on the same training data with different random weights initializations, as applied in the BANANAS framework, a different technique to build an ensemble model is via bootstrapping. Specifically, the ensemble method starts by creating multiple training datasets by resampling the available data points with replacement. In the next step, multiple models are trained on each of the bootstrapped subsets, and their predictions are aggregated to produce the single final prediction \cite{breiman96}. This technique offers more accurate and stable estimates than a single model and has shown superior performance in application.
 
 \begin{algorithm}[t]
   \caption{Conformal Prediction with Bootstrapping}
@@ -424,9 +421,23 @@ Implementation of Bootstrap-CP is shown in Algorithm \ref{alg:BtCP}. Specificall
 \end{algorithm}
 
 
+Jackknife+ is a type of CP algorithm that is closely related to the leave-one-out (LOO) method \cite{barber2020jackknife}. Given a set of observations $\{(x_{i}, y_{i})\}_{i=1}^n$, the idea is to fit an LOO estimator $\hat{h}_{-i}$ using all available data except for the $i$-th sample, and this process iterates over all individual samples. Then, the predictive interval around the $i$-th point is obtained by offsetting the prediction from $\hat{h}_{-i}(x_i)$ with the quantile of all LOO conformity scores.  Equivalently, Jackknife+ can be viewed as a special case of CrossVal-CP when the number of folds is exactly set to $K=n$.
+
+Jackknife+-after-boostrap \cite{kim2020predictive} integrates both approaches and provides a cost-efficient wrapper by leveraging only the available bootstrapped sets and their corresponding fitted models, thereby avoiding re-fitting ensembles on each individual bootstrapped sample. \cite{pmlr-v139-xu21h} extends this method to online setting and proves its efficiency for time-series data. In contrast to the CP algorithms described in earlier sections, Bootstrap-CP requires no data splitting because sampling with replacement automatically creates holdout sets. Training the bootstrap ensemble on random subsets from the full data also reduces the chance of overfitting.
+
+Implementation of Bootstrap-CP is shown in Algorithm \ref{alg:BtCP}. Noteably, if a particular  data point appears in all bootstrapped samples, it is then excluded from the computation of conformity scores since it has no associated LOO estimator. In Bootstrap-CP, the absolute residual is used for measuring conformity, due to potentially insufficient LOO outputs for standard deviation estimation, i.e., $LOO_i$ in Algorithm \ref{alg:BtCP} might have fewer than two points. Specifically, Bootstrap-CP is only applied with the ensemble model. This concludes our experiment setups and the BANANAS-CP framework is finally evaluated under five various predictor+CP configurations.
+
 
 \section{Distribution Estimation}
 \label{sec:distest}
+
+distribution can be represented by its CDF.
+In practice, with out discrete quantile estimations... assumed unform between quantiles.
+
+
+figure
+and the calibration score 
+
 \section{Acquisition Function and Search Strategy}
 \label{sec:acq}
 
@@ -435,7 +446,9 @@ Implementation of Bootstrap-CP is shown in Algorithm \ref{alg:BtCP}. Specificall
 % chapter 4
 \chapter{Dataset}
 \label{Dataset}
-To compare the performance of BANANAS--CP with the original BANANAS algorithms and assess the role of uncertainty calibration, we run experiments on the widely used benchmark dataset NAS-Bench-201.
+To compare the performance of BANANAS--CP with the original BANANAS algorithms and assess the role of uncertainty calibration, we run experiments on the widely used benchmark dataset NAS-Bench-201 \cite{dong2020nasbench201}.
+
+
 % chapter 5
 \chapter{Experiments and Results}
 \section{Setup}
@@ -457,7 +470,7 @@ This chapter presents the central findings of this work as well as their critica
 \appendix
 \chapter{Program Code and Data Resources}
 The source code and a documentation are available at the GitHub repository: \url{https://github.com/chengc823/Thesis.}
-The datasets used for experiments and algorithm evaluations are sourced from the NASLib repository: \url{https://github.com/automl/NASLib/tree/Develop}.
+The datasets used for experiments and algorithm evaluations are sourced from the \href{https://github.com/automl/NASLib/tree/Develop}{NASLib repository.}
 
 In case of access or permission issues to the private repository, please reach out at: chechen@mail.uni-mannheim.de.
 

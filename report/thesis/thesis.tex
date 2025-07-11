@@ -183,7 +183,7 @@ Starting from i.i.d data, and provide an intuitive demonstration how the predict
 \subsection{Extensions of Conformal Prediction}
 Since the transductive version of CP was first proposed in \cite{gammerman1998learning}, several variants have been developed with different computational complexities, formal guarantees, and practical applications.
 
-To address the aforementioned inefficient computation problem of TCP, Split Conformal Prediction (SCP), also known as Inductive Conformal Prediction (ICP), was first introduced in \cite{papadopoulos2002inductive} by replacing the transductive inference with inductive inference. SCP aims to learn a general prediction rule about the data using the observed records. Then, this rule can be applied directly to obtain predictions when new data arrives in sequence, without re-using the training data and retraining the model repeatedly. The main concept involves splitting the data into two non-overlapping subsets, designated for training and calibration, respectively. A predictive model is fit exclusively on the training set, then non-conformity measures are computed on the calibration set to determine the prediction interval's width. Due to its simplicity and computational efficiency, SCP is one of the most commonly used technique in the CP family. We delve into methodological steps of SCP with pseudo-code in Section \ref{sec:scp}.
+To address the aforementioned inefficient computation problem of TCP, Split Conformal Prediction (SCP), also known as Inductive Conformal Prediction (ICP), was first introduced in \cite{papadopoulos2002inductive} by replacing the transductive inference with inductive inference. SCP aims to learn a general prediction rule about the data using the observed records. Then, this rule can be applied directly to obtain predictions when new data arrives in sequence, without re-using the training data and retraining the model repeatedly. The main concept involves splitting the data into two non-overlapping subsets, designated for training and calibration, respectively. A predictive model is fit exclusively on the training set, then non-conformity measures are computed on the calibration set to determine the prediction interval's width. Due to its simplicity and computational efficiency, SCP is one of the most commonly used techniques in the CP family. We delve into methodological steps of SCP with pseudo-code in Section \ref{sec:scp}.
 
 --------
 
@@ -247,7 +247,7 @@ Refer to Section {\ref{sec:bananas} for a detailed introduction of the original 
   \end{algorithmic}
   \end{algorithm}
 
-Bayesian optimization is a form of sequential decision-making task. In the applications of neural architecture search, the typical goal is to find the architecture that has the best evaluation performance on a fixed dataset under a given search budget. At each ietration $t$, a surrogate model is trained on all architectures evaluated at step $\{0, 1, 2..., t-1\}$, to predict the validation accuracy $f(a)$ of unseen architectures for the next search.
+Bayesian optimization is a form of sequential decision-making task. In the applications of neural architecture search, the typical goal is to find the architecture that has the best evaluation performance on a fixed dataset under a given search budget. At each ietration $t$, a surrogate model is trained on all architectures evaluated at step $\{0, 1, 2..., t-1\}$ and their associated validation accuracies, to predict the scores of unseen architectures for the next search.
 
 In the standard BANANAS setting, the surrogate model is an ensemble of $m$ feedforward neural networks (FNNs), typically $m=5$. At iteration $t$, a set of candidate architectures is sampled, and a conditional Gaussian distribution is estimated for each candidate based on the ensemble predictions, as expressed below:
 \begin{equation}
@@ -264,7 +264,6 @@ In the BANANAS--CP framework, a key distinction is that all architectures evalua
 
 \begin{equation}
 \frac{1}{T} \sum_{t=1}^{T} \mathbb{I} \left\{ y_t \leq Q_t(p) \right\} \rightarrow p \quad \text{for all } p \in [0,1]
-\label{eq:onlinecal}
 \end{equation}
 as $t \rightarrow \infty$, where $\mathbb{I}$ is the indicator function and $Q_t(p)$ represents the distribution $\hat{F}$ in the format of quantile function \cite{deshpande2024online, pmlr-v80-kuleshov18a}. 
 
@@ -410,7 +409,7 @@ In contrast to fitting $m$ neural networks on the same training data with differ
     \STATE Initialise a conformity scoring set $S=\emptyset$
     \FOR {$i$ in 1, 2, ..., n}
     	\begin{enumerate}
-    		\STATE Initialize an empty for LOO estimates $LOO_i=\emptyset$
+    		\STATE Initialize an empty for leave-one-out estimates $LOO_i=\emptyset$
     		\STATE For {$b$ in 1, 2, ..., B},  if {$i$ \notin \; $I_b$}\;: $LOO_i \leftarrow{LOO_i \cup \hat{h}_b(x_i)}$ 
 			\STATE S \gets S \cup s\big(aggregate(LOO_i),\; y_i\big)
 		\end{enumerate}
@@ -430,9 +429,26 @@ Implementation of Bootstrap-CP is shown in Algorithm \ref{alg:BtCP}. Noteably, i
 
 \section{Distribution Estimation}
 \label{sec:distest}
+As described in Section \ref{sec:bananas}, Bayesian optimization generally relies on a continuous posterior distribution at $X=x$ to obtain the acquisition score. Here, we denote by $F_{x, t}$ the cumulative distribution function (CDF) of the posterior distribution of the data point $x$ at step $t$. In the context of NAS, where the target variable is assumed to be continuous and real-valued, the distribution can be represented by the inverse of its CDF (quantile function) without loss of generality, i.e. $Q_{x, t} = F^{-1}_{x, t}$. 
 
-distribution can be represented by its CDF.
-In practice, with out discrete quantile estimations... assumed unform between quantiles.
+In the BANANAS-CP framework, as outlined in Algorithm \ref{alg:OCP}, we are able to generate calibrated quantile estimates 
+for a finite set of discrete quantile levels. Intuitively, estimating more quantiles leads to a more accurate approximation of the underlying continuous distribution. However, it is computationally prohibited to estimate an infinite number of quantiles in practice, especially with insufficient data. Therefore, we propose an approach for constructing a continuous distribution from discrete quantile estimates with mild assumption. Specifically, the distribution is constructed as follows:
+
+....
+
+
+\begin{description}[leftmargin=0cm]
+\item[Diagnosis tools]	
+\end{description}
+
+
+
+
+
+
+
+
+
 
 
 figure

@@ -371,9 +371,9 @@ In this work, we explore \gls{scp} in combination with different prediction algo
 
 
 \subsection{Conformal Prediction with Cross-validation}}
-Solving a NAS problem is usually computationally expensive, as each neural architecture evaluation incurs the cost of fully training and validating the underlying model on the target dataset. Motivated by the fact that \gls{nas} based on Bayesian optimization is typically allocated with a budget of 100 to 200 trials, an additional heuristic for constructing the calibration set via cross-validation (hereafter: \gls{cvcp}) is employed to avoid reducing the sample size for obtaining a holdout set as performed in \gls{scp}.
+Solving a NAS problem is usually computationally expensive, as each neural architecture evaluation incurs the cost of fully training and validating the underlying model on the target dataset. Motivated by the fact that \gls{nas} based on Bayesian optimization is typically allocated with a budget of 100 to 200 epochs, an additional heuristic for constructing the calibration set via cross-validation (hereafter: \gls{cvcp}) is employed to avoid reducing the sample size for obtaining a holdout set as performed in \gls{scp}.
 
-The \gls{cvcp} method is a natural extension of \gls{scp} and is first formally presented in  \cite{vovk2015cross}. At each step, the evaluated architectures are devided at random into $K$ folds. A dedicated surrogate model is trained on $K-1$ folds, while the remaining one is used as the calibration set to calculate the conformity scores. This process is repeated for $K$ times over each individual fold. Finally, conformity scores from all calibration folds are combined to form the overall calibration set, on which the quantile is computed to determine the calibration offset. For an unseen data point, the prediction is obtained by aggregating the predictions of the $K$ trained models.  Algorithm \ref{alg:CVCP} summarizes this procedure. 
+The \gls{cvcp} method is a natural extension of \gls{scp} and is first formally presented in  \cite{vovk2015cross}. At each step, the evaluated architectures are devided at random into $K$ folds. A dedicated surrogate model is trained on $K-1$ folds, while the remaining one is used as the calibration set to calculate the conformity scores. This process is repeated for $K$ times over each individual fold. Finally, conformity scores from all calibration folds are combined to form the overall calibration set, on which the quantile is computed to determine the calibration offset. For an unseen data point, the prediction is obtained by aggregating the predictions of the $K$ trained models, e.g., by taking the average of the model outputs.  Algorithm \ref{alg:CVCP} summarizes this procedure. 
 
 \begin{algorithm}[htbp]
   \caption{Conformal Prediction with Cross-validation}
@@ -400,7 +400,7 @@ The \gls{cvcp} method is a natural extension of \gls{scp} and is first formally 
 Note that the only distinction between \gls{scp} and \gls{cvcp} is how the calibration set is constructed. Since it does not place any additional restriction on the choices of the underlying surrogate, \gls{cvcp} can be applied in conjunction with either ensemble predictor or quantile regressor in the same way as \gls{scp}. See Section \ref{sec:scp} for detailed configurations.
 
 \subsection{Conformal Prediction with Bootstrapping}
-Inspired by the fact that \gls{bananas} is built on an ensemble surrogate, we further explore incorporating Jackknife+-after-boostrap \cite{kim2020predictive}, a wrapper for predictive inference designed specifically for use with ensemble learners, into the calibration step. This approach is referred as \gls{btcp} in the following sections.
+Inspired by the fact that \gls{bananas} is built on an ensemble surrogate, we further explore incorporating Jackknife+-after-boostrap \cite{kim2020predictive}, a wrapper for predictive inference designed specifically for use with ensemble learners, into the calibration step (hereafter: \gls{btcp}).
 
 In contrast to fitting $m$ neural networks on the same training data with different random weights initializations, as applied in the \gls{bananas} framework, a different technique to build an ensemble model is via bootstrapping. Specifically, the ensemble method starts by creating multiple training datasets by resampling the available data points with replacement. In the next step, multiple models are trained on each of the bootstrapped subsets, and their predictions are aggregated to produce the single final prediction \cite{breiman96}. This technique offers more accurate and stable estimates than a single model and has shown superior performance in application.
 
@@ -472,19 +472,31 @@ where $m$ represents the number of discrete quantile levels. Note that calibrati
 
 \section{Acquisition Function and Search Strategy}
 \label{sec:acq}
-Finally, we describe in this section the acquisition functions and the aquisition optimization strategies.
-\begin{description}
-\item[Acquisition functions] We consider four commonly used acquisition functions  
 
 
+Finally, we describe the acquisition functions and the aquisition optimization strategies used within the \gls{bananascp} setting.
 
-\item[Acquisition optimization strategy] 
+\subsection{Acquisition Functions}
+We consider four commonly used acquisition functions. 	Consistent with the notation in the previous sections, $\hat{F}_a$ represents the \gls{cdf} of the estimated distribution for architecture $a$. Then, depending on the acquisition function used, the specific acquisition score can be calculated as follows: 
+
+\begin{description}[leftmargin=0cm] 
+\item[\gls{its}:] A sample is drawn from the distribution at random and its value is seen as the acquistion score at the candidate architecture $a$.
+\item[\gls{ucb}:] The acquisition score is given by $\mu+\gamma \cdot \sigma$ for a Gaussian distribution, where $\gamma$ is the exploration factor. For non-Gaussian distributions, we follow \cite{deshpande2024online} and generalize the function to a quantile function, i.e., $\hat{F}^{-1}_a(\gamma)$.  As in the original formulation, higher values of $\gamma$ promotes exploration. In our experiments, we set $\gamma=0.75$ due to these concerns: a) the distribution of model performance is believed to be left-skewed; b) estimates of extreme quantiles are generally based on sparse observations and therefore might be less reliable. A value of 0.75 offers a reasonable trade-off between exploration and accurate estimation.
+\item[\gls{pi}:] The acquisition score corresponds to $1 - \hat{F}^{-1}_a(y_{max})$, with $y_{max}$ being the highest model performance ever observed.
+
+\item[\gls{ei}:]
+
 
 \end{description}
 
 
 
-.......
+\subsection{Acquisition Optimization Strategy}
+
+\begin{description}[leftmargin=0cm]
+
+\end{description}
+
 % chapter 4
 \chapter{Dataset}
 \label{Dataset}

@@ -424,45 +424,76 @@ Jackknife+ is a type of CP algorithm that is closely related to the leave-one-ou
 
 Jackknife+-after-boostrap \cite{kim2020predictive} integrates both approaches and provides a cost-efficient wrapper by leveraging only the available bootstrapped sets and their corresponding fitted models, thereby avoiding re-fitting ensembles on each individual bootstrapped sample. \cite{pmlr-v139-xu21h} extends this method to online setting and proves its efficiency for time-series data. In contrast to the CP algorithms described in earlier sections, Bootstrap-CP requires no data splitting because sampling with replacement automatically creates holdout sets. Training the bootstrap ensemble on random subsets from the full data also reduces the chance of overfitting.
 
-Implementation of Bootstrap-CP is shown in Algorithm \ref{alg:BtCP}. Noteably, if a particular  data point appears in all bootstrapped samples, it is then excluded from the computation of conformity scores since it has no associated LOO estimator. In Bootstrap-CP, the absolute residual is used for measuring conformity, due to potentially insufficient LOO outputs for standard deviation estimation, i.e., $LOO_i$ in Algorithm \ref{alg:BtCP} might have fewer than two points. Specifically, Bootstrap-CP is only applied with the ensemble model. This concludes our experiment setups and the BANANAS-CP framework is finally evaluated under five various predictor+CP configurations.
+Implementation of Bootstrap-CP is shown in Algorithm \ref{alg:BtCP}. Noteably, if a particular  data point appears in all bootstrapped samples, it is then excluded from the computation of conformity scores since it has no associated LOO estimator. In Bootstrap-CP, the absolute residual is used for measuring cogvnformity, due to potentially insufficient LOO outputs for standard deviation estimation, i.e., $LOO_i$ in Algorithm \ref{alg:BtCP} might have fewer than two points. Specifically, Bootstrap-CP is only applied with the ensemble model. This concludes our experiment setups and the BANANAS-CP framework is finally evaluated under five various predictor+CP configurations.
 
 
 \section{Distribution Estimation}
 \label{sec:distest}
-As described in Section \ref{sec:bananas}, Bayesian optimization generally relies on a continuous posterior distribution at $X=x$ to obtain the acquisition score. Here, we denote by $F_{x, t}$ the cumulative distribution function (CDF) of the posterior distribution of the data point $x$ at step $t$. In the context of NAS, where the target variable is assumed to be continuous and real-valued, the distribution can be represented by the inverse of its CDF (quantile function) without loss of generality, i.e. $Q_{x, t} = F^{-1}_{x, t}$. 
+As described in Section \ref{sec:bananas}, Bayesian optimization generally relies on a continuous posterior distribution at $X=x$ to obtain the acquisition score. Here, we denote by $F_t(x)$ the cumulative distribution function (CDF) of the posterior distribution of the data point $x$ at step $t$. In the context of NAS, where the target variable is assumed to be continuous and real-valued, the distribution can be represented by the inverse of its CDF (quantile function) without loss of generality, i.e. $Q_{t}(x) = F^{-1}_{t}(x)$. 
 
-In the BANANAS-CP framework, as outlined in Algorithm \ref{alg:OCP}, we are able to generate calibrated quantile estimates 
-for a finite set of discrete quantile levels. Intuitively, estimating more quantiles leads to a more accurate approximation of the underlying continuous distribution. However, it is computationally prohibited to estimate an infinite number of quantiles in practice, especially with insufficient data. Therefore, we propose an approach for constructing a continuous distribution from discrete quantile estimates with mild assumption. Specifically, the distribution is constructed as follows:
-
-....
-
+In the BANANAS-CP framework, as outlined in Algorithm \ref{alg:OCP}, we are able to generate calibrated quantile estimates for a finite set of discrete quantile levels. Intuitively, assuming the quantiles estimates are accurate, increasing the granularity of quantile levels should lead to a more accurate approximation of the underlying continuous distribution. However, it is computationally prohibited to estimate an infinite number of quantiles in practice, especially with significantly limited training data. Therefore, we propose an approach for constructing a continuous distribution from discrete quantile estimates with mild assumption. Specifically, the distribution estimator is defined as:
 
 \begin{description}[leftmargin=0cm]
-\item[Diagnosis tools]	
+\item[Definition] Let $\{q_i\}_{i=1}^n$ be a quantile of percentile levels such that $0<q_1<q_2, ..., <q_n<1$, and $\{v_i\}_{i=1}^n$ are the corresponding quantiles, i.e., $F^{-1}(q_i)=v_i$, the empirical CDF of the distributions $\hat{F}$ is constructed by applying linear interpolation between adjacent quantiles. Consequently, the probability density function (PDF) of a specific interval $\left(v_a, v_b\right), a,b \in \{1,..., n\}$ and $a<b$ is:
+
+\[
+PDF(x) = \frac{q_b - q_a}{v_b - v_a}, \quad & \text{if } x \in (v_a, v_b) \\
+\]
+
+\vspace{0.7em}
+\item[Diagnosis tools] To assess the validity of this approach, we first perform a diagnosis analysis on a synthetic dataset, which is generated by a left-skewed Gaussian distribution, which we believe resembles the true underlying distribution of the validation performances of architectures in a search space. The experiments on the synthetic data are intended to reflect the comparisons in a real NAS application, thereby two kinds of distribution estimators are examined: a Gaussian estimator and a linear-interpolation based quantile estimator. We adopt the Kullback–Leibler divergence \cite{kullback1951information} and create several visualizations to measure the precision of estimations. The experiments are repeated with different parameterizations and the results are presented below.
+
+
+
+
+... figure and tables
+
+\item[Evaluation metrics] Within the BANANAS-CP framework, the quality of the estimated conditional distribution for a specific architecture is measured by the root mean squared calibration error (RMSCE) \cite{pmlr-v80-kuleshov18a}. Suppose $\hat{F}^{-1}_t$ is the CDF of the distribution estimated at the  $t$-th step and $y_t$ is the true value revealed after the estimation, consider a sequence of $\{(\hat{F}^{-1}_t, y_t)\}_{t=1}^T$ that represents a neural architecture search process after $T$ epochs, the calibration error at the $T$-th epoch is defined as:
+
+	\begin{equation}
+	\text{RMSCE} \left( \hat{F}^{-1}_1, y_1, \dots, \hat{F}^{-1}_T, y_T \right) = \sum_{j=1}^m w_j \left( p_j - \hat{p}_j \right)^2
+	\label{rmsce}
+	\end{equation}
+
+	\[
+	\text{with} \quad
+	\hat{p}_j = \frac{\left| \left\{ y_t \;\middle|\; \hat{F}^{-1}_t(y_t) \le p_j,\; t = 1, 2, \dots, T \right\} \right|}{T}
+	\]
+
+\vspace{1em}
+where $m$ represents the number of discrete quantile levels. Note that calibration errors calculated with different numbers of quantiles are not directly comparable. In general, increasing the number of quantiles tends to lead to larger calibration errors.	
+
 \end{description}
-
-
-
-
-
-
-
-
-
-
-
-figure
-and the calibration score 
 
 \section{Acquisition Function and Search Strategy}
 \label{sec:acq}
+Finally, we describe the acquisition functions and the aquisition optimization strategies.
+
+
 
 
 .......
 % chapter 4
 \chapter{Dataset}
 \label{Dataset}
-To compare the performance of BANANAS--CP with the original BANANAS algorithms and assess the role of uncertainty calibration, we run experiments on the widely used benchmark dataset NAS-Bench-201 \cite{dong2020nasbench201}.
+To compare the performance of BANANAS--CP with the original BANANAS algorithms and assess the role of uncertainty calibration, we run experiments on the widely used benchmark tabular dataset NAS-Bench-201 \cite{dong2020nasbench201}.
+
+NAS-Bench-201 is a cell-based architecture search space. 
+
+ Each cell has in total 4 nodes and 6 edges. The nodes in this search space correspond to the architecture’s feature maps and the edges represent the architectures operation, which are chosen from the operation set O = {1 × 1 conv. , 3 × 3 conv. , 3 × 3 avg. pooling , skip , zero} (see Figure 1). This search space contains in total 56 = 15 625 architectures
+
+ search space defined in NAS-Bench-201 includes all possible architectures generated by 4 nodes and 5 associated operation options, which results in 15,625 neural cell candidates in total
+ 
+Each of the architectures are trained on three datasets: CIFAR-10, CIFAR-100 and ImageNet-16-120. 
+
+... descriptions of each dataset.
+
+
+
+allows research focusing on the NAS algroithms and re, which also enables standardized comparison across NAS algorithms . Besides, NAS-Bench-201 also facilitates further extension, e.g., robustness dataset.
+
+
+In this work, we leverge the trained models and simply query the validation accuracy of architectures from the search space.
 
 
 % chapter 5

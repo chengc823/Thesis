@@ -5,7 +5,9 @@
 \usepackage{appendix}
 
 % Add packages
-\usepackage[colorlinks=true, urlcolor=blue, linkcolor=black, colorlinks,citecolor=green]{hyperref}
+\usepackage[
+colorlinks=true, urlcolor=blue, linkcolor=black, colorlinks,citecolor=green
+]{hyperref}
 \usepackage[utf8]{inputenc}
 \usepackage{emptypage}
 \usepackage{enumitem}
@@ -36,7 +38,7 @@
 \input{acronyms}
 % Begin Documents
 \begin{document}
-
+\setlength{\skip\footins}{20pt}
 % Cover page
 \frontmatter \subject{Master Thesis} % change to appropriate type
 \title{\LARGE 
@@ -117,7 +119,7 @@ Bayesian optimization is a sequential decision-making process that seeks to find
 
 
 
-\gls{its} \gls{ucb} \gls{pi} \gls{ei}
+
 
 Give an introduction how Bayesian optimization works. We list the five engineering decisions and review each field's related works. Maybe briefly cite Gaussian Process.
 
@@ -125,7 +127,7 @@ Give an introduction how Bayesian optimization works. We list the five engineeri
 	\item [Architecture Encoding]
 	\item [Neural Predictor] \gls{fnns}
 	\item [Uncertainty Estimation] 
-	\item [Acquisition Function]
+	\item [Acquisition Function] \gls{its} \gls{ucb} \gls{pi} \gls{ei}
 	\item [Acquisition Optimization] In each iteration of the Bayesian optimization, the goal is to select a candidate from the search space that maximizes the acquisition score. Evaluating the acquisition function for every architecture available in the search space is computationally infeasible, therefore \cite{white2019bananas} proposes to create a set of 100 to 1000 candidates and then choose the architecture with the maximal acquisition score in this set. Specifically, \cite{white2019bananas} explores various approaches for creating this candidate set. The simplest and most natural way is to draw architectures at random. Consider that architectures close in edit distance to those used for training the surrogate model are likely to have more accurate estimates, an alternative is a mutation-based sampling approach, where the candidate set is created via local search by randomly modifying an operation or an edge of the best-performing architectures that have been evaluated so far. In additional, \cite{white2019bananas} also examines a hybrid approach that combines random search with mutation-based search. The experiments show that the mutation-based approach outperforms its competitors and suggests it is better to search locally rather than globally.
 
 \end{description}}
@@ -134,6 +136,7 @@ Give an introduction how Bayesian optimization works. We list the five engineeri
 \section{Uncertainty Quantification}
 Understanding uncertainty is important for real-world application of artificial intelligence, e.g., in autonomous driving, medical diagnosis. 
 
+\subsection{Uncertainty Quantification}
 \begin{description}[leftmargin=0cm]
 \item[Aleatory Uncertainty]  (data uncertainty): uncertainty that arises due to inherent variations and randomness, and cannot be reduced by collecting more information 
 
@@ -261,12 +264,14 @@ Refer to Section {\ref{sec:bananas} for a detailed introduction of the original 
 Bayesian optimization is a form of sequential decision-making task. In the applications of neural architecture search, the typical goal is to find the architecture that has the best evaluation performance on a fixed dataset under a given search budget. At each ietration $t$, a surrogate model is trained on all architectures evaluated at step $\{0, 1, 2..., t-1\}$ and their associated validation accuracies, to predict the scores of unseen architectures for the next search.
 
 In the standard \gls{bananas} setting, the surrogate model is an ensemble of $m$ feedforward neural networks, typically $m=5$. At iteration $t$, a set of candidate architectures is sampled, and a conditional Gaussian distribution is estimated for each candidate based on the ensemble predictions, as expressed below:
+\vspace{1em}
 \begin{equation}
 \hat{f}(a) \sim \mathcal{N} \left( 
 \frac{1}{m} \sum_{i=1}^{m} f_i(a),\ 
 \sqrt{\frac{1}{m} \sum_{i=1}^{m} \left(f_i(a) - \frac{1}{m} \sum_{j=1}^{m} f_j(a) \right)^2}
 \right)
 \label{eq:ensemble_gaussian}
+\vspace{0.7em}
 \end{equation}
 \noindent
 where $a$ denotes an architecture sampled from the search space, and $f_i(a)$ is the predicted accuracy from the $i$-th base learner of the ensemble for architecture $a$.
@@ -275,6 +280,7 @@ In the \gls{bananascp} framework, a key distinction is that all architectures ev
 
 \begin{equation}
 \frac{1}{T} \sum_{t=1}^{T} \mathbb{I} \left\{ y_t \leq Q_t(p) \right\} \rightarrow p \quad \text{for all } p \in [0,1]
+\vspace{1em}
 \end{equation}
 as $t \rightarrow \infty$, where $\mathbb{I}$ is the indicator function and $Q_t(p)$ represents the distribution $\hat{F}$ in the format of quantile function \cite{deshpande2024online, pmlr-v80-kuleshov18a}. 
 
@@ -307,28 +313,33 @@ Implementation steps of \gls{scp} are summarized in Algorithm \ref{alg:SCP}. Ima
     \end{algorithmic}
 \end{algorithm}
 
-In this work, we explore \gls{scp} in combination with different prediction algorithms. First, we follow the settings in \gls{bananas} and use an ensemble of five \gls{fnns} as the underlying surrogate model. In this case, note that the bounds of the prediction set as identified in Algorithm \ref{alg:SCP} should not be simply interpreted as the quantile values of a distribution, since the prediction algorithm does not directly model the $\tau$-quantile of the variable Y, i.e., ${Q_Y(\tau)= F_{Y}^{-1}(\tau) = \inf \left\{y\colon F_{Y}(y)\geq \tau\}$, with $\tau \in [0, 1]}$ denoting a quantile level and $F_Y$ its cumulative distribution function. Thus, the ensemble predictor must be used in conjunction with a valid distribution assumption to obtain valid quantile values. Motivated by the goal of achieving a completely distribution-agnostic solution, we next replace the ensemble model with a quantile regressor that directly models the quantiles of a distribution. In the remainder of this section, we discuss the configurations designated for each prediction algorithm.
-
-\begin{description}[leftmargin=0cm]
+In this work, we explore \gls{scp} in combination with different prediction algorithms. First, we follow the settings in \gls{bananas} and use an ensemble of five \gls{fnns} as the underlying surrogate model. In this case, note that the bounds of the prediction set as identified in Algorithm \ref{alg:SCP} should not be simply interpreted as the quantile values of a distribution, since the prediction algorithm does not directly model the $\tau$-quantile of the variable Y, i.e., ${Q_Y(\tau)= F_{Y}^{-1}(\tau) = \inf \left\{y\colon F_{Y}(y)\geq \tau\}$, with $\tau \in [0, 1]}$ denoting a quantile level and $F_Y$ its cumulative distribution function. Thus, the ensemble predictor must be used in conjunction with a valid distribution assumption to obtain valid quantile values. Motivated by the goal of achieving a completely distribution-agnostic solution, we next replace the ensemble model with a quantile regressor that directly models the quantiles of a distribution. In the remainder of this section, we discuss the configurations designated for each prediction algorithm. 
+\vspace{0.7em}
+\begin{description}[leftmargin=0cm, listparindent=\parindent]
 	\item [Ensemble Predictor] Following the settings in the original \gls{bananas}, an ensemble by default consists of five neural networks, where each neural network is a fully-connected multi-layer perceptron with 20 layers of width 20. The neural networks are trained by minimizing the mean absolute error (MAE), using the Adam optimizer with a learning rate of 0.01. In parallel to \gls{bananas}, we assume that the validation accuracy of each unseen candidate architecture $a$ follows a Gaussian distribution, which is parameterized by the predictive mean ($\hat{\mu}$) and standard deviation ($\hat{\sigma}$) provided by the ensemble model, as demonstrated in equation \ref{eq:ensemble_gaussian}. For a specific significance level $\alpha$ (suppose $\alpha<0.5$), the central quantile interval can be written as:
+		\vspace{0.7em}
 		\begin{equation}	
-	\left[	
+		\left[	
 		\hat{\mu} - \Phi^{-1}_{1 - \alpha/2} \cdot \hat{\sigma}	\; ,\; 
 		\hat{\mu} + \Phi^{-1}_{1 - \alpha/2} \cdot \hat{\sigma}
 			\right]
 		\label{math:gaussianinterval}
+		\vspace{0.5em}
 		\end{equation}
 		
-	where $\Phi^{-1}_{1 - \alpha/2}$ denotes the $(1-\frac{\alpha}{2})$-th quantile of the standard normal distribution. 
+	\noindent	
+	where $\Phi^{-1}_{1 - \alpha/2}$ denotes the $(1-\frac{\alpha}{2})$-th quantile of the standard normal distribution. \\
 	
 	Now, take a closer look at the formula \ref{math:gaussianinterval} and recall the example based on the absolute residuals, which is presented earlier in this section. We observe that the confidence interval under the Gaussian assumption takes a close form to the prediction interval produced by \gls{cp} when the conformity scoring function is exactly chosen as:
+		\vspace{0.7em}
 		\begin{equation}
 			s(\cdot) = \frac{|y_i - \hat{y}(x_i)|}{\hat\sigma(x_i)}
 		\label{cpscore}
+		\vspace{0.7em}
 		\end{equation}
 	
 	Hence, the bounds of the \gls{cp}-derived prediction interval can be \textit{approximately} interpreted as empirically calibrated quantile estimates under the Gaussian assumption, provided that the conformity scoring function is chosen appropriately. Note that the absolute residual can be seen as a special case of equation \ref{cpscore} as well, where the empirical standard deviation estimate is disregarded and fixed at one. In fact, this scaled absolute residual (equation \ref{cpscore}) is a popular choice for measuring conformity in practice. Ideally, we would like the \gls{cp}-derived prediction interval also demonstrates local adaptivity, i.e., the prediction interval should have a larger width if the prediction task is difficult and smaller otherwise. The scaled absolute residual accounts for heteroskedasticity and is able to adjust the width of the prediction band by multiplying the standard deviation estimate. In contrast, the band produced with a pure residual score has constant-width everywhere regardless of the input, which limits its effectiveness in application. Therefore, in this work, we use the scaled absolute residual as the conformity scoring function for ensemble predictors, unless otherwise specified.
-	
+	\vspace{0.7em}
 	\item [Quantile Regressor] We now explain how a quantile regressor can be leveraged to build a probabilistic surrogate for Bayesian optimization. We follow the methods established previously in \cite{romano2019conformalized, salinas2023optimizing}.
 	
 	
@@ -338,7 +349,7 @@ In this work, we explore \gls{scp} in combination with different prediction algo
 		\label{quantilefunc}
 		\end{equation}
 		
-	and can be estimated by minimizing the Pinball loss on the training data \cite{koenker1978regression}:
+	\noindent and can be estimated by minimizing the Pinball loss on the training data \cite{koenker1978regression}:
 		\begin{equation}
 			\ell_\alpha(y, \hat{y}) = 
 			\begin{cases}
@@ -348,9 +359,9 @@ In this work, we explore \gls{scp} in combination with different prediction algo
 		\label{pinballloss}
 		\end{equation}
 		
-	where $\hat{y}$ is the predicted quantile value.	 As illustrated in Figure \ref{fig:CQR}, the Pinball loss is asymmetric and the intuition behind is that under-estimate and over-estimate receive different penalties across quantiles. 	For instance, if $\alpha=0.9$, then we would expect that empirically 90\% of observations should fall below the prediction. In this case, the loss function places a higher penalty for underestimate.	
+	\noindent where $\hat{y}$ is the predicted quantile value.	 As illustrated in Figure \ref{fig:CQR}, the Pinball loss is asymmetric and the intuition behind is that under-estimate and over-estimate receive different penalties across quantiles. 	For instance, if $\alpha=0.9$, then we would expect that empirically 90\% of observations should fall below the prediction. In this case, the loss function places a higher penalty for underestimate.	
 	
-	Quantile regression in the \gls{bananascp} framework is implemented by training a dedicated neural network for each quantile level $q_i$ in the array $q$ as defined in Algorithm \ref{alg:OCP} using the corresponding Pinball loss $\ell_{q_i}(y, \hat{y})$.
+	Quantile regression in the \gls{bananascp} framework is implemented by training a dedicated neural network for each quantile level $q_i$ in the array $q$ as defined in Algorithm \ref{alg:OCP} using the corresponding Pinball loss $\ell_{q_i}(y, \hat{y})$. 
 	
 	 While quantile regression can model the shape of any continuous distribution given enough data, the predictions are not guaranteed to be well calibrated in practice. In fact, it is not uncommon that quantile regression generates non-monotonic predictions, a phenomenon referred as quantile crossing. To address this issue, we apply a post-hoc calibration upon the predicted quantiles using the \gls{cqr} from \cite{romano2019conformalized}. This method consists of a novel conformity score tailored for quantile estimation and the key idea of calibration is to apply quantile-aware offsets, which are computed on the calibration set, on the original predicted quantiles. 
 		 
@@ -367,10 +378,13 @@ In this work, we explore \gls{scp} in combination with different prediction algo
 	 
 	 \begin{equation}
 		E_i = \max \big\{\hat{q}_{\alpha_j}(x_i) - y_i, \; y_i - \hat{q}_{1-\alpha_j}(x_i) \big\}
+	 \vspace{0.7em}
 	 \label{scoreCQR}
 	 \end{equation}
 	 
-	 where $\hat{q}_{\alpha}(x_i)$ denotes the predicted $\alpha$-quantile at $x_i$. Note that the sign of the score is positive when the target $y_i$ is outside of the interval and negative when the target falls inside the predicted interval. This allows the conformity score to account for both overcoverage and undercoverage cases. In addition, the score amplitude always measures the distance to the closer quantile between $\hat{q}_{\alpha_j}(x_i)$ and $\hat{q}_{1-\alpha_j}(x_i)$ \cite{romano2019conformalized, salinas2023optimizing}.	 
+	 \noindent where $\hat{q}_{\alpha}(x_i)$ denotes the predicted $\alpha$-quantile at $x_i$. Note that the sign of the score is positive when the target $y_i$ is outside of the interval and negative when the target falls inside the predicted interval. This allows the conformity score to account for both overcoverage and undercoverage cases. In addition, the score amplitude always measures the distance to the closer quantile between $\hat{q}_{\alpha_j}(x_i)$ and $\hat{q}_{1-\alpha_j}(x_i)$ \cite{romano2019conformalized, salinas2023optimizing}.	 
+
+\end{description}
 
 
 \subsection{Conformal Prediction with Cross-validation}}
@@ -378,6 +392,7 @@ Solving a NAS problem is usually computationally expensive, as each neural archi
 
 The \gls{cvcp} method is a natural extension of \gls{scp} and is first formally presented in  \cite{vovk2015cross}. At each step, the evaluated architectures are devided at random into $K$ folds. A dedicated surrogate model is trained on $K-1$ folds, while the remaining one is used as the calibration set to calculate the conformity scores. This process is repeated for $K$ times over each individual fold. Finally, conformity scores from all calibration folds are combined to form the overall calibration set, on which the quantile is computed to determine the calibration offset. For an unseen data point, the prediction is obtained by aggregating the predictions of the $K$ trained models, e.g., by taking the average of the model outputs.  Algorithm \ref{alg:CVCP} summarizes this procedure. 
 
+\vspace{1em}
 \begin{algorithm}[htbp]
   \caption{Conformal Prediction with Cross-validation}
   \label{alg:CVCP}
@@ -430,7 +445,6 @@ In contrast to fitting $m$ neural networks on the same training data with differ
     \end{algorithmic}
 \end{algorithm}
 
-
 Jackknife+ is a type of \gls{cp} algorithm that is closely related to the \gls{loo} method \cite{barber2020jackknife}. Given a set of observations $\{(x_{i}, y_{i})\}_{i=1}^n$, the idea is to fit an \gls{loo} estimator $\hat{h}_{-i}$ using all available data except for the $i$-th sample, and this process iterates over all individual samples. Then, the predictive interval around the $i$-th point is obtained by offsetting the prediction from $\hat{h}_{-i}(x_i)$ with the quantile of all \gls{loo} conformity scores.  Equivalently, Jackknife+ can be viewed as a special case of \gls{cvcp} when the number of folds is exactly set to $K=n$.
 
 Jackknife+-after-boostrap \cite{kim2020predictive} integrates both approaches and provides a cost-efficient wrapper by leveraging only the available bootstrapped sets and their corresponding fitted models, thereby avoiding re-fitting ensembles on each individual bootstrapped sample. \cite{pmlr-v139-xu21h} extends this method to online setting and proves its efficiency for time-series data. In contrast to the \gls{cp} algorithms described in earlier sections, \gls{btcp} requires no data splitting because sampling with replacement automatically creates holdout sets. Training the bootstrap ensemble on random subsets from the full data also reduces the chance of overfitting.
@@ -444,20 +458,84 @@ As described in Section \ref{sec:bananas}, Bayesian optimization generally relie
 
 In the \gls{bananascp} framework, as outlined in Algorithm \ref{alg:OCP}, we are able to generate calibrated quantile estimates for a finite set of discrete quantile levels. Intuitively, assuming the quantiles estimates are accurate, increasing the granularity of quantile levels should lead to a more accurate approximation of the underlying continuous distribution. However, it is computationally prohibited to estimate an infinite number of quantiles in practice, especially with significantly limited training data. Therefore, we propose an approach for constructing a continuous distribution from discrete quantile estimates with mild assumption. Specifically, the distribution estimator is defined as:
 
-\begin{description}[leftmargin=0cm]
+\vspace{0.5em}
+\begin{description}[leftmargin=0cm, listparindent=\parindent]
 \item[Definition] Let $\{q_i\}_{i=1}^n$ be a quantile of percentile levels such that $0<q_1<q_2, ..., <q_n<1$, and $\{v_i\}_{i=1}^n$ are the corresponding quantiles, i.e., $F^{-1}(q_i)=v_i$, the empirical \gls{cdf} of the distributions $\hat{F}$ is constructed by applying linear interpolation between adjacent quantiles. Consequently, the \gls{pdf} of a specific interval $\left(v_a, v_b\right), a,b \in \{1,..., n\}$ and $a<b$ is:
-
+\vspace{0.5em}
 \[
 PDF(x) = \frac{q_b - q_a}{v_b - v_a}, \quad & \text{if } x \in (v_a, v_b) \\
 \]
 
-\vspace{0.7em}
-\item[Diagnosis Tools] To assess the validity of this approach, we first perform a diagnosis analysis on a synthetic dataset, which is generated by a left-skewed Gaussian distribution, which we believe resembles the true underlying distribution of the validation performances of architectures in a search space. The experiments on the synthetic data are intended to reflect the comparisons in a real \gls{nas} application, thereby two kinds of distribution estimators are examined: a Gaussian estimator and a linear-interpolation based quantile estimator. We adopt the Kullback–Leibler divergence \cite{kullback1951information} and create several visualizations to measure the precision of estimations. The experiments are repeated with different parameterizations and the results are discussed below.
+\vspace{1em}
+\item[Diagnosis Analysis] To assess the validity of this approach, we first perform a diagnosis analysis using synthetic datasets generated by a left-skewed Gaussian distribution, which we believe resembles the true underlying distribution of the validation performances of architectures in a search space. The experiments on the synthetic data are intended to reflect the comparisons in a real \gls{nas} application, therefore two kinds of distribution estimators are examined: a Gaussian estimator and a linear-interpolation based quantile estimator. The analysis is repeated with different parameterizations, e.g, the number of quantiles, or the size of the samples, etc.
 
-\textcolor{red}{figure and tables}
+Table \ref{table:distest} reports the performance of three distribution estimators on synthetic datasets with various sample sizes. In particular, the linear-interpolation based quantile estimator is evaluated under 10 and 20 quantile levels, and the quantile estimates for interpolation are obtained by taking the empirical quantiles of the sample data. The estimation performance is assessed using the mean, standard deviation and Kullback–Leibler divergence \cite{kullback1951information}. For each sample size, we run 50 trials and aggregate the metrics over the trials to reduce the effects of randomness. Results in Table \ref{table:distest} indicate that the linear-interpolation based quantile estimator offers a better approximation to an asymmetric distribution than a Normal distribution, provided with sufficient data. However, a caveat is that quantile-based estimation tends to produce biased standard deviation estimates, which may lead to undesired effect.
 
-\item[Evaluation Metrics] Within the \gls{bananascp} framework, the quality of the estimated conditional distribution for a specific architecture is measured by the \gls{rmsce} \cite{pmlr-v80-kuleshov18a}. Suppose $\hat{F}^{-1}_t$ is the \gls{cdf} of the distribution estimated at the  $t$-th step and $y_t$ is the true value revealed after the estimation, consider a sequence of $\{(\hat{F}^{-1}_t, y_t)\}_{t=1}^T$ that represents a neural architecture search process after $T$ epochs, the calibration error at the $T$-th epoch is defined as:
+Having considered the behaviors of the various acquisition functions employed in the real \gls{bananascp} application (see Section \ref{sec:acq}), we additionally present several visualizations (Figure \ref{fig: distest}) to compare the shapes of the estimated distributions with that of the true underlying distribution, thereby assuring the effectiveness of the acquisition functions.
 
+\begin{table}[htbp]
+\centering
+\refstepcounter{table}
+\addcontentsline{lot}{table}{Table~\thetable: Statistical Comparison of Distribution Estimators}
+
+\parbox{\linewidth}{
+  {\small \textit{Table \ref{table:distest}}: Statistical metrics of distributions estimated by three methods on synthetic datasets with sample size ranging from 50 to 500. For each method and sample size, the mean, standard deviation, and KL divergence are reported to assess the estimation performance.}  
+}
+
+\label{table:distest}
+\vspace{2em}
+\begin{tabular}{llc>{\centering\arraybackslash}p{2.5cm}c}
+\toprule
+\textbf{Sample Size} & \textbf{Estimator} & \textbf{Mean} & \textbf{Standard Deviation} & \textbf{KL Divergence} \\
+\midrule
+\multirow{50}  & Gaussian            & -0.7985 & 0.6005 & 0.5727 \\
+               & Quantile ($|q|=10$) & -0.7481 & 0.5503 & 0.1646 \\
+               & Quantile ($|q|=20$) & -0.7440 & 0.5536 & 0.2928 \\
+\midrule
+\multirow{100} & Gaussian            & -0.7989 & 0.6145 & 0.6181 \\
+               & Quantile ($|q|=10$) & -0.7744 & 0.5941 & 0.0953 \\
+               & Quantile ($|q|=20$) & -0.7654 & 0.5798 & 0.1297 \\       
+\midrule
+\multirow{150} & Gaussian            & -0.7986 & 0.6100 & 0.5977 \\
+               & Quantile ($|q|=10$) & -0.7860 & 0.6133 & 0.0811 \\
+               & Quantile ($|q|=20$) & -0.7791 & 0.5950 & 0.0948 \\
+\midrule    
+\multirow{200} & Gaussian            & -0.7969 & 0.6162 & 0.6227 \\
+               & Quantile ($|q|=10$) & -0.7948 & 0.6347 & 0.0625 \\
+               & Quantile ($|q|=20$) & -0.7833 & 0.6050 & 0.0676 \\
+\midrule   
+\multirow{250} & Gaussian            & -0.7921 & 0.6127 & 0.6166 \\
+               & Quantile ($|q|=10$)	 & -0.7936 & 0.6384 & 0.0526 \\
+			   & Quantile ($|q|=20$) & -0.7815 & 0.6084	& 0.0576 \\
+\midrule 
+\multirow{300} & Gaussian            & -0.7940 & 0.6140 & 0.6168 \\
+               & Quantile ($|q|=10$)	 & -0.8002 & 0.6521 & 0.0540 \\
+               & Quantile ($|q|=20$)	 & -0.7876 & 0.6153	& 0.0482 \\
+\midrule 
+\multirow{350} & Gaussian            & -0.7919 & 0.6131 & 0.6176 \\
+               & Quantile ($|q|=10$)	 & -0.8002 & 0.6570 & 0.0507 \\
+               & Quantile ($|q|=20$)	 & -0.7866 & 0.6188	& 0.0432 \\
+\midrule      
+\multirow{400} & Gaussian            & -0.7919 & 0.6131 & 0.6174 \\
+               & Quantile ($|q|=10$) & -0.8041 & 0.6650 & 0.0491 \\
+               & Quantile ($|q|=20$)	 & -0.7871 & 0.6215	& 0.0388 \\
+\midrule 
+\multirow{450} & Gaussian            & -0.7908 & 0.6114 & 0.6121 \\
+               & Quantile ($|q|=10$) & -0.8054 & 0.6668 & 0.0468 \\
+               & Quantile ($|q|=20$) & -0.7888 & 0.6240	& 0.0357 \\
+\midrule 
+\multirow{500} & Gaussian            & -0.7922 & 0.6081 & 0.5956 \\
+               & Quantile ($|q|=10$) & -0.8070 & 0.6657 & 0.0459 \\
+               & Quantile ($|q|=20$) & -0.7912 & 0.6219	& 0.0328 \\
+\midrule
+-&Ground Truth & -0.7939 & 0.6080 & 0.0000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\vspace{1em}
+\item[Evaluation Metrics] Within the \gls{bananascp} framework, the calibration quality at a specific epoch is measured by the \gls{rmsce} \cite{pmlr-v80-kuleshov18a}. Suppose $\hat{F}^{-1}_t$ is the \gls{cdf} of the distribution estimated at the  $t$-th step and $y_t$ is the true value revealed after the estimation, consider a sequence of $\{(\hat{F}^{-1}_t, y_t)\}_{t=1}^T$ that represents a neural architecture search process after $T$ epochs, the calibration error at the $T$-th epoch is defined as:
+	\vspace{0.5em}
 	\begin{equation}
 	\text{RMSCE} \left( \hat{F}^{-1}_1, y_1, \dots, \hat{F}^{-1}_T, y_T \right) = \sum_{j=1}^m w_j \left( p_j - \hat{p}_j \right)^2
 	\label{rmsce}
@@ -468,37 +546,32 @@ PDF(x) = \frac{q_b - q_a}{v_b - v_a}, \quad & \text{if } x \in (v_a, v_b) \\
 	\hat{p}_j = \frac{\left| \left\{ y_t \;\middle|\; \hat{F}^{-1}_t(y_t) \le p_j,\; t = 1, 2, \dots, T \right\} \right|}{T}
 	\]
 
-\vspace{1em}
-where $m$ represents the number of discrete quantile levels. Note that calibration errors calculated with different numbers of quantiles are not directly comparable. In general, increasing the number of quantiles tends to lead to larger calibration errors.	
-
+\noindent where $m$ represents the number of discrete quantile levels. Note that calibration errors calculated with different numbers of quantiles are not directly comparable. In general, increasing the number of quantiles tends to lead to larger calibration errors.	
 \end{description}
 
+\vspace{1em}
 \section{Acquisition Function and Search Strategy}
 \label{sec:acq}
-
-
 Finally, we describe the acquisition functions and the aquisition optimization strategies used within the \gls{bananascp} framework.
 
 \subsection{Acquisition Functions}
 We consider four commonly used acquisition functions. Consistent with the notation in the previous sections, $\hat{f}(a)$ is the predicted performance of architecture $a$ and $\hat{F}_a$ represents the \gls{cdf} of the estimated distribution of $f(a)$. Then, depending on the acquisition function used, the specific acquisition score can be calculated by: 
 
-\begin{description}[leftmargin=0cm] 
+\begin{description}[leftmargin=0cm, itemsep=1pt] 
+\item[\gls{its}:] A sample is drawn from the distribution at random and its value is seen as the acquistion score for the candidate architecture $a$.
 \item[\gls{ucb}:] The acquisition score is given by $\mu+\gamma \cdot \sigma$ for a Gaussian distribution, where $\gamma$ is the exploration factor. For non-Gaussian distributions, we follow \cite{deshpande2024online} and generalize the function to a quantile function, i.e., $\hat{F}^{-1}_a(\gamma)$.  As in the original formulation, higher values of $\gamma$ promotes exploration. In our experiments, we set $\gamma=0.75$ due to these concerns: a) the distribution of model performance is believed to be left-skewed; b) estimates of extreme quantiles are generally based on sparse observations and therefore might be less reliable. A value of 0.75 is likely to offer a reasonable trade-off between exploration and accurate estimation.
 \item[\gls{pi}:] The probability of improvements corresponds to $1 - \hat{F}^{-1}_a(f_{max})$, with $f_{max}$ being the highest model performance ever observed.
 \item[\gls{ei}:] The expected value of improvements can be written as $\mathbb{E}[\max(0,  f(a)- f_{max}})]$, with $f_{max}$ being the highest model performance ever observed. 
-\item[\gls{its}:] A sample is drawn from the distribution at random and its value is seen as the acquistion score for the candidate architecture $a$. Note that \gls{its} introduces most stochasticity into the search among the aforementioned acquisition functions.
-
-
 \end{description}
 
+\vspace{0.3em}
 \subsection{Acquisition Optimization Strategy}
-In parallel to the settings in \cite{white2019bananas} (see Section \ref{sec:bananas}), we compare three different approaches for constructing a set with 100 \footnote{We conducted preliminary experiments with 1000 candidates, and the results suggest that the sample size does not have a significant impact on the search performance. Consider the size of the search space and the required computation time, the set size is fixed at 100 for the primary experiments.} candidates in order to compute the acquisition scores. The motivations and the  specific approaches are described below:
+In parallel to the settings in \cite{white2019bananas} (see Section \ref{sec:bananas}), we compare three different approaches for constructing a set with 100 \footnote{ We have conducted preliminary experiments using 1,000 candidate samples as well. The results indicate that increasing the sample size does not lead to significant improvements in performance. Considering the size of the search space (NAS-Bench-201), and the required computational time, the candidate set size is fixed at 100 for all subsequent primary experiments.} candidates in order to compute the acquisition scores. The motivations and the  specific approaches are described below:
  
-\begin{description}[leftmargin=0cm]
-\item[Mutation] We investigate the mutation-based search strategy because this approach demonstrates the best performance in \cite{white2019bananas}. In line with their approach, the candidates are selected by randomly changing one operation or one edge of the $k$ best models that have been found so far. Note that $k$ is a hyperparameter for the search and its default value is set to 2. 
-\item[Random Sampling] This approach is explored under the assumption that globally sampled architectures might yield better calibration quality. As indicated by the name, the candidate set is created by randomly sampling architectures from the entire search space.
+\begin{description}[leftmargin=0cm, itemsep=1pt]
+\item[Mutation] We investigate the mutation-based search strategy because this approach demonstrates the best performance in \cite{white2019bananas}. In line with their approach, the candidates are selected by randomly changing one operation or one edge of the $k$ best models that have been found so far, where $k$ is a search hyperparameter with the default value of 2. 
+\item[Random Sampling] This approach is explored under the assumption that globally sampled architectures may improve the quality of the calibration process. As indicated by the name, the candidate set is created by randomly sampling architectures from the entire search space.
 \item[Dynamic] This approach aims to resemble the "random + mutation" search strategy in \cite{white2019bananas}. The search process begins with random sampling until utilizing the first half of the search budget, then switches to a mutation-based strategy that progressively reduces the number of best ever-found models considered for mutation. To be precise, the number of models to be mutated decreases by 2 every 20 epoch. For instance, in a \gls{nas} task with 160 epochs, candidates are picked via random sampling for the first 80 epochs. Starting from epochs 80/100/120/140, the candidates are selected by mutating the best 8/6/4/2 models, respectively.
-
 \end{description} 
 
 % chapter 4
@@ -573,7 +646,8 @@ Erklärung rechtliche Folgen haben wird.
     Tool & Purpose & Where? & Useful? \\
     \midrule
     ChatGPT & Rephrasing & Throughout & + \\
-    ChatGPT & Debugging LaTeX syntax errors  & Equation/Formula & + \\
+    ChatGPT & Debugging LaTeX syntax errors  & Equation & + \\
+    ChatGPT & Rendering LaTeX tables from Python frame & Tables & + \\
     \bottomrule
   \end{tabularx}
 \end{center}

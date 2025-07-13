@@ -23,7 +23,7 @@
 \usepackage{csquotes}
 \renewcommand{\algorithmiccomment}[1]{\hfill\textit{// #1}}
 \usepackage[usenames,dvipsnames]{xcolor}
-\usepackage[nopostdot, nogroupskip, style=super, nonumberlist, toc]{glossaries}
+\usepackage[nopostdot, style=super, nonumberlist, toc]{glossaries}
 \makeglossaries
 
 % Citation style
@@ -117,7 +117,7 @@ Bayesian optimization is a sequential decision-making process that seeks to find
 
 
 
-
+\gls{its} \gls{ucb} \gls{pi} \gls{ei}
 
 Give an introduction how Bayesian optimization works. We list the five engineering decisions and review each field's related works. Maybe briefly cite Gaussian Process.
 
@@ -126,18 +126,21 @@ Give an introduction how Bayesian optimization works. We list the five engineeri
 	\item [Neural Predictor] \gls{fnns}
 	\item [Uncertainty Estimation] 
 	\item [Acquisition Function]
-	\item [Acquisition Optimization]
+	\item [Acquisition Optimization] In each iteration of the Bayesian optimization, the goal is to select a candidate from the search space that maximizes the acquisition score. Evaluating the acquisition function for every architecture available in the search space is computationally infeasible, therefore \cite{white2019bananas} proposes to create a set of 100 to 1000 candidates and then choose the architecture with the maximal acquisition score in this set. Specifically, \cite{white2019bananas} explores various approaches for creating this candidate set. The simplest and most natural way is to draw architectures at random. Consider that architectures close in edit distance to those used for training the surrogate model are likely to have more accurate estimates, an alternative is a mutation-based sampling approach, where the candidate set is created via local search by randomly modifying an operation or an edge of the best-performing architectures that have been evaluated so far. In additional, \cite{white2019bananas} also examines a hybrid approach that combines random search with mutation-based search. The experiments show that the mutation-based approach outperforms its competitors and suggests it is better to search locally rather than globally.
+
 \end{description}}
 
 
 \section{Uncertainty Quantification}
 Understanding uncertainty is important for real-world application of artificial intelligence, e.g., in autonomous driving, medical diagnosis. 
 
-\subsection{Types of Uncertainty}
-- aleatory uncertainty (data uncertainty): uncertainty that arises due to inherent variations and randomness, and cannot be reduced by collecting more information \\
-- epistemic uncertainty (model uncertainty): uncertainty that arises due to lack of knowledge, and can be reduced by collecting more information.
+\begin{description}[leftmargin=0cm]
+\item[Aleatory Uncertainty]  (data uncertainty): uncertainty that arises due to inherent variations and randomness, and cannot be reduced by collecting more information 
 
-\subsection{Alternative Uncertainty Estimation Methods}
+\item[Epistemic Uncertainty] (model uncertainty): uncertainty that arises due to lack of knowledge, and can be reduced by collecting more information.
+\end{description}
+
+\subsection{Uncertainty Estimation Methods}
 - Bayesian-based: e.g., Bayesian Neural Network \\
 - Ensemble-based: e.g., Monte-Carlo dropout \\
 - Bootstrapping \\
@@ -184,14 +187,14 @@ Starting from i.i.d data, and provide an intuitive demonstration how the predict
 			H1: test instance i does not conform to the training instances. \\
 \end{description}}
 
-\subsection{Transductive Conformal Prediction}
-\gls{tcp}
+\subsection{Full Conformal Prediction}
+\gls{fcp}
 
 
 \subsection{Extensions of Conformal Prediction}
 Since the transductive version of \gls{cp} was first proposed in \cite{gammerman1998learning}, several variants have been developed with different computational complexities, formal guarantees, and practical applications.
 
-To address the aforementioned inefficient computation problem of \gls{tcp}, Split Conformal Prediction (\gls{scp}), also known as Inductive Conformal Prediction (ICP), was first introduced in \cite{papadopoulos2002inductive} by replacing the transductive inference with inductive inference.  aims to learn a general prediction rule about the data using the observed records. Then, this rule can be applied directly to obtain predictions when new data arrives in sequence, without re-using the training data and retraining the model repeatedly. The main concept involves splitting the data into two non-overlapping subsets, designated for training and calibration, respectively. A predictive model is fit exclusively on the training set, then non-conformity measures are computed on the calibration set to determine the prediction interval's width. Due to its simplicity and computational efficiency, \gls{scp} is one of the most commonly used techniques in the \gls{cp} family. We delve into methodological steps of \gls{scp} with pseudo-code in Section \ref{sec:scp}.
+To address the aforementioned inefficient computation problem of \gls{fcp}, Split Conformal Prediction (\gls{scp}), also known as Inductive Conformal Prediction (ICP), was first introduced in \cite{papadopoulos2002inductive} by replacing the transductive inference with inductive inference.  aims to learn a general prediction rule about the data using the observed records. Then, this rule can be applied directly to obtain predictions when new data arrives in sequence, without re-using the training data and retraining the model repeatedly. The main concept involves splitting the data into two non-overlapping subsets, designated for training and calibration, respectively. A predictive model is fit exclusively on the training set, then non-conformity measures are computed on the calibration set to determine the prediction interval's width. Due to its simplicity and computational efficiency, \gls{scp} is one of the most commonly used techniques in the \gls{cp} family. We delve into methodological steps of \gls{scp} with pseudo-code in Section \ref{sec:scp}.
 
 --------
 
@@ -449,11 +452,11 @@ PDF(x) = \frac{q_b - q_a}{v_b - v_a}, \quad & \text{if } x \in (v_a, v_b) \\
 \]
 
 \vspace{0.7em}
-\item[Diagnosis tools] To assess the validity of this approach, we first perform a diagnosis analysis on a synthetic dataset, which is generated by a left-skewed Gaussian distribution, which we believe resembles the true underlying distribution of the validation performances of architectures in a search space. The experiments on the synthetic data are intended to reflect the comparisons in a real \gls{nas} application, thereby two kinds of distribution estimators are examined: a Gaussian estimator and a linear-interpolation based quantile estimator. We adopt the Kullback–Leibler divergence \cite{kullback1951information} and create several visualizations to measure the precision of estimations. The experiments are repeated with different parameterizations and the results are presented below.
+\item[Diagnosis Tools] To assess the validity of this approach, we first perform a diagnosis analysis on a synthetic dataset, which is generated by a left-skewed Gaussian distribution, which we believe resembles the true underlying distribution of the validation performances of architectures in a search space. The experiments on the synthetic data are intended to reflect the comparisons in a real \gls{nas} application, thereby two kinds of distribution estimators are examined: a Gaussian estimator and a linear-interpolation based quantile estimator. We adopt the Kullback–Leibler divergence \cite{kullback1951information} and create several visualizations to measure the precision of estimations. The experiments are repeated with different parameterizations and the results are discussed below.
 
 \textcolor{red}{figure and tables}
 
-\item[Evaluation metrics] Within the \gls{bananas} framework, the quality of the estimated conditional distribution for a specific architecture is measured by the \gls{rmsce} \cite{pmlr-v80-kuleshov18a}. Suppose $\hat{F}^{-1}_t$ is the \gls{cdf} of the distribution estimated at the  $t$-th step and $y_t$ is the true value revealed after the estimation, consider a sequence of $\{(\hat{F}^{-1}_t, y_t)\}_{t=1}^T$ that represents a neural architecture search process after $T$ epochs, the calibration error at the $T$-th epoch is defined as:
+\item[Evaluation Metrics] Within the \gls{bananascp} framework, the quality of the estimated conditional distribution for a specific architecture is measured by the \gls{rmsce} \cite{pmlr-v80-kuleshov18a}. Suppose $\hat{F}^{-1}_t$ is the \gls{cdf} of the distribution estimated at the  $t$-th step and $y_t$ is the true value revealed after the estimation, consider a sequence of $\{(\hat{F}^{-1}_t, y_t)\}_{t=1}^T$ that represents a neural architecture search process after $T$ epochs, the calibration error at the $T$-th epoch is defined as:
 
 	\begin{equation}
 	\text{RMSCE} \left( \hat{F}^{-1}_1, y_1, \dots, \hat{F}^{-1}_T, y_T \right) = \sum_{j=1}^m w_j \left( p_j - \hat{p}_j \right)^2
@@ -474,28 +477,29 @@ where $m$ represents the number of discrete quantile levels. Note that calibrati
 \label{sec:acq}
 
 
-Finally, we describe the acquisition functions and the aquisition optimization strategies used within the \gls{bananascp} setting.
+Finally, we describe the acquisition functions and the aquisition optimization strategies used within the \gls{bananascp} framework.
 
 \subsection{Acquisition Functions}
-We consider four commonly used acquisition functions. 	Consistent with the notation in the previous sections, $\hat{F}_a$ represents the \gls{cdf} of the estimated distribution for architecture $a$. Then, depending on the acquisition function used, the specific acquisition score can be calculated as follows: 
+We consider four commonly used acquisition functions. Consistent with the notation in the previous sections, $\hat{f}(a)$ is the predicted performance of architecture $a$ and $\hat{F}_a$ represents the \gls{cdf} of the estimated distribution of $f(a)$. Then, depending on the acquisition function used, the specific acquisition score can be calculated by: 
 
 \begin{description}[leftmargin=0cm] 
-\item[\gls{its}:] A sample is drawn from the distribution at random and its value is seen as the acquistion score at the candidate architecture $a$.
-\item[\gls{ucb}:] The acquisition score is given by $\mu+\gamma \cdot \sigma$ for a Gaussian distribution, where $\gamma$ is the exploration factor. For non-Gaussian distributions, we follow \cite{deshpande2024online} and generalize the function to a quantile function, i.e., $\hat{F}^{-1}_a(\gamma)$.  As in the original formulation, higher values of $\gamma$ promotes exploration. In our experiments, we set $\gamma=0.75$ due to these concerns: a) the distribution of model performance is believed to be left-skewed; b) estimates of extreme quantiles are generally based on sparse observations and therefore might be less reliable. A value of 0.75 offers a reasonable trade-off between exploration and accurate estimation.
-\item[\gls{pi}:] The acquisition score corresponds to $1 - \hat{F}^{-1}_a(y_{max})$, with $y_{max}$ being the highest model performance ever observed.
-
-\item[\gls{ei}:]
+\item[\gls{ucb}:] The acquisition score is given by $\mu+\gamma \cdot \sigma$ for a Gaussian distribution, where $\gamma$ is the exploration factor. For non-Gaussian distributions, we follow \cite{deshpande2024online} and generalize the function to a quantile function, i.e., $\hat{F}^{-1}_a(\gamma)$.  As in the original formulation, higher values of $\gamma$ promotes exploration. In our experiments, we set $\gamma=0.75$ due to these concerns: a) the distribution of model performance is believed to be left-skewed; b) estimates of extreme quantiles are generally based on sparse observations and therefore might be less reliable. A value of 0.75 is likely to offer a reasonable trade-off between exploration and accurate estimation.
+\item[\gls{pi}:] The probability of improvements corresponds to $1 - \hat{F}^{-1}_a(f_{max})$, with $f_{max}$ being the highest model performance ever observed.
+\item[\gls{ei}:] The expected value of improvements can be written as $\mathbb{E}[\max(0,  f(a)- f_{max}})]$, with $f_{max}$ being the highest model performance ever observed. 
+\item[\gls{its}:] A sample is drawn from the distribution at random and its value is seen as the acquistion score for the candidate architecture $a$. Note that \gls{its} introduces most stochasticity into the search among the aforementioned acquisition functions.
 
 
 \end{description}
-
-
 
 \subsection{Acquisition Optimization Strategy}
-
+In parallel to the settings in \cite{white2019bananas} (see Section \ref{sec:bananas}), we compare three different approaches for constructing a set with 100 \footnote{We conducted preliminary experiments with 1000 candidates, and the results suggest that the sample size does not have a significant impact on the search performance. Consider the size of the search space and the required computation time, the set size is fixed at 100 for the primary experiments.} candidates in order to compute the acquisition scores. The motivations and the  specific approaches are described below:
+ 
 \begin{description}[leftmargin=0cm]
+\item[Mutation] We investigate the mutation-based search strategy because this approach demonstrates the best performance in \cite{white2019bananas}. In line with their approach, the candidates are selected by randomly changing one operation or one edge of the $k$ best models that have been found so far. Note that $k$ is a hyperparameter for the search and its default value is set to 2. 
+\item[Random Sampling] This approach is explored under the assumption that globally sampled architectures might yield better calibration quality. As indicated by the name, the candidate set is created by randomly sampling architectures from the entire search space.
+\item[Dynamic] This approach aims to resemble the "random + mutation" search strategy in \cite{white2019bananas}. The search process begins with random sampling until utilizing the first half of the search budget, then switches to a mutation-based strategy that progressively reduces the number of best ever-found models considered for mutation. To be precise, the number of models to be mutated decreases by 2 every 20 epoch. For instance, in a \gls{nas} task with 160 epochs, candidates are picked via random sampling for the first 80 epochs. Starting from epochs 80/100/120/140, the candidates are selected by mutating the best 8/6/4/2 models, respectively.
 
-\end{description}
+\end{description} 
 
 % chapter 4
 \chapter{Dataset}

@@ -12,7 +12,6 @@ colorlinks=true, urlcolor=blue, linkcolor=black, colorlinks,citecolor=green
 \usepackage{emptypage}
 \usepackage{enumitem}
 \usepackage{graphicx}
-\graphicspath{ {./figs/} }
 \usepackage[justification=raggedright]{caption}
 \captionsetup{labelformat=empty, textformat=empty}
 \usepackage{latexsym}
@@ -20,6 +19,7 @@ colorlinks=true, urlcolor=blue, linkcolor=black, colorlinks,citecolor=green
 \usepackage{amssymb}
 \usepackage{tabularx}
 \usepackage{booktabs}
+\usepackage{pdflscape}
 \usepackage{algorithm} % you can modify the algorithm style to your liking
 \usepackage{algorithmic}
 \usepackage{csquotes}
@@ -34,8 +34,9 @@ colorlinks=true, urlcolor=blue, linkcolor=black, colorlinks,citecolor=green
 \bibliographystyle{chicagoa}
 \setcitestyle{authoryear,round,semicolon,aysep={},yysep={,}} \let\cite\citep
 
-% ----------------------------------------------------------------------------------------------
+%---------------------------------------------------------------------------------------
 \input{acronyms}
+
 % Begin Documents
 \begin{document}
 \setlength{\skip\footins}{20pt}
@@ -366,7 +367,7 @@ In this work, we explore \gls{scp} in combination with different prediction algo
 	 While quantile regression can model the shape of any continuous distribution given enough data, the predictions are not guaranteed to be well calibrated in practice. In fact, it is not uncommon that quantile regression generates non-monotonic predictions, a phenomenon referred as quantile crossing. To address this issue, we apply a post-hoc calibration upon the predicted quantiles using the \gls{cqr} from \cite{romano2019conformalized}. This method consists of a novel conformity score tailored for quantile estimation and the key idea of calibration is to apply quantile-aware offsets, which are computed on the calibration set, on the original predicted quantiles. 
 		 
 	 \begin{figure}[t]	
-		\includegraphics[scale=0.56]{pinball_loss_and_CQR}
+		\includegraphics[scale=0.56]{figs/pinball_loss_and_CQR.png}
 		\refstepcounter{figure}
    		\addcontentsline{lof}{figure}{Figure~\thefigure: Pinball loss and CQR within Bayesian optimization}
 		\label{fig:CQR}
@@ -449,7 +450,7 @@ Jackknife+ is a type of \gls{cp} algorithm that is closely related to the \gls{l
 
 Jackknife+-after-boostrap \cite{kim2020predictive} integrates both approaches and provides a cost-efficient wrapper by leveraging only the available bootstrapped sets and their corresponding fitted models, thereby avoiding re-fitting ensembles on each individual bootstrapped sample. \cite{pmlr-v139-xu21h} extends this method to online setting and proves its efficiency for time-series data. In contrast to the \gls{cp} algorithms described in earlier sections, \gls{btcp} requires no data splitting because sampling with replacement automatically creates holdout sets. Training the bootstrap ensemble on random subsets from the full data also reduces the chance of overfitting.
 
-Implementation of \gls{btcp} is shown in Algorithm \ref{alg:BtCP}. Noteably, if a particular  data point appears in all bootstrapped samples, it is then excluded from the computation of conformity scores since it has no associated \gls{loo} estimator. In \gls{btcp}, the absolute residual is used for measuring cogvnformity, due to potentially insufficient \gls{loo} outputs for standard deviation estimation, i.e., $LOO_i$ in Algorithm \ref{alg:BtCP} might have fewer than two points. Specifically, \gls{btcp} is only applied with the ensemble model. This concludes our experiment setups and the \gls{bananascp} framework is finally evaluated under five various predictor+CP configurations.
+Implementation of \gls{btcp} is shown in Algorithm \ref{alg:BtCP}. Noteably, if a particular  data point appears in all bootstrapped samples, it is then excluded from the computation of conformity scores since it has no associated \gls{loo} estimator. In \gls{btcp}, the absolute residual is mainly used for measuring conformity, due to potentially insufficient \gls{loo} outputs for standard deviation estimation, i.e., $LOO_i$ in Algorithm \ref{alg:BtCP} might have fewer than two points. Specifically, \gls{btcp} is only applied with the ensemble model. This concludes our experiment setups and the \gls{bananascp} framework is finally evaluated under five various predictor+CP configurations.
 
 
 \section{Distribution Estimation}
@@ -471,7 +472,24 @@ PDF(x) = \frac{q_b - q_a}{v_b - v_a}, \quad & \text{if } x \in (v_a, v_b) \\
 
 Table \ref{table:distest} reports the performance of three distribution estimators on synthetic datasets with various sample sizes. In particular, the linear-interpolation based quantile estimator is evaluated under 10 and 20 quantile levels, and the quantile estimates for interpolation are obtained by taking the empirical quantiles of the sample data. The estimation performance is assessed using the mean, standard deviation and Kullback–Leibler divergence \cite{kullback1951information}. For each sample size, we run 50 trials and aggregate the metrics over the trials to reduce the effects of randomness. Results in Table \ref{table:distest} indicate that the linear-interpolation based quantile estimator offers a better approximation to an asymmetric distribution than a Normal distribution, provided with sufficient data. However, a caveat is that quantile-based estimation tends to produce biased standard deviation estimates, which may lead to undesired effect.
 
-Having considered the behaviors of the various acquisition functions employed in the real \gls{bananascp} application (see Section \ref{sec:acq}), we additionally present several visualizations (Figure \ref{fig: distest}) to compare the shapes of the estimated distributions with that of the true underlying distribution, thereby assuring the effectiveness of the acquisition functions.
+Having considered the behaviors of the various acquisition functions employed in the real \gls{bananascp} application (see Section \ref{sec:acq}), we additionally present several visualizations based on a synthetic dataset with 150 samples (Figure \ref{fig:distest10}, Figure \ref{fig:distest20}) to compare the shapes of the estimated distributions with that of the true underlying distribution, thereby assuring the effectiveness of the acquisition functions.
+
+\vspace{1em}
+\item[Evaluation Metrics] Within the \gls{bananascp} framework, the calibration quality at a specific epoch is measured by the \gls{rmsce} \cite{pmlr-v80-kuleshov18a}. Suppose $\hat{F}^{-1}_t$ is the \gls{cdf} of the distribution estimated at the  $t$-th step and $y_t$ is the true value revealed after the estimation, consider a sequence of $\{(\hat{F}^{-1}_t, y_t)\}_{t=1}^T$ that represents a neural architecture search process after $T$ epochs, the calibration error at the $T$-th epoch is defined as:
+	\vspace{0.5em}
+	\begin{equation}
+	\text{RMSCE} \left( \hat{F}^{-1}_1, y_1, \dots, \hat{F}^{-1}_T, y_T \right) = \sum_{j=1}^m w_j \left( p_j - \hat{p}_j \right)^2
+	\label{rmsce}
+	\end{equation}
+
+	\[
+	\text{with} \quad
+	\hat{p}_j = \frac{\left| \left\{ y_t \;\middle|\; \hat{F}^{-1}_t(y_t) \le p_j,\; t = 1, 2, \dots, T \right\} \right|}{T}
+	\]
+
+\noindent where $m$ represents the number of discrete quantile levels. Note that calibration errors calculated with different numbers of quantiles are not directly comparable. In general, increasing the number of quantiles tends to lead to larger calibration errors.	
+\end{description}
+
 
 \begin{table}[htbp]
 \centering
@@ -533,21 +551,72 @@ Having considered the behaviors of the various acquisition functions employed in
 \end{tabular}
 \end{table}
 
-\vspace{1em}
-\item[Evaluation Metrics] Within the \gls{bananascp} framework, the calibration quality at a specific epoch is measured by the \gls{rmsce} \cite{pmlr-v80-kuleshov18a}. Suppose $\hat{F}^{-1}_t$ is the \gls{cdf} of the distribution estimated at the  $t$-th step and $y_t$ is the true value revealed after the estimation, consider a sequence of $\{(\hat{F}^{-1}_t, y_t)\}_{t=1}^T$ that represents a neural architecture search process after $T$ epochs, the calibration error at the $T$-th epoch is defined as:
-	\vspace{0.5em}
-	\begin{equation}
-	\text{RMSCE} \left( \hat{F}^{-1}_1, y_1, \dots, \hat{F}^{-1}_T, y_T \right) = \sum_{j=1}^m w_j \left( p_j - \hat{p}_j \right)^2
-	\label{rmsce}
-	\end{equation}
+\begin{landscape}
+% First Row (10 Quantiles)
+\begin{figure}[H]
+  \refstepcounter{figure}
+  \addcontentsline{lof}{figure}{Figure~\thefigure: Visualization of Estimated Distribution Based on 10 Quantiles.} 
+  \label{fig:distest10}
+  \centering
+  \begin{minipage}[b]{0.4\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{figs/10_pdf_plot.pdf}
+    \\[0.5em]
+    {\small (a)}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[b]{0.4\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{figs/10_cdf_plot.pdf}
+    \\[0.5em]
+    {\small (b)}
+  \end{minipage}
+  \hfill
+   \begin{minipage}[b]{0.4\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{figs/10_rvs_plot.pdf}
+    \\[0.5em]
+    {\small (c)}
+  \end{minipage}
+ 
+ \vspace{1em}
+ \parbox{\linewidth}{
+ 	 {\small \textit{Figure \ref{fig:distest10}:} Visualization of the distributions estimated using 10 quantile levels. The figure includes the estimated \gls{pdf} (a), \gls{cdf} (b), and the histogram of 2000 samples drawn from the estimated distribution (c).}
+ }
+\end{figure}
 
-	\[
-	\text{with} \quad
-	\hat{p}_j = \frac{\left| \left\{ y_t \;\middle|\; \hat{F}^{-1}_t(y_t) \le p_j,\; t = 1, 2, \dots, T \right\} \right|}{T}
-	\]
-
-\noindent where $m$ represents the number of discrete quantile levels. Note that calibration errors calculated with different numbers of quantiles are not directly comparable. In general, increasing the number of quantiles tends to lead to larger calibration errors.	
-\end{description}
+% Second Row (20 Quantiles)
+\begin{figure}[H]
+  \refstepcounter{figure}
+  \addcontentsline{lof}{figure}{Figure~\thefigure: Visualization of Estimated Distribution Based on 20 Quantiles.} 
+  \label{fig:distest20}
+  \centering
+  \begin{minipage}[b]{0.4\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{figs/20_pdf_plot.pdf}
+    {\small (a)}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[b]{0.4\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{figs/20_cdf_plot.pdf}
+    \\[0.5em]
+    {\small (b)}
+  \end{minipage}
+  \hfill
+   \begin{minipage}[b]{0.4\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{figs/20_rvs_plot.pdf}
+    \\[0.5em]
+    {\small (c)}
+  \end{minipage}
+  \vspace{1em}
+  
+ \parbox{\linewidth}{
+ 	 {\small \textit{Figure \ref{fig:distest10}:} Visualization of the distributions estimated using 20 quantile levels. The figure includes the estimated \gls{pdf} (a), \gls{cdf} (b), and the histogram of 2000 samples drawn from the estimated distribution (c).}
+ }
+\end{figure}
+\end{landscape}
 
 \vspace{1em}
 \section{Acquisition Function and Search Strategy}

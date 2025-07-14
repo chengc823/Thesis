@@ -1,4 +1,5 @@
 \chapter{Methodology}
+\label{ch3}
 To address the limitations of the Gaussian assumption in uncertainty estimation, this work introduces a new framework that integrates conformal prediction-based uncertainty calibration into the \gls{bananas} framework in an online setting. An algorithm outlining the overall procedure of \gls{bananascp} is presented in Section \ref{sec:overview}, followed by detailed descriptions of each methodological step. Section \ref{sec:cp} presents different conformal predictions algorithms to be explored. Next in Section \ref{sec:distest}, methods for the estimation and evaluation of the conditional distribution of each candidate architecture are discussed. Finally, in Section \ref{sec:acq} we introduce how the calibrated distribution can be combined with different acquisition functions and acquisition search strategies in the Bayesian optimization process.
 
 
@@ -269,7 +270,7 @@ Having considered the behaviors of the various acquisition functions employed in
 	\hat{p}_j = \frac{\left| \left\{ y_t \;\middle|\; \hat{F}^{-1}_t(y_t) \le p_j,\; t = 1, 2, \dots, T \right\} \right|}{T}
 	\]
 
-\noindent where $m$ represents the number of discrete quantile levels. Note that calibration errors calculated with different numbers of quantiles are not directly comparable. In general, increasing the number of quantiles tends to lead to larger calibration errors.	
+\noindent where $m$ represents the number of discrete quantile levels and the scalars $w_j$ are  quantile weights. For simplicity, we adopt  $w_j=1, \forall j \in[0,1]$ in this work. Alternatively, calibration errors of the quantiles can be weighted by the number of observations falling into the corresponding intervals. Note that calibration errors calculated with different numbers of quantiles are not directly comparable. In general, increasing the number of quantiles tends to lead to larger calibration errors.	
 \end{description}
 
 
@@ -363,7 +364,7 @@ Having considered the behaviors of the various acquisition functions employed in
  
  \vspace{1em}
  \parbox{\linewidth}{
- 	 {\small \textit{Figure \ref{fig:distest10}:} Visualization of the distributions estimated using 10 quantile levels. The figure includes the estimated \gls{pdf} (a), \gls{cdf} (b), and the histogram of 2000 samples drawn from the estimated distribution (c).}
+ 	 {\small \textit{Figure \ref{fig:distest10}:} Visualization of the distributions estimated from 10 quantile levels using a synthetic dataset with 150 samples. The figure includes the estimated \gls{pdf} (a), \gls{cdf} (b), and the histogram of 2000 samples drawn from the estimated distribution (c).}
  }
 \end{figure}
 
@@ -395,7 +396,7 @@ Having considered the behaviors of the various acquisition functions employed in
   \vspace{1em}
   
  \parbox{\linewidth}{
- 	 {\small \textit{Figure \ref{fig:distest10}:} Visualization of the distributions estimated using 20 quantile levels. The figure includes the estimated \gls{pdf} (a), \gls{cdf} (b), and the histogram of 2000 samples drawn from the estimated distribution (c).}
+ 	 {\small \textit{Figure \ref{fig:distest20}:} Visualization of the distributions estimated from 20 quantile levels using a synthetic dataset with 150 samples. The figure includes the estimated \gls{pdf} (a), \gls{cdf} (b), and the histogram of 2000 samples drawn from the estimated distribution (c).}
  }
 \end{figure}
 \end{landscape}

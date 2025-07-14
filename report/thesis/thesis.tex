@@ -97,54 +97,85 @@ Having gained an overview of the research question and the background, the remai
 
 % chapter 2
 \chapter{Literature Review}
-\label{ch:related_work}
+This chapter offers the technical background related to the research question of this work. We start by providing a comprehensive overview of \gls{nas} and introduce the three dimensions that characterize a \gls{nas} algorithm, followed by an anatomy of the high-performing search algorithm \gls{bananas}. Then, we review the existing uncertainty quantification techniques, with a focus on \gls{cp} algorithms, particularly those related to the novel framework we propose in Chapter~\ref{ch3}.
 
-\section{Neural Architecture Search (NAS)}
-
+\section{Neural Architecture Search}
 \subsection{Background}
-\gls{nas} is a subfield of AutoML.
-\begin{description}
-	\item [Search Space] Details will be introduced in \ref{Dataset}
+In the recent decades, deep learning has achieved remarkable success in a variety of areas, including computer vision, natural language understanding, and machine translation. This success is partly attributed to the meticulously hand-crafted neural network architectures. With the rising demand for efficient architecture engineering in complex domains, \gls{nas} has emerged as a technique for automating the design of neural architectures tailored for specific tasks.
+
+\gls{nas} has been a rapidly progressing research domain in the past years. Since the popular work based on reinforcement learning \cite{zoph2016neural}, many \gls{nas} algorithms leveraging different techniques have been proposed, including evolutionary algorithms \cite{maziarz2018evo-nas}, Bayesian optimization \cite{kandasamy2018neural}, and gradient descent \cite{liu2018darts}. In general, a specific \gls{nas} algorithms can be characterized by three key dimensions: the search space, the search strategy, and the performance evaluation \cite{elsken2019neural, white2023survey, wistuba2019survey}. Figure \ref{fig: nas_overview} illustrates a typical architetcture search process.
+
+
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[scale=0.5]{figs/overview_nas.png}
+	\refstepcounter{figure}
+   	\addcontentsline{lof}{figure}{Figure~\thefigure: Overview of Neural Architecture Search}
+	\label{fig: nas_overview}
+	\parbox{\linewidth}{
+	 \vspace{0.5em}
+ 	 {\small \textit{Figure \ref{fig: nas_overview}:} Overview of an architecture search process. The search strategy iteratively selects architectures from a predefined search space $\mathcal{A}$. The performance estimation strategy evaluates the model performance on the target dataset and returns the performance to the search strategy.
+	}
+ 	}
+\end{figure}
+
+\noindent Next, we provide definitions of the terms and review the research progress of each domain.
+\begin{description}[leftmargin=0cm, listparindent=\parindent]
+	\item [Search Space] A search space defines a set of architectures that the search algorithm is allowed to select. The design of the search space represents an important trade-off between human bias and efficiency of search: a smaller search space incorporating more prior human knowledge will enable \gls{nas} algorithms to find high-performing architectures more easily, while a larger space with more primitive building blocks provides higher odds of discovering truly novel architectures \cite{white2023survey}. Common  search spaces range in size from a few thousand to over $10^{20}$.	
+	
+		There are 
+
+	
 	\item [Search Strategy] 
-	\item [Performance Evaluation]
+	\item [Performance Evaluation] The performance evaluation refers to the process of estimating the performance of architectures. The estimated performance is communicated back to the search algorithm to guide the next search. 
+
+		The simplest performance estimation strategy is to fully train an architecture on the training data and then evaluate its performance on the validation data. However, training each architecture demands substantial computation resources and typically takes serval hours or days on a GPU. 
+		
+		\textcolor{red}{todo}
+
+
 \end{description}}
+
+
 
 \subsection{BANANAS}
 \label{sec:bananas}
 
+ includling.... BANANAs, a BO + porictor based strong performance..
+
+
 \gls{bananas} is an Bayesian optimization based search strategy. 
 
-
+We begin by an introduction of bayesian optimization...
+Give an introduction how Bayesian optimization works. We list the five engineering decisions and review each field's related works. Maybe briefly cite Gaussian Process.
 
 Bayesian optimization is a sequential decision-making process that seeks to find a global minimum x⋆ ∈ argminx∈X f(x) of an unknown black-box objective function f : X → R over an input space X ⊆ RD. 
 
 
-
-
-
-Give an introduction how Bayesian optimization works. We list the five engineering decisions and review each field's related works. Maybe briefly cite Gaussian Process.
-
-\begin{description}[leftmargin=0cm]
+\begin{description}[leftmargin=0cm, listparindent=\parindent]
 	\item [Architecture Encoding]
 	\item [Neural Predictor] \gls{fnns}
 	\item [Uncertainty Estimation] 
-	\item [Acquisition Function] \gls{its} \gls{ucb} \gls{pi} \gls{ei}
-	\item [Acquisition Optimization] In each iteration of the Bayesian optimization, the goal is to select a candidate from the search space that maximizes the acquisition score. Evaluating the acquisition function for every architecture available in the search space is computationally infeasible, therefore \cite{white2019bananas} proposes to create a set of 100 to 1000 candidates and then choose the architecture with the maximal acquisition score in this set. Specifically, \cite{white2019bananas} explores various approaches for creating this candidate set. The simplest and most natural way is to draw architectures at random. Consider that architectures close in edit distance to those used for training the surrogate model are likely to have more accurate estimates, an alternative is a mutation-based sampling approach, where the candidate set is created via local search by randomly modifying an operation or an edge of the best-performing architectures that have been evaluated so far. In additional, \cite{white2019bananas} also examines a hybrid approach that combines random search with mutation-based search. The experiments show that the mutation-based approach outperforms its competitors and suggests it is better to search locally rather than globally.
+	\item [Acquisition Function] The experiments explore five commonly used acquisition functions: \gls{ts}, \gls{its}, \gls{ucb}, \gls{pi}, and \gls{ei}. Each function is adapted to the Gaussian assumption, thereby requiring only the mean and standard deviation estimates to compute the acquisition scores. 
+
+		In the experiments, overall \gls{its} yields the best performance among all the options, despite that the outperformance is subtle. The results indicate that the acquisition function does not have as significant impact on the search performance as the other components in the framework.
+		
+	\item [Acquisition Optimization] In each iteration of the Bayesian optimization, the goal is to select a candidate from the search space that maximizes the acquisition score. Evaluating the acquisition function for every architecture available in the search space is computationally infeasible, therefore \cite{white2019bananas} proposes to create a set of 100 to 1000 candidates and then choose the architecture with the maximal acquisition score in this set. Specifically, \cite{white2019bananas} explores various approaches for creating this candidate set. The simplest and most natural way is to draw architectures at random. Consider that architectures close in edit distance to those used for training the surrogate model are likely to have more accurate estimates, an alternative is a mutation-based sampling approach, where the candidate set is created via local search by randomly modifying an operation or an edge of the best-performing architectures that have been evaluated so far. In additional, \cite{white2019bananas} also examines a hybrid approach that combines random search with mutation-based search.
+
+		Their experiments show that the mutation-based approach outperforms its competitors and suggest it is better to search locally rather than globally.
 
 \end{description}}
 
 
-\section{Uncertainty Quantification}
+\section{Uncertainty Quantification Methods}
 Understanding uncertainty is important for real-world application of artificial intelligence, e.g., in autonomous driving, medical diagnosis. 
 
-\subsection{Uncertainty Quantification}
 \begin{description}[leftmargin=0cm]
 \item[Aleatory Uncertainty]  (data uncertainty): uncertainty that arises due to inherent variations and randomness, and cannot be reduced by collecting more information 
 
 \item[Epistemic Uncertainty] (model uncertainty): uncertainty that arises due to lack of knowledge, and can be reduced by collecting more information.
 \end{description}
 
-\subsection{Uncertainty Estimation Methods}
 - Bayesian-based: e.g., Bayesian Neural Network \\
 - Ensemble-based: e.g., Monte-Carlo dropout \\
 - Bootstrapping \\
@@ -218,12 +249,17 @@ Besides, […] proposes a CP algorithm that samples datapoints using Monte-Carlo
 % chapter 3
 \include{methodology}
 
+
 % chapter 4
 \chapter{Dataset}
 \label{Dataset}
 To compare the performance of BANANAS--CP with the original BANANAS algorithms and assess the role of uncertainty calibration, we run experiments on the widely used benchmark tabular dataset NAS-Bench-201 \cite{dong2020nasbench201}.
 
 NAS-Bench-201 is a cell-based architecture search space. 
+
+
+
+
 
  Each cell has in total 4 nodes and 6 edges. The nodes in this search space correspond to the architecture’s feature maps and the edges represent the architectures operation, which are chosen from the operation set O = {1 × 1 conv. , 3 × 3 conv. , 3 × 3 avg. pooling , skip , zero} (see Figure 1). This search space contains in total 56 = 15 625 architectures
 

@@ -25,7 +25,7 @@ colorlinks=true, urlcolor=blue, linkcolor=black, colorlinks,citecolor=green
 \usepackage{csquotes}
 \renewcommand{\algorithmiccomment}[1]{\hfill\textit{// #1}}
 \usepackage[usenames,dvipsnames]{xcolor}
-\usepackage[nopostdot, style=super, nonumberlist, toc]{glossaries}
+\usepackage[nopostdot, style=super, nogroupskip, nonumberlist, toc]{glossaries}
 \makeglossaries
 
 % Citation style
@@ -103,7 +103,7 @@ This chapter offers the technical background related to the research question of
 \subsection{Background}
 In the recent decades, deep learning has achieved remarkable success in a variety of areas, including computer vision, natural language understanding, and machine translation. This success is partly attributed to the meticulously hand-crafted neural network architectures. With the rising demand for efficient architecture engineering in complex domains, \gls{nas} has emerged as a technique for automating the design of neural architectures tailored for specific tasks.
 
-\gls{nas} has been a rapidly progressing research domain in the past years. Since the popular work based on reinforcement learning \cite{zoph2016neural}, many \gls{nas} algorithms leveraging different techniques have been proposed, including evolutionary algorithms \cite{maziarz2018evo-nas}, Bayesian optimization \cite{kandasamy2018neural}, and gradient descent \cite{liu2018darts}. In general, a specific \gls{nas} algorithms can be characterized by three key dimensions: the search space, the search strategy, and the performance evaluation \cite{elsken2019neural, white2023survey, wistuba2019survey}. Figure \ref{fig: nas_overview} illustrates a typical architetcture search process.
+\gls{nas} has been a rapidly progressing research domain in the past years. Since the popular work based on reinforcement learning \cite{zoph2017neural}, many \gls{nas} algorithms leveraging different techniques have been proposed, including evolutionary algorithms \cite{maziarz2018evo-nas}, Bayesian optimization \cite{kandasamy2018neural}, and gradient descent \cite{liu2018darts}. In general, a \gls{nas} algorithm can be characterized by three key dimensions: search space, search strategy, and performance evaluation \cite{elsken2019neural, white2023survey, wistuba2019survey}. Figure \ref{fig: nas_overview} illustrates a typical architetcture search process.
 
 
 \begin{figure}[htbp]
@@ -121,10 +121,22 @@ In the recent decades, deep learning has achieved remarkable success in a variet
 
 \noindent Next, we provide definitions of the terms and review the research progress of each domain.
 \begin{description}[leftmargin=0cm, listparindent=\parindent]
-	\item [Search Space] A search space defines a set of architectures that the search algorithm is allowed to select. The design of the search space represents an important trade-off between human bias and efficiency of search: a smaller search space incorporating more prior human knowledge will enable \gls{nas} algorithms to find high-performing architectures more easily, while a larger space with more primitive building blocks provides higher odds of discovering truly novel architectures \cite{white2023survey}. Common  search spaces range in size from a few thousand to over $10^{20}$.	
+	\item [Search Space] A search space defines a set of architectures that the search algorithm is allowed to select. The search space is often the first step when setting up \gls{nas} and perhaps is also the most essential step, because
+		the design of the search space represents an important trade-off between human bias and efficiency of search: a
+		smaller search space incorporating more prior human knowledge and involving more manual decisions will enable
+		\gls{nas} algorithms to find high-performing architectures more easily, in contrast a larger space with more primitive
+		building blocks provides higher odds of discovering truly novel architectures \cite{white2023survey}. Common  search
+		spaces range in size from a few thousand to over $10^{20}$.	
 	
-		There are 
-
+		There are four major categories of search spaces in the \gls{nas} literature \cite{white2023survey}. We start with two types of search spaces that have relatively simple architecture topologies. The macro search spaces \cite{baker2017designing, kandasamy2018neural, zoph2017neural} encode the entire neural architecture at a high level. Typically, an entire architecture is often represented by a \gls{dag}, with nodes defining the operation types and edges representing data flows. Each node is allowed to have distinct structures, such as convolution, pooling. As a result, macro search  spaces are highly flexible and possess high representation power. Another type is the chain-structured search spaces. As suggested by the name, chain-structured search spaces consist of neural networks that can be written as a sequence of operation layers. These search spaces often take state-of-the-art manual designs as the backbone. For example, there are several chain-structured search spaces based on the convolutional networks \cite{cai2018proxylessnas} or the transformer architectures \cite{xu2021nasbert}. 
+		
+		The third group is the cell-based search spaces, which perhaps are the most popular type of search spaces in \gls{nas} research. The cell-based search spaces are inspired by the fact that state-of-the-art human-designed architectures often consist of repeated blocks. For instance, the high-performing Transformer \cite{vaswani2017attention} contains 6 identical stacked encoder and decoder layers. Thus, instead of searching for the entire network architecture from scratch, \cite{zoph2018learning} propose to only search over relatively small cells, and stack the cells according to a predefined skeleton to form the overall architecture. Building on this idea, \cite{zoph2018learning} proposes the first modern cell-based search space, NASNet, which comprises of two types of cells: the normal cell that preserves the dimensionality and the reduction cell that reduces the spatial dimension. Since its emergence, many other cell-based search spaces have been developed. In general, these cell search spaces share a high-level similarity, but differ in the design of the fixed macro structure, the layout and constraints in the cells, and the choices of operations within the cells \cite{liu2018darts, dong2020nasbench201, pmlr-v97-ying19a}. The cell-based approach significantly reduces the size and the complexity of the search space. However, it has been criticized for limiting the expressiveness of \gls{nas}, potentially hindering the discovery of highly novel architectures \cite{white2023survey}.	
+		
+		The last main category is the hierarchical search spaces. Different from the aforementioned types of search spaces that mostly have a flat representation, hierarchical search spaces involve designing patterns at different levels, where each higher-level pattern is often represented as a \gls{dag} of lower-level patterns \cite{christoforidis2021novel, liu2018hierarchical}.
+		
+	In addition to the architecture topology, another important design accompanying a search space is the architecture encodings.
+	
+	  
 	
 	\item [Search Strategy] 
 	\item [Performance Evaluation] The performance evaluation refers to the process of estimating the performance of architectures. The estimated performance is communicated back to the search algorithm to guide the next search. 
@@ -156,13 +168,9 @@ Bayesian optimization is a sequential decision-making process that seeks to find
 	\item [Architecture Encoding]
 	\item [Neural Predictor] \gls{fnns}
 	\item [Uncertainty Estimation] 
-	\item [Acquisition Function] The experiments explore five commonly used acquisition functions: \gls{ts}, \gls{its}, \gls{ucb}, \gls{pi}, and \gls{ei}. Each function is adapted to the Gaussian assumption, thereby requiring only the mean and standard deviation estimates to compute the acquisition scores. 
-
-		In the experiments, overall \gls{its} yields the best performance among all the options, despite that the outperformance is subtle. The results indicate that the acquisition function does not have as significant impact on the search performance as the other components in the framework.
+	\item [Acquisition Function] The experiments explore five commonly used acquisition functions: \gls{ts}, \gls{its}, \gls{ucb}, \gls{pi}, and \gls{ei}. Each function is adapted to the Gaussian assumption, thereby requiring only the mean and standard deviation estimates to compute the acquisition scores. In the experiments, overall \gls{its} yields the best performance among all the options, although the marginal outperformance is subtle. The results indicate that the acquisition function does not have as significant impact on the search performance as the other examined components in the framework.
 		
-	\item [Acquisition Optimization] In each iteration of the Bayesian optimization, the goal is to select a candidate from the search space that maximizes the acquisition score. Evaluating the acquisition function for every architecture available in the search space is computationally infeasible, therefore \cite{white2019bananas} proposes to create a set of 100 to 1000 candidates and then choose the architecture with the maximal acquisition score in this set. Specifically, \cite{white2019bananas} explores various approaches for creating this candidate set. The simplest and most natural way is to draw architectures at random. Consider that architectures close in edit distance to those used for training the surrogate model are likely to have more accurate estimates, an alternative is a mutation-based sampling approach, where the candidate set is created via local search by randomly modifying an operation or an edge of the best-performing architectures that have been evaluated so far. In additional, \cite{white2019bananas} also examines a hybrid approach that combines random search with mutation-based search.
-
-		Their experiments show that the mutation-based approach outperforms its competitors and suggest it is better to search locally rather than globally.
+	\item [Acquisition Optimization] In each iteration of the Bayesian optimization, the goal is to select a candidate from the search space that maximizes the acquisition score. Evaluating the acquisition function for every architecture available in the search space is computationally infeasible, therefore \cite{white2019bananas} proposes to create a set of 100 to 1000 candidates and then choose the architecture with the maximal acquisition score in this set. Specifically, \cite{white2019bananas} explores various approaches for creating this candidate set. The simplest and most natural way is to draw architectures at random. Consider that architectures close in edit distance to those used for training the surrogate model are likely to have more accurate estimates, an alternative is a mutation-based sampling approach, where the candidate set is created via local search by randomly modifying an operation or an edge of the best-performing architectures that have been evaluated so far. In additional, \cite{white2019bananas} also examines a hybrid approach that combines random search with mutation-based search. Their experiments show that the mutation-based approach outperforms its competitors and suggest it is better to search locally rather than globally.
 
 \end{description}}
 

@@ -152,40 +152,80 @@ In the recent decades, deep learning has achieved remarkable success in a variet
 		
 	\item [Performance Evaluation] The performance evaluation refers to the process of estimating the performance of architectures. The estimated performance is communicated back to the search algorithm to guide the next search. The simplest performance estimation strategy is to fully train an architecture on the training data and then evaluate its performance on the validation data. However, training each architecture demands substantial computation resources and typically takes serval hours or days on a GPU. Consequently, many methods for speeding up the performance evaluation process for architectures have been proposed. One popular line of work is to predict the performance of neural networks before they are fully trained using the zero-cost proxies \cite{pmlr-v139-mellor21a}.
 	
-	In this work, we mainly run experiments on the benchmark dataset NAS-Bench-201 \cite{dong2020nasbench201}, which offers queryable validation and test accuracies for all architectures in the search space and eliminates the need to train neural networks when simulating \gls{nas} experiments. Therefore, we provide only a brief overview of this aspect and refer the readers to \cite{white2023survey} for a comprehensive introduction to performance evaluation techniques.	
+	In this work, we primarily run experiments on the benchmark dataset NAS-Bench-201 \cite{dong2020nasbench201}, which offers queryable validation and test accuracies for all architectures in the search space and thereby eliminates the need to train neural networks when simulating \gls{nas} experiments. Hence, we provide only a brief overview of this aspect and refer the readers to \cite{white2023survey} for a comprehensive introduction to the performance evaluation techniques.	
 	\end{description}}
 
 
 
 \subsection{Bayesian Optimization and BANANAS}
 \label{sec:bananas}
+As briefly mentioned in Section \ref{sec: nas}, the Bayesian optimization based \gls{nas} search strategy using a neural network as the surrogate model has shown strong performance. In particular, after identifying five components of this framework, \cite{white2019bananas} performs a thorough analysis on each component's effect towards the search performance and proposes a final algorithm, i.e., \gls{bananas}, based on both theoretical and empirical findings. This method is proven to be efficient, achieving state-of-the-art performance on popular NAS benchmarks 
 
+In this section, we present a detailed review of the work by \cite{white2019bananas}. We start with the theoretical background and give an introduction into the Bayesian optimization method. Next, we walk through the five identified components and provide a summary of the experimental findings.
 
+Bayesian optimization \cite{Mockus1978} is a sequential decision-making process that seeks to find the global maximum (minimum is the negation of the maximum) of an unknown black-box objective function $f : X \rightarrow R$ over an input space $X \subseteq R^D$. In a Bayesian optimization process, the unknown objective function $f$ is treated as a random function and the prior belief over $f$ is encoded by a surrogate model, usually a Gaussian Process or a Parzen-Tree Estimator \cite{bergstra2011algorithms}. At each iteration, the surrogate model updates the prior with the observations and forms a posterior probabilistic distribution of $f$. Then, the acquisition function, another key component that trades off exploration and exploitation in the process, evaluates a set of candidates based on the posterior distribution and picks the data point with the largest acquisition score for next query. Algorithm \ref{alg:BO} outlines this procedure.
 
-\gls{bananas} \cite{white2019bananas} is an Bayesian optimization based search strategy that takes a neural network for the surrogate model, as mentioned in Section \ref{sec: nas}. +
+\begin{algorithm}[t]
+  \caption{Bayesian Optimization}
+  \label{alg:BO}
+  \begin{algorithmic}[1]
+  \textbf{Input:} surrogate model $\mathcal{M}$, acquisition function $\phi$, objective function $\myfunc{f(\cdot)}$, number of iterations $T$. \vskip
+  
+  \STATE Initialize the set of observations: $D \leftarrow \emptyset$
+  \FOR {$t$ in $1,...,T$}
+  		\begin{enumerate}
+    	    \itemsep0em 
+			\item Fit surrogate model $\mathcal{M}$ to current observations set $\mathcal{D}_{t-1}$.
+			\item Evaluate acquisition function and select the next point for query: \newline
+				  $x_t = \operatorname*{argmax}_{x \in \mathcal{X}} \; \phi(x, \; \mathcal{M})$	
+			\item Query the objective function: $y_t = f(x_t)$
+			\item Update the observations set: \mathcal{D}_t \leftarrow \mathcal{D}_{t-1} \cup \{(x_t, y_t)\}
+		\end{enumerate}
+  \ENDFOR
+  \STATE \textbf{Output:} $x^*=\operatorname*{argmax}_{t=1,...,T} f(x_{t})$    
+ \end{algorithmic}
+ \end{algorithm}
 
+The acquisition function adopted in the original paper \cite{Mockus1978} is the \gls{ei}. Other popular alternative options include: \gls{ts}, \gls{its}, \gls{ucb}, and \gls{pi}. Different acquisition functions typically favor exploration and exploitation differently. Nevertheless, \cite{agnihotri2020exploring} shows that \gls{ei} is competitive in reaching the optimum value with comparably few iterations. 
 
-We begin with the theoretical background of the method and give an introduction into the Bayesian optimization as well as the "BO + neural predictor" framework. Next, we walk through the five components that are 
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[scale=0.4]{figs/overview_bo.png}
+	\refstepcounter{figure}
+   	\addcontentsline{lof}{figure}{Figure~\thefigure: Illustration of Bayesian Optimization}
+	\label{fig: bo}
+	\parbox{\linewidth}{
+	\vspace{0.5em}
+ 	{\small \textit{Figure \ref{fig: bo}:} Example of Bayesian optimization with Gaussian Process as the surrogate and \gls{ei} as the acquisition function to explore the minimum of the objective function \cite{agnihotri2020exploring}.
+ 	}
+ 	}
+\end{figure}
 
-
-
-
-
-We list the five engineering decisions and review each field's related works. Maybe briefly cite Gaussian Process.
-
-Bayesian optimization is a sequential decision-making process that seeks to find a global minimum x⋆ ∈ argminx∈X f(x) of an unknown black-box objective function f : X → R over an input space X ⊆ RD. 
-
+Now, we return to the "Bayesian optimization + neural predictor" NAS framework. It becomes obvious that this framework is essentially an optimization task searching the maximum with a neural network as the surrogate and neural architectures in a search space being the inputs. Specifically, \cite{white2019bananas} identifies five critical components within the framework, which are listed as follows:
 
 \begin{description}[leftmargin=0cm, listparindent=\parindent]
 	\item [Architecture Encoding]
-	\item [Neural Predictor] \gls{fnns}
-	\item [Uncertainty Estimation] 
-	\item [Acquisition Function] The acquisition function trades off exploration and exploitation during the search. In the experiments, five commonly used acquisition functions are examined: \gls{ts}, \gls{its}, \gls{ucb}, \gls{pi}, and \gls{ei}. Each function is adapted to the Gaussian assumption, thereby requiring only the mean and standard deviation estimates to compute the acquisition scores. In the experiments, overall \gls{its} yields the best performance among all the options, although the marginal outperformance is subtle. The results indicate that the acquisition function does not have as significant impact on the search performance as the other examined components in the framework.
+	\item [Neural Predictor] A set of neural architectures and their corresponding validation accuracies are randomly sampled from the search space for training and comparing different neural predictors. Among all neural predictors, including VAEs, GCNs, and FNNs with either the adjacency matrix or path-based encoding, FNNs with path encoding demonstrates the strongest performance.
+	 
+	\item [Uncertainty Estimation] Uncertainty estimates are required to form the probabilistic distribution. For Bayesian neural networks (BNNs), the posterior distribution is inferred over the nework weights. For an ensemble of \gls{fnns}, the distribution is inferred under the Gaussian assumption. The results show that an ensemble of even only 3 to 5 neural networks in general yields more reliable uncertainty estimates than BNNs.
+	
+	\item [Acquisition Function] In the experiments, five commonly used acquisition functions are examined: \gls{ts}, \gls{its}, \gls{ucb}, \gls{pi}, and \gls{ei}. Each function is adapted to the Gaussian assumption, thereby requiring only the mean and standard deviation estimates to compute the acquisition scores. In the experiments, overall \gls{its} yields the best performance among all the options, although the marginal outperformance is subtle. The results indicate that the acquisition function does not have as significant impact on the search performance as the other examined components in the framework.
 		
 	\item [Acquisition Optimization] In each iteration of the Bayesian optimization, the goal is to select a candidate from the search space that maximizes the acquisition score. Evaluating the acquisition function for every architecture available in the search space is computationally infeasible, therefore \cite{white2019bananas} proposes to create a set of 100 to 1000 candidates and then choose the architecture with the maximal acquisition score in this set. Specifically, \cite{white2019bananas} explores various approaches for creating this candidate set. The simplest and most natural way is to draw architectures at random. Consider that architectures close in edit distance to those used for training the surrogate model are likely to have more accurate estimates, an alternative is a mutation-based sampling approach, where the candidate set is created via local search by randomly modifying an operation or an edge of the best-performing architectures that have been evaluated so far. In additional, \cite{white2019bananas} also examines a hybrid approach that combines random search with mutation-based search. Their experiments show that the mutation-based approach outperforms its competitors and suggest it is better to search locally rather than globally.
-
 \end{description}}
 
+Finally, the best components found in the aforementioned analyses are transformed into the BANANAS algorithm, which composed of an ensemble of \gls{fnns} using the path encoding, and \gls{its} with a mutation strategy for acquisition (Figure \ref{fig: bananas}).
+
+\begin{figure}[t]
+	\centering
+	\includegraphics[scale=0.48]{figs/overview_bananas.png}
+	\refstepcounter{figure}
+   	\addcontentsline{lof}{figure}{Figure~\thefigure: Diagram of the BANANAS framework}
+	\label{fig: bananas}
+	\vspace{0.5em} 
+	\\
+ 	{\small \textit{Figure \ref{fig: bananas}:} Diagram of the BANANAS framework.}}
+\end{figure}
 
 \section{Uncertainty Quantification Methods}
 Understanding uncertainty is important for real-world application of artificial intelligence, e.g., in autonomous driving, medical diagnosis. 
@@ -200,6 +240,7 @@ Understanding uncertainty is important for real-world application of artificial 
 - Ensemble-based: e.g., Monte-Carlo dropout \\
 - Bootstrapping \\
 But these techniques are limited in several perspectives. First, quantifying uncertainty requires training models for several times, which means that the models cannot be applied for real-time prediction or in an online-learning setup. Second, some models are pre-trained and are only accessible via API. Besides, models (pre-)trained on certain datasets may struggle to generalize across different domains or contexts. 
+uncertainty calibration using another regressor.
 
 \section{Conformal Prediction}
 \label{sec: reviewCP}
@@ -270,20 +311,23 @@ Besides, […] proposes a CP algorithm that samples datapoints using Monte-Carlo
 \include{methodology}
 
 % chapter 4
-\include{dataset}
+% \include{dataset}
 
 % chapter 5
 \chapter{Experiments and Results}
-This chapter describes the performance of the methods presented in Chapter \ref{ch3}  applied to the datasets described in Chapter \ref{ch: dataset}. We describe the general setups that are applied to all experiments,  and the implementation work, including 
-
+This chapter describes the performance of the methods presented in Chapter \ref{ch3}  applied to the datasets described in Chapter \ref{ch: dataset}. We first describe the general setups common to all experiments, then present the configuration tuning strategy together with the implementation details. 
 
 \section{Setups and Implementation}
 
+Consistent with \cite{white2019bananas}, each algorithms is assigned with a search budget of 150 epochs. We run 50 trials of each algorithm and average the results.
 
+
+ nuber of candiates. parallel search s
 
 ..declare which codes are from the NASlib library.
 Validation accuracy is a commonly used supervision signal for NAS.
 \section{Baseline}
+\gls{scp} with the ensemble predictor serves as the baseline calibrated strategy. 
 
 
 % chapter 6

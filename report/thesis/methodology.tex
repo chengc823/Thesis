@@ -1,6 +1,8 @@
 \chapter{Methodology}
 \label{ch3}
-To address the limitations of the Gaussian assumption in uncertainty estimation, this work introduces a new framework that integrates conformal prediction-based uncertainty calibration into the \gls{bananas} framework in an online setting. An algorithm outlining the overall procedure of \gls{bananascp} is presented in Section \ref{sec:overview}, followed by detailed descriptions of each methodological step. Section \ref{sec:cp} presents different conformal predictions algorithms to be explored. Next in Section \ref{sec:distest}, methods for the estimation and evaluation of the conditional distribution of each candidate architecture are discussed. Finally, in Section \ref{sec:acq} we introduce how the calibrated distribution can be combined with different acquisition functions and acquisition search strategies in the Bayesian optimization process.
+Despite of its provable strength, \gls{bananas} assumes a Gaussian distribution for measuring uncertainty. However, this assumption does not necessarily hold in real world. To mitigate the potential limitations caused by inaccurate uncertainty estimates, this work introduces a new framework that integrates conformal prediction-based uncertainty calibration into the \gls{bananas} framework in an online setting. 
+
+An algorithm outlining the overall procedure of \gls{bananascp} is presented in Section \ref{sec:overview}, followed by detailed descriptions of each methodological step. Section \ref{sec:cp} presents different conformal predictions algorithms to be explored. Next in Section \ref{sec:distest}, methods for the estimation and evaluation of the conditional distribution of each candidate architecture are discussed. Finally, in Section \ref{sec:acq} we introduce how the calibrated distribution can be combined with different acquisition functions and acquisition search strategies in the Bayesian optimization process.
 
 
 \section{The BANANAS--CP Framework}
@@ -41,7 +43,7 @@ Refer to Section {\ref{sec:bananas} for a detailed introduction of the original 
 			\item $\mathcal{A}_{t} \leftarrow{\mathcal{A}_{t-1} \cup \{{a_{t}\}}$
 		\end{enumerate}
     \ENDFOR 
-    \STATE \textbf{Output:} $a^{*}=\operatorname*{argmin}_{t=1,...,T} f(a_{t})$    
+    \STATE \textbf{Output:} $a^{*}=\operatorname*{argmax}_{t=1,...,T} f(a_{t})$    
   \end{algorithmic}
   \end{algorithm}
 

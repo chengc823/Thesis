@@ -271,7 +271,7 @@ Besides, […] proposes a CP algorithm that samples datapoints using Monte-Carlo
 
 
 % chapter 3
-\include{methodology}
+% \include{methodology}
 
 
 % chapter 4
@@ -289,31 +289,32 @@ NAS-Bench-201 is a cell-based architecture search space. Each cell is expressed 
 		\label{fig: nasbench201}
 			\parbox{\linewidth}{
 	 		\vspace{0.5em}
- 	 		{\small \textit{Figure \ref{fig: nasbench201}:} Illustration of the skeleton (top) and the design of individual cells (bottom) of architectures in NAS-Bench-201}
+ 	 		{\small \textit{Figure \ref{fig: nasbench201}:} Illustration of the skeleton (top) and the design of individual cells (bottom) of architectures in NAS-Bench-201 \cite{dong2020nasbench201}.
+ 	 		}
  		}
 		\end{figure}
 
+\vspace{0.5em}
 
-As indic
+Architectures in the search space are evaluated on three datasets that are widely used for image classification tasks: CIFAR-10, CIFAR-100 \cite{krizhevsky2009learning} and ImageNet-16-120 \cite{chrabaszcz2017downsampled}. Each dataset is split into the training, validation, and test sets and NAS-Bench-201 provides the training, validation, and test losses as well as accuracies for all architectures in the search space. We give a brief introduction to these datasets:
 
-
- 
-Each of the architectures are trained on three datasets: CIFAR-10, CIFAR-100 and ImageNet-16-120. 
-
-... descriptions of each dataset.
-
-
-
-allows research focusing on the NAS algroithms and re, which also enables standardized comparison across NAS algorithms . Besides, NAS-Bench-201 also facilitates further extension, e.g., robustness dataset.
+\begin{description}[leftmargin=0cm, listparindent=\parindent]
+ 	\item[CIFAR10]:	The dataset consists of 60K $32\times32$ color images in 10 classes. In NAS-Bench-201, 25K images with 10 classes are assigned into the training and the validation sets, respectively. The test set contains 10K images, with 1K images per class.
+ 	\item[CIFAR100]: This dataset has the same images as CIFAR-10 but in 100 classes. The training set has 50K images, and each of the validation and the test sets has 5K images.
+ 	\item[ImageNet-16-120]: This dataset contains 151.7K training images, 3K validation images, and 3K test images with 120 classes. Each image has 16$\times$16 pixels.
+\end{description} 
 
 
+NAS-Bench-201 has contributed to the \gls{nas} community in several aspects. First, it offers assess to precomputed performance metrics for all architectures, allowing subsequent research to focus on the core search algorithm. With a unified dataset splitting strategy, it also enables consistent comparisons across different \gls{nas} algorithms. Additionally, NAS-Bench-201 serves as a foundation for extending benchmark datasets. For example, \cite{jung2023neural} introduces a dataset for benchmarking the robustness of neural networks.
 
+In this work, we leverage the API offered by NAS-Bench-201 and directly query the performance metrics of the pre-trained architectures. In addition, NAS-Bench-201 also provides several analytical metrics, e.g., model ranking and accuracy correlations across the three datasets, which further guides our post-hoc analysis of the observed results.
 
 % chapter 5
 \chapter{Experiments and Results}
 \section{Setup and Implementation}
 
 ..declare which codes are from the NASlib library.
+Validation accuracy is a commonly used supervision signal for NAS.
 \section{Baseline}
 
 

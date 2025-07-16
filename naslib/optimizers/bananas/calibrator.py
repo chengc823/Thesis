@@ -92,7 +92,6 @@ class QuantileCalibrationMixin:
     """
     @staticmethod
     def conformity_score_fn(value: float, quantile_pred: float, alpha: float):
-    # def conformity_score_fn(value: float, quantile_preds: dict[float, float], alpha: float):
         """Conformity scoring function for CQR."""
         def _get_sign(alpha: float):
             if alpha == 0.5:

@@ -201,14 +201,14 @@ The acquisition function adopted in the original paper \cite{Mockus1978} is the 
  	}
 \end{figure}
 
-Now, we return to the "Bayesian optimization + neural predictor" NAS framework. It becomes obvious that this framework is essentially an optimization task searching the maximum with a neural network as the surrogate and neural architectures in a search space being the inputs. Specifically, \cite{white2019bananas} identifies five critical components within the framework, which are listed as follows:
+Next, we return to the NAS framework "Bayesian optimization + neural predictor". Now it becomes obvious that this framework is essentially an optimization task searching the maximum with a neural network as the surrogate and neural architectures in a search space being the inputs. Specifically, \cite{white2019bananas} identifies five critical components within the framework, which are listed as follows:
 
 \begin{description}[leftmargin=0cm, listparindent=\parindent]
-	\item [Architecture Encoding] Previous work often encode architectures using an adjacency matrix based approach, where nodes are assigned with an arbitrary ordering  and then binary features for all edges in a \gls{dag} are set to form the representation.	Notably, the resulting representation of a specific architecture is not deterministic since the encoding  relies on an arbitrary indexing of the nodes. 
+	\item [Architecture Encoding] This item refers to obtaining a vectorized representation of the architectures. Previous work often encode architectures using an adjacency matrix based approach, where nodes are assigned with an arbitrary ordering  and then binary features for all edges in the \gls{dag} are set to form the final representation.	Notably, the resulting representation of a specific architecture is not deterministic since the encoding  relies on an arbitrary indexing of the nodes. 
  
-	In contrast, \cite{white2019bananas} proposes a novel path-based encoding mechanism with optional truncation, which simply checks if a path from the input node to the output node, expressed in terms of operations (e.g., input $\rightarrow$ 1$\times$1 conv $\rightarrow$ 3$\times$3 pool$\rightarrow$ output), is present in an architecture. The final encoding is a binary vector indicating which of the possible paths within a cell are present in the architecture. In this way, an architecture is always mapped to the same (though not necessarily unique) path encoding. Experiments show that the path-based encoding substantially increases the performance of neural predictors.
+	In contrast, \cite{white2019bananas} proposes a novel path-based encoding mechanism with optional path truncation. This method simply checks if a path from the input node to the output node, expressed in terms of operations (e.g., input $\rightarrow$ 1$\times$1 conv $\rightarrow$ 3$\times$3 pool$\rightarrow$ output), is present in an architecture. The final encoding is a binary vector indicating which of the possible paths within a cell are present in the architecture. In this way, an architecture is always mapped to the same (though not necessarily unique) path encoding. Experiments show that the path-based encoding substantially increases the performance of neural predictors.
 	
-	\item [Neural Predictor] A set of neural architectures and their corresponding validation accuracies are randomly sampled from the search space for training and comparing different neural predictors. Among all tested neural predictors, including VAEs, GCNs, and FNNs with either the adjacency matrix or path-based encoding, FNNs with path encoding demonstrates the strongest performance.
+	\item [Neural Predictor] This item is about choosing an appropriate neural network for surrogate. A set of neural architectures and their corresponding validation accuracies are randomly sampled from the search space for training and comparing different neural predictors. Among all tested neural predictors, which include VAEs, GCNs, and FNNs with either the adjacency matrix or path-based encoding, FNNs with path encoding demonstrates the strongest performance.
 	 
 	\item [Uncertainty Estimation] Uncertainty estimates are required to form the probabilistic distribution. For Bayesian neural networks (BNNs), the posterior distribution is inferred over the nework weights. For an ensemble of \gls{fnns}, the distribution is inferred under the Gaussian assumption. The results show that an ensemble of even only 3 to 5 neural networks in general yields more reliable uncertainty estimates than BNNs.
 	
@@ -217,7 +217,8 @@ Now, we return to the "Bayesian optimization + neural predictor" NAS framework. 
 	\item [Acquisition Optimization] In each iteration of the Bayesian optimization, the goal is to select a candidate from the search space that maximizes the acquisition score. Evaluating the acquisition function for every architecture available in the search space is computationally infeasible, therefore \cite{white2019bananas} proposes to create a set of 100 to 1000 candidates and then choose the architecture with the maximal acquisition score in this set. Specifically, \cite{white2019bananas} explores various approaches for creating this candidate set. The simplest and most natural way is to draw architectures at random. Consider that architectures close in edit distance to those used for training the surrogate model are likely to have more accurate estimates, an alternative is a mutation-based sampling approach, where the candidate set is created via local search by randomly modifying an operation or an edge of the best-performing architectures that have been evaluated so far. In additional, \cite{white2019bananas} also examines a hybrid approach that combines random search with mutation-based search. Their experiments show that the mutation-based approach outperforms its competitors and suggest it is better to search locally rather than globally.
 \end{description}}
 
-Finally, the best components found in the aforementioned analyses are transformed into the BANANAS algorithm, which composed of an ensemble of \gls{fnns} using the path encoding, and \gls{its} with a mutation strategy for acquisition (Figure \ref{fig: bananas}).
+Finally, the best components found in the aforementioned analyses are transformed into the BANANAS algorithm, which composed of an ensemble of \gls{fnns} using the path encoding, and \gls{its} with a mutation strategy for acquisition (Figure \ref{fig: bananas}). Specifically, uncertainty is estimated based on the Gaussian assumption.
+
 
 \begin{figure}[t]
 	\centering
@@ -231,19 +232,23 @@ Finally, the best components found in the aforementioned analyses are transforme
 \end{figure}
 
 \section{Uncertainty Quantification Methods}
-Understanding uncertainty is important for real-world application of artificial intelligence, e.g., in autonomous driving, medical diagnosis. 
+While \gls{bananas} employs a relatively simple heuristic for uncertainty estimation, there are many commonly used \gls{uq} techniques that are generally more theoretically grounded and sophisticated. In this section, we review some of these \gls{uq} methods and explain the rationale for choosing \gls{cp} for the development of our approach. Although these \gls{uq} techniques are not directly tied to this work, this thesis aspires to offer a comprehensive overview of the field, in particular the application of \gls{uq} in machine learning. 
+
+\gls{uq} is the science of quantitative characterization and estimation of uncertainties in both computational and real world applications. Formally, the source of uncertainty can be categorized into two types:
 
 \begin{description}[leftmargin=0cm]
-\item[Aleatory Uncertainty]  (data uncertainty): uncertainty that arises due to inherent variations and randomness, and cannot be reduced by collecting more information 
-
-\item[Epistemic Uncertainty] (model uncertainty): uncertainty that arises due to lack of knowledge, and can be reduced by collecting more information.
+\item[Aleatory Uncertainty:] also known as data uncertainty, refers to uncertainty that arises due to inherent variations or randomness in a system and can not be reduced. \item[Epistemic Uncertainty:] also known as model uncertainty, refers to uncertainty that arises due to lack of knowledge, and can be reduced by better modeling or colloecting more data.
 \end{description}
+
+
 
 - Bayesian-based: e.g., Bayesian Neural Network \\
 - Ensemble-based: e.g., Monte-Carlo dropout \\
 - Bootstrapping \\
-But these techniques are limited in several perspectives. First, quantifying uncertainty requires training models for several times, which means that the models cannot be applied for real-time prediction or in an online-learning setup. Second, some models are pre-trained and are only accessible via API. Besides, models (pre-)trained on certain datasets may struggle to generalize across different domains or contexts. 
+But these techniques are limited in several perspectives. First, quantifying uncertainty requires training models for several times, which means that the models cannot be applied for real-time prediction or in an online setting. Second, some models are pre-trained and are only accessible via API. Besides, models (pre-)trained on certain datasets may struggle to generalize across different domains or contexts. 
 uncertainty calibration using another regressor.
+
+Compared to the other approaches , advantages: distribution free, model agnostic, lightweighted....Conformal prediction .calibrates both epistemic and aleatoric uncertainties equally well. We present a formal introduction into the \gls{cp} framework in Section \ref{sec: reviewCP}. 
 
 \section{Conformal Prediction}
 \label{sec: reviewCP}
@@ -318,19 +323,22 @@ Besides, […] proposes a CP algorithm that samples datapoints using Monte-Carlo
 
 % chapter 5
 \chapter{Experiments and Results}
-This chapter describes the performance of the methods presented in Chapter \ref{ch3}  applied to the datasets described in Chapter \ref{ch: dataset}. We first describe the general setups common to all experiments, then present the configuration tuning strategy together with the implementation details. 
+This chapter describes the performance of the methods presented in Chapter \ref{ch3}  applied to the datasets described in Chapter \ref{ch: dataset}. We first describe the general setups, which are shared across all experiments, then we present the configuration tuning strategy together with the implementation details. 
 
 \section{Setups and Implementation}
+As discussed in Chapter \ref{ch3}, we primarily run experiments for five different calibrated NAS algorithms: \gls{scp} with ensemble predictor, \gls{scp} with quantile regressor, \gls{cvcp} with ensemble predictor, \gls{cvcp} with quantile regressor, and \gls{btcp} with ensemble predictor. Consistent with \cite{white2019bananas}, each algorithms is assigned with a search budget of 150 epochs and uses the validation accuracy as the supervision signal to guide the search. We run each algorithm for 50 trials with different random seeds and then average the results.
 
-Consistent with \cite{white2019bananas}, each algorithms is assigned with a search budget of 150 epochs. We run 50 trials of each algorithm with different random seeds and average the results.
+Although the neural networks are pre-trained, there still remain numerous hyperparameters for each search algorithm, making it unrealistic to tune them all. Also, not all hyperparameters have the same impact on search performance; some might be more important than the others. Therefore, we select a subset of hyperparameters, which we believe or have tested that are less important, and fix their values throughout the experiments. Specifically, architectures are always path-encoded. As for the acquisition side, the number of candidates that the acquisition function evaluates in each iteration is fixed at 100 and the maximal mutation allowed for each model in case of a mutation strategy is 1. In addition, we follow \cite{white2019bananas} and output 10 architectures to mimic the parallelized evaluation procedure.
+
+We tune the hyperparameters progressively. First, we focus on those configurations common to all algorithms, then we explore the hyperparameters specific to search algorithms in the respective sections. We start by conducting a thorough analysis on the baseline method, i.e., \gls{scp} with ensemble predictor, to find the optimal general setting, like the number of quantiles, the size of the initial dataset (before fitting the surrogate), the acquisition function and the sampling strategy, etc. Then, this optimal setting is applied to other more sophisticated approaches.
+
+We borrow the implementation of \gls{bananas} from NASLib \footnote{https://github.com/automl/NASLib}, which is a modularized repository and enables us to integrate new blocks relatively easily. To be precise, we leverage their implementations for the ensemble predictor and the modules for the \textit{trainer} and \textit{optimizer}. Building on that, we add new modules for the quantile regressor, the distribution estimators, and the calibration algorithms. In addition, we also modify the export functionalities so that we can access more intermediate outputs, such as the estimated distribution at each iteration.
 
 
- nuber of candiates. parallel search s
 
-..declare which codes are from the NASlib library.
-Validation accuracy is a commonly used supervision signal for NAS.
+
 \section{Baseline}
-\gls{scp} with the ensemble predictor serves as the baseline calibrated strategy. 
+We consider the configuration of \gls{scp} with the ensemble predictor as the baseline calibrated strategy. 
 
 
 % chapter 6

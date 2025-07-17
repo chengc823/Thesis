@@ -1,9 +1,9 @@
 # Uncertainty Calibration for Neural Architecture Search
-This github-repository provides the code for the thesis project in FFS/2025 at the University of Mannheim with the topic:
+This repository provides the code for the thesis project in FFS/2025 at the University of Mannheim with the topic:
 
 *Uncertainty Calibration with Online Conformal Prediction in Neural Architecture Search: An Evaluation under the BANANAS Framework*
 
-This thesis proposes a new framework BANANAS-CP that incoporates a uncertainty calibration process into the high-performing [BANANAS](https://arxiv.org/abs/1910.11858) framework and has conducted experiments on the tabular benchmark dataset [NAS-Bench-201](https://arxiv.org/abs/2001.00326). Despite of several interesting findings, experiemnt results indicate that in general uncertainty calibration does not improve the search efficiency.
+This thesis proposes a new framework BANANAS-CP that incoporates a uncertainty calibration process into the high-performing [BANANAS](https://arxiv.org/abs/1910.11858) framework and has conducted experiments on the tabular benchmark dataset [NAS-Bench-201](https://arxiv.org/abs/2001.00326). Despite of several interesting findings, experiment results indicate that in general uncertainty calibration using conformal prediction does not improve the search efficiency.
 
 ### Evaluate BANANAS-CP
 **Setup**: clone the repository and create an evironment using the ``environment.yml``:

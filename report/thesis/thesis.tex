@@ -86,7 +86,7 @@ Some contents
 \section{Related Work}
 \section{Contributions and Limitations}
 \section{Outline}
-Having gained an overview of the research question and the background, the remainder of this thesis is organized as follows. First, Chapter 2 reviews the related works on neural architecture search, uncertainty quantification, and in particular, conformal prediction. In Chapter 3, after proposing a novel framework to incorporate uncertainty calibration into the architecture search process in Section \ref{sec:overview}, we describe its methodological steps in more detail. In Section \ref{sec:cp}, we identify different types of conformal prediction algorithms that are applicable for \gls{nas}, and consider the use of the underlying surrogate models. In Section \ref{sec:distest} and Section \ref{sec:acq}, we further examine how the calibrated predictions can be applied in a Bayesian optimization process. In Chapter 4, we describe the benchmark dataset used for conducting experiments and comparing algorithm performance against the state-of-the-art techniques. In Chapter 5, we present the experiment setups and provide interpretations of the results. Finally, Chapter 6 and Chapter 7 conclude this work and discuss potential future directions.
+Having gained an overview of the research question and the background, the remainder of this thesis is organized as follows. First, Chapter 2 reviews the related works on neural architecture search, uncertainty quantification, and in particular, conformal prediction. In Chapter 3, after proposing a novel framework to incorporate uncertainty calibration into the architecture search process in Section \ref{sec:overview}, we describe its methodological steps in more detail. In Section \ref{sec:cp}, we identify different types of conformal prediction algorithms that are applicable for \gls{nas}, and consider the use of the underlying surrogate models. In Section \ref{sec:distest} and Section \ref{sec:acq}, we further examine how the calibrated predictions can be applied in a Bayesian optimization process. In Chapter 4, we describe the benchmark dataset for conducting experiments. In Chapter 5, we present the experiment setups and  compare the algorithm performances against the state-of-the-art techniques. We also  provide interpretations of the results. Finally, Chapter 6 and Chapter 7 conclude this work and discuss potential future directions.
 
 
 % chapter 2
@@ -186,7 +186,7 @@ Bayesian optimization \cite{Mockus1978} is a sequential decision-making process 
  \end{algorithmic}
  \end{algorithm}
 
-The acquisition function adopted in the original paper \cite{Mockus1978} is the \gls{ei}. Other popular alternative options include: \gls{ts}, \gls{its}, \gls{ucb}, and \gls{pi}. Different acquisition functions typically favor exploration and exploitation differently. Nevertheless, \cite{agnihotri2020exploring} shows that \gls{ei} is competitive in reaching the optimum value with comparably few iterations. 
+The acquisition function adopted in the original paper \cite{Mockus1978} is the \gls{ei}. Other popular alternatives include: \gls{ts}, \gls{its}, \gls{ucb}, and \gls{pi}. Different acquisition functions typically favor exploration and exploitation differently. Nevertheless, \cite{agnihotri2020exploring} shows that \gls{ei} is competitive in reaching the optimum value with comparably few iterations. 
 
 \begin{figure}[htbp]
 	\centering
@@ -232,7 +232,7 @@ Finally, the best components found in the aforementioned analyses are transforme
 \end{figure}
 
 \section{Uncertainty Quantification Methods}
-While \gls{bananas} employs a relatively simple heuristic for uncertainty estimation, there are many commonly used \gls{uq} techniques that are generally more theoretically grounded and sophisticated. In this section, we review some of these \gls{uq} methods and explain the rationale for choosing \gls{cp} for the development of our approach. Although these \gls{uq} techniques are not directly tied to this work, this thesis aspires to offer a comprehensive overview of the field, in particular the application of \gls{uq} in machine learning. 
+While \gls{bananas} employs a relatively simple heuristic for uncertainty estimation, there are many commonly used \gls{uq} techniques that are generally more theoretically grounded and sophisticated. In this section, we review some of these \gls{uq} methods and explain the rationale for choosing \gls{cp} for the development of our approach. Despite not directly tied to this work, this thesis aspires to offer a comprehensive overview of common \gls{uq} techniques applied in deep learning.
 
 \gls{uq} is the science of quantitative characterization and estimation of uncertainties in both computational and real world applications. Formally, the source of uncertainty can be categorized into two types:
 
@@ -240,13 +240,18 @@ While \gls{bananas} employs a relatively simple heuristic for uncertainty estima
 \item[Aleatory Uncertainty:] also known as data uncertainty, refers to uncertainty that arises due to inherent variations or randomness in a system and can not be reduced. \item[Epistemic Uncertainty:] also known as model uncertainty, refers to uncertainty that arises due to lack of knowledge, and can be reduced by better modeling or colloecting more data.
 \end{description}
 
+A family of methods for quantifying uncertainty directly model the full predictive distribution $p(y|x)$. One example is the Gaussian Process, which is typically parameterized by a kernel function and the predictive inference can be obtained in an analytical manner based on the observations. Another important example is the Bayesian Neural Network \cite{neal1996bayesian}, where each weight in the network is a random variable rather than a single number. In practice, the posterior distribution is intractable due to the integral operation and the high dimensionality, and can only be approximated using e.g.,  variational inference or Monte-Carlo sampling methods \cite{springenberg2016bayesian}, which requires multiple forward passes through the network. 
+
+Like the inference stage in BNNs, some methods also rely on aggregating statistics from sub-networks, such as Monte-Carlo Dropout \cite{gal2016dropout} and Deep Ensemble \cite{lakshminarayanan2017simple}. The idea of Monte-Carlo Dropout is to apply \textit{dropout}, a regularization technique often used for preventing overfitting during the training time by randomly deactivating neurons, also at the inference time to get multiple predictions. Deep Ensemble involves using a network that outputs two values in the final layer, corresponding to the predicted mean $\mu(x)$ and variance $\sigma^2(x)$, respectively. This neural network is typically trained by minimizing a custom loss function in which $\mu(x)$ and $\sigma^2(x)$ have opposing effects. To avoid overfitting and lower estimation variance, multiple instances of the neural network are initialized with different weights and trained independently. Then, the final estimates are obtained by aggregating the predictions from all these instances. 
+
+Another popular approach is Quantile Regression (QR) \cite{koenker1978regression}. Instead of modeling the full distribution, QR only models a sequence of discrete quantiles of the output. We present QR with more details in Section \ref{sec:cp}. 
+\newline
+
+However, these \gls{uq} techniques present several challenges in practice. First, 
 
 
-- Bayesian-based: e.g., Bayesian Neural Network \\
-- Ensemble-based: e.g., Monte-Carlo dropout \\
-- Bootstrapping \\
-But these techniques are limited in several perspectives. First, quantifying uncertainty requires training models for several times, which means that the models cannot be applied for real-time prediction or in an online setting. Second, some models are pre-trained and are only accessible via API. Besides, models (pre-)trained on certain datasets may struggle to generalize across different domains or contexts. 
-uncertainty calibration using another regressor.
+quantifying uncertainty requires training models for several times, which means that the models cannot be applied for real-time prediction or in an online setting. Second, some models are pre-trained and are only accessible via API. Besides, models (pre-)trained on certain datasets may struggle to generalize across different domains or contexts. 
+uncertainty calibration using another regressor. For example, BNN depends on the prior choice , and hard to converge.
 
 Compared to the other approaches , advantages: distribution free, model agnostic, lightweighted....Conformal prediction .calibrates both epistemic and aleatoric uncertainties equally well. We present a formal introduction into the \gls{cp} framework in Section \ref{sec: reviewCP}. 
 
@@ -338,16 +343,17 @@ We borrow the implementation of \gls{bananas} from NASLib \footnote{https://gith
 
 
 \section{Baseline}
-We consider the configuration of \gls{scp} with the ensemble predictor as the baseline calibrated strategy. 
+We consider \gls{scp} with the ensemble predictor as the baseline calibrated strategy. 
 
 
 % chapter 6
 \chapter{Conclusion}
 \label{Conclude}
-This chapter presents the central findings of this work as well as their critical discussion. Finally, it highlights limitations and corresponding opportunities for further research.
-
+This chapter summarizes the central findings of this work and discusses the empirical implications.
 % chapter 7
 \chapter{Future Work}
+At last, we review the limitations of this work and highlight the opportunities for further research in this chapter.
+
 
 % Reference
 \bibliographystyle{plain}

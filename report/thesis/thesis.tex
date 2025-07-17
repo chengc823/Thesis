@@ -204,8 +204,11 @@ The acquisition function adopted in the original paper \cite{Mockus1978} is the 
 Now, we return to the "Bayesian optimization + neural predictor" NAS framework. It becomes obvious that this framework is essentially an optimization task searching the maximum with a neural network as the surrogate and neural architectures in a search space being the inputs. Specifically, \cite{white2019bananas} identifies five critical components within the framework, which are listed as follows:
 
 \begin{description}[leftmargin=0cm, listparindent=\parindent]
-	\item [Architecture Encoding]
-	\item [Neural Predictor] A set of neural architectures and their corresponding validation accuracies are randomly sampled from the search space for training and comparing different neural predictors. Among all neural predictors, including VAEs, GCNs, and FNNs with either the adjacency matrix or path-based encoding, FNNs with path encoding demonstrates the strongest performance.
+	\item [Architecture Encoding] Previous work often encode architectures using an adjacency matrix based approach, where nodes are assigned with an arbitrary ordering  and then binary features for all edges in a \gls{dag} are set to form the representation.	Notably, the resulting representation of a specific architecture is not deterministic since the encoding  relies on an arbitrary indexing of the nodes. 
+ 
+	In contrast, \cite{white2019bananas} proposes a novel path-based encoding mechanism with optional truncation, which simply checks if a path from the input node to the output node, expressed in terms of operations (e.g., input $\rightarrow$ 1$\times$1 conv $\rightarrow$ 3$\times$3 pool$\rightarrow$ output), is present in an architecture. The final encoding is a binary vector indicating which of the possible paths within a cell are present in the architecture. In this way, an architecture is always mapped to the same (though not necessarily unique) path encoding. Experiments show that the path-based encoding substantially increases the performance of neural predictors.
+	
+	\item [Neural Predictor] A set of neural architectures and their corresponding validation accuracies are randomly sampled from the search space for training and comparing different neural predictors. Among all tested neural predictors, including VAEs, GCNs, and FNNs with either the adjacency matrix or path-based encoding, FNNs with path encoding demonstrates the strongest performance.
 	 
 	\item [Uncertainty Estimation] Uncertainty estimates are required to form the probabilistic distribution. For Bayesian neural networks (BNNs), the posterior distribution is inferred over the nework weights. For an ensemble of \gls{fnns}, the distribution is inferred under the Gaussian assumption. The results show that an ensemble of even only 3 to 5 neural networks in general yields more reliable uncertainty estimates than BNNs.
 	
@@ -224,7 +227,7 @@ Finally, the best components found in the aforementioned analyses are transforme
 	\label{fig: bananas}
 	\vspace{0.5em} 
 	\\
- 	{\small \textit{Figure \ref{fig: bananas}:} Diagram of the BANANAS framework.}}
+ 	{\small \textit{Figure \ref{fig: bananas}:} Diagram of the BANANAS framework \cite{white2019bananas}.}}
 \end{figure}
 
 \section{Uncertainty Quantification Methods}
@@ -311,7 +314,7 @@ Besides, […] proposes a CP algorithm that samples datapoints using Monte-Carlo
 \include{methodology}
 
 % chapter 4
-% \include{dataset}
+\include{dataset}
 
 % chapter 5
 \chapter{Experiments and Results}
@@ -319,7 +322,7 @@ This chapter describes the performance of the methods presented in Chapter \ref{
 
 \section{Setups and Implementation}
 
-Consistent with \cite{white2019bananas}, each algorithms is assigned with a search budget of 150 epochs. We run 50 trials of each algorithm and average the results.
+Consistent with \cite{white2019bananas}, each algorithms is assigned with a search budget of 150 epochs. We run 50 trials of each algorithm with different random seeds and average the results.
 
 
  nuber of candiates. parallel search s

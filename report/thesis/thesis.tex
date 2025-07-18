@@ -204,7 +204,7 @@ The acquisition function adopted in the original paper \cite{Mockus1978} is the 
 Next, we return to the NAS framework "Bayesian optimization + neural predictor". Now it becomes obvious that this framework is essentially an optimization task searching the maximum with a neural network as the surrogate and neural architectures in a search space being the inputs. Specifically, \cite{white2019bananas} identifies five critical components within the framework, which are listed as follows:
 
 \begin{description}[leftmargin=0cm, listparindent=\parindent]
-	\item [Architecture Encoding] This item refers to obtaining a vectorized representation of the architectures. Previous work often encode architectures using an adjacency matrix based approach, where nodes are assigned with an arbitrary ordering  and then binary features for all edges in the \gls{dag} are set to form the final representation.	Notably, the resulting representation of a specific architecture is not deterministic since the encoding  relies on an arbitrary indexing of the nodes. 
+	\item [Architecture Encoding] This item refers to obtaining a vector representation of the architectures. Previous work often encode architectures using an adjacency matrix based approach, where nodes are assigned with an arbitrary ordering  and then binary features for all edges in the \gls{dag} are set to form the final representation.	Notably, the resulting representation of a specific architecture is not deterministic since the encoding  relies on an arbitrary indexing of the nodes. 
  
 	In contrast, \cite{white2019bananas} proposes a novel path-based encoding mechanism with optional path truncation. This method simply checks if a path from the input node to the output node, expressed in terms of operations (e.g., input $\rightarrow$ 1$\times$1 conv $\rightarrow$ 3$\times$3 pool$\rightarrow$ output), is present in an architecture. The final encoding is a binary vector indicating which of the possible paths within a cell are present in the architecture. In this way, an architecture is always mapped to the same (though not necessarily unique) path encoding. Experiments show that the path-based encoding substantially increases the performance of neural predictors.
 	
@@ -232,27 +232,30 @@ Finally, the best components found in the aforementioned analyses are transforme
 \end{figure}
 
 \section{Uncertainty Quantification Methods}
-While \gls{bananas} employs a relatively simple heuristic for uncertainty estimation, there are many commonly used \gls{uq} techniques that are generally more theoretically grounded and sophisticated. In this section, we review some of these \gls{uq} methods and explain the rationale for choosing \gls{cp} for the development of our approach. Despite not directly tied to this work, this thesis aspires to offer a comprehensive overview of common \gls{uq} techniques applied in deep learning.
+While \gls{bananas} employs a relatively simple method for uncertainty estimation, there are many commonly used \gls{uq} techniques that are generally more theoretically grounded and sophisticated. In this section, we review some of these \gls{uq} methods and explain the rationale for choosing \gls{cp} for the development of our approach. Despite not directly tied to this work, this thesis aspires to offer a comprehensive overview of common \gls{uq} techniques applied in deep learning.
 
 \gls{uq} is the science of quantitative characterization and estimation of uncertainties in both computational and real world applications. Formally, the source of uncertainty can be categorized into two types:
 
 \begin{description}[leftmargin=0cm]
-\item[Aleatory Uncertainty:] also known as data uncertainty, refers to uncertainty that arises due to inherent variations or randomness in a system and can not be reduced. \item[Epistemic Uncertainty:] also known as model uncertainty, refers to uncertainty that arises due to lack of knowledge, and can be reduced by better modeling or colloecting more data.
+\item[Aleatory Uncertainty:] also known as data uncertainty, refers to uncertainty that arises due to inherent noices or randomness in a system and can not be reduced. \item[Epistemic Uncertainty:] also known as model uncertainty, refers to uncertainty that arises due to lack of knowledge, and can be reduced by better modeling or colloecting more data.
 \end{description}
 
-A family of methods for quantifying uncertainty directly model the full predictive distribution $p(y|x)$. One example is the Gaussian Process, which is typically parameterized by a kernel function and the predictive inference can be obtained in an analytical manner based on the observations. Another important example is the Bayesian Neural Network \cite{neal1996bayesian}, where each weight in the network is a random variable rather than a single number. In practice, the posterior distribution is intractable due to the integral operation and the high dimensionality, and can only be approximated using e.g.,  variational inference or Monte-Carlo sampling methods \cite{springenberg2016bayesian}, which requires multiple forward passes through the network. 
+A family of methods for quantifying uncertainty directly model the full predictive distribution $p(y|x)$. One example is the Gaussian Process, which is typically parameterized by a kernel function and the predictive inference can be obtained in an analytical manner based on the observations. Another important example is the Bayesian Neural Network \cite{kendall2017uncertainties, neal1996bayesian}, in which each weight in the network is seen as a random variable rather than a single number. In practice, the posterior distributions over weights are intractable due to the integral operation and the high dimensionality, and thus can only be approximated using e.g.,  variational inference or Monte-Carlo sampling methods \cite{springenberg2016bayesian}, both requiring multiple forward passes through the network. 
 
-Like the inference stage in BNNs, some methods also rely on aggregating statistics from sub-networks, such as Monte-Carlo Dropout \cite{gal2016dropout} and Deep Ensemble \cite{lakshminarayanan2017simple}. The idea of Monte-Carlo Dropout is to apply \textit{dropout}, a regularization technique often used for preventing overfitting during the training time by randomly deactivating neurons, also at the inference time to get multiple predictions. Deep Ensemble involves using a network that outputs two values in the final layer, corresponding to the predicted mean $\mu(x)$ and variance $\sigma^2(x)$, respectively. This neural network is typically trained by minimizing a custom loss function in which $\mu(x)$ and $\sigma^2(x)$ have opposing effects. To avoid overfitting and lower estimation variance, multiple instances of the neural network are initialized with different weights and trained independently. Then, the final estimates are obtained by aggregating the predictions from all these instances. 
+Like the inference stage in BNNs, some methods also rely on aggregating statistics from sub-networks, such as Monte-Carlo Dropout \cite{gal2016dropout} and Deep Ensemble \cite{lakshminarayanan2017simple}. The idea of Monte-Carlo Dropout is to apply \textit{dropout}, a regularization technique often used for preventing overfitting during the training time by randomly deactivating neurons, also at the inference time to get multiple predictions. Deep Ensemble involves using a network that outputs two values in the final layer, corresponding to the predicted mean $\mu(x)$ and the variance $\sigma^2(x)$, respectively. This neural network is typically trained by minimizing a custom loss function in which $\mu(x)$ and $\sigma^2(x)$ have opposing effects. To avoid overfitting and lower estimation variance, multiple instances of the neural network are initialized with different weights and trained independently. Then, the final estimates of $\mu(x)$ and $\sigma^2(x)$ are obtained by aggregating the predictions from all these sub-networks. 
 
 Another popular approach is Quantile Regression (QR) \cite{koenker1978regression}. Instead of modeling the full distribution, QR only models a sequence of discrete quantiles of the output. We present QR with more details in Section \ref{sec:cp}. 
-\newline
 
-However, these \gls{uq} techniques present several challenges in practice. First, 
+However, these \gls{uq} techniques face several challenges in practice. Some methods require multiple forward propagations either during the training or inference time, such as BNNs, Deep Ensemble. This is in general computationally intensive and may cause the models difficult to scale and consequently limit their applications for real-time prediction or in an online setting. In addition, the inference quantile of BNNs depends in if the prior of weights is correctly specified, which demands expertise and can potentially introduce human bias. On the other hand, some models are pre-trained and are only accessible via API, making intervening the training process practically infeasible \cite{mossina2024CVPR}. Moreover, pre-trained models developed using certain datasets may struggle to generalize across different domains or contexts. 
+
+\vspace{0.5cm}
+
+Post-hoc uncertainty calibration techniques can applied in the restricted scenarios described above. Instead of assessing and measuring the uncertainty on the model level, calibration targets on adjusting a model's predicted probabilities to make the reported uncertainties better aligned with the actual likelihoods.
+
+Platt Scaling \cite{platt1999probabilistic} probably is the first calibration technique applied in modern machine learning. This method is introduced in the context of Support Vector Machines and is intended for classification problem. Another widely used calibration technique is Isotonic Regression \cite{niculescumizil2005predicting}, a technique of fitting a step-wise line to a sequence of observations such that the fitted line is non-decreasing (or non-increasing) everywhere. The monotonicity of the resulting line makes this method appealing for calibration since it accounts for the fact that the true function
 
 
-quantifying uncertainty requires training models for several times, which means that the models cannot be applied for real-time prediction or in an online setting. Second, some models are pre-trained and are only accessible via API. Besides, models (pre-)trained on certain datasets may struggle to generalize across different domains or contexts. 
-uncertainty calibration using another regressor. For example, BNN depends on the prior choice , and hard to converge.
-
+CP provides an esti- mation of the global uncertainty in the model’s predictions, since it is post-hoc and with minimal hypotheses.
 Compared to the other approaches , advantages: distribution free, model agnostic, lightweighted....Conformal prediction .calibrates both epistemic and aleatoric uncertainties equally well. We present a formal introduction into the \gls{cp} framework in Section \ref{sec: reviewCP}. 
 
 \section{Conformal Prediction}
@@ -348,10 +351,12 @@ We consider \gls{scp} with the ensemble predictor as the baseline calibrated str
 
 % chapter 6
 \chapter{Conclusion}
-\label{Conclude}
 This chapter summarizes the central findings of this work and discusses the empirical implications.
-% chapter 7
-\chapter{Future Work}
+
+\section{Discussion}
+\label{sec: discussin}
+
+\section{Limitations and Future Work}
 At last, we review the limitations of this work and highlight the opportunities for further research in this chapter.
 
 
@@ -403,6 +408,6 @@ Erklärung rechtliche Folgen haben wird.
 
 \vspace{2cm}
 \noindent Unterschrift\\
-\noindent Mannheim, den 31.07.2025 \hfill
+\noindent Mannheim, den 30.07.2025 \hfill
 
 \end{document}

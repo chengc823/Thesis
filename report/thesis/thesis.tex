@@ -219,7 +219,6 @@ Next, we return to the NAS framework "Bayesian optimization + neural predictor".
 
 Finally, the best components found in the aforementioned analyses are transformed into the BANANAS algorithm, which composed of an ensemble of \gls{fnns} using the path encoding, and \gls{its} with a mutation strategy for acquisition (Figure \ref{fig: bananas}). Specifically, uncertainty is estimated based on the Gaussian assumption.
 
-
 \begin{figure}[t]
 	\centering
 	\includegraphics[scale=0.48]{figs/overview_bananas.png}
@@ -273,70 +272,85 @@ P(Z_1, \dots, Z_n) = P(Z_{\pi(1)}, \dots, Z_{\pi(n)})
 \newline
 
 \noindent
-\textbf{Definition (Conformal Prediction):}  Let \(B = \{(x_1, y_1), \dots, (x_n, y_n)\}\) be a bag of observed examples from an exchangeable joint distribution $\mathbb{P}_{X,Y}$, with $x_i \subset R^d$ representing some features and  $Y$ the target variable. Given a new unseen input \(x_{n+1}\), conformal prediction constructs a prediction region \( \mathcal{C}_n^\alpha(x_{n+1}) \) using a \textit{non-conformity score function} such that
+\textbf{Definition (Conformal Prediction):}  Let \(B = \{(x_1, y_1), \dots, (x_n, y_n)\}\) be a bag of observed examples from an exchangeable joint distribution $\mathbb{P}_{X,Y}$, with $x_i \subset R^d$ representing some features and  $Y$ the target variable. Given a new unseen input \(x_{n+1}\), conformal prediction constructs a prediction region \( \mathcal{C}_n^\tau(x_{n+1}) \) using a \textit{non-conformity score function} such that
 \vspace{0.7em}
-\[
-\mathbb{P}\left( y_{n+1} \in \mathcal{C}_n^\alpha(x_{n+1}) \right) \geq 1 - \alpha
-\vspace{0.7em}
-\]
+
+\begin{equation}
+\mathbb{P}\left( y_{n+1} \in \mathcal{C}_n^\tau(x_{n+1}) \right) \geq 1 - \tau
+\vspace{1em}
+\label{eq: finitecp}
+\end{equation}
 
 \noindent
-where \( \alpha \in (0, 1) \) is the predefined nominal mis-coverage rate. This probability is also referred as the finite-sample guarantee property of \gls{cp} and is taken over the joint distribution of all \(n + 1\) samples. Moreover, the prediction regions for different $\alpha$ should be nested. That means, if  $\alpha_1 \ge \alpha_2$, then $1 - \alpha_1$ is a lower confidence level than $1 - \alpha_2$ and we have $ \; \mathcal{C}_n^{\alpha_1}(x_{n+1}) \subseteq \mathcal{C}_n^{\alpha_2}(x_{n+1})$.  
+where \( \tau \in (0, 1) \) is the predefined nominal mis-coverage rate. This probability is also known as the \textbf{finite-sample validity} property of \gls{cp} and is taken over the joint distribution of all \(n + 1\) samples. Moreover, the prediction regions for different $\tau$ should be nested. That means, if  $\tau_1 \ge \tau_2$, then $1 - \tau_1$ is a lower confidence level than $1 - \tau_2$ and we have $ \; \mathcal{C}_n^{\tau_1}(x_{n+1}) \subseteq \mathcal{C}_n^{\tau_2}(x_{n+1})$ \cite{shafer2008tutorial}.  
 
 \vspace{0.7em}
-\textbf{Non-conformity score function} is a real-valued function  measures how dissimilar the new example $x_{n+1}$ is compared to the existing examples in the bag $B$. Now generalizing the setting presented earlier to a supervised learning framework, a predictive algorithm $f$ that maps features to the target variable naturally leads to a non-conformity measure. Denote $\hat{f}_n$ the predictor trained on the $n$ observations in the bag for obtaining a point prediction for $x_{n+1}$. Since the prediction rule is learnt from all existing examples in the bag, intuitively, the distance between the predicted value $\hat{f}(x_{n+1})$ and the true value $y_{n+1}$ informs how different $(x_{n+1}, y_{n+1})$ is compared to the rest examples in the bag. As a result, the prediction set is constructed by collecting all values that lie within a certain distance from the true value.
+\textbf{Non-conformity score function} is a real-valued function  measures how dissimilar the new example $x_{n+1}$ is compared to the existing examples in the bag $B$. Now generalizing the earlier settingto a supervised learning framework, a predictive algorithm $f$ that maps features to the target variable naturally induces a non-conformity measure. Specifically, we denote $\hat{f}_n$ the predictor trained on the $n$ existing observations in the bag and $d(z_{n+1}, B)$ the non-conformity function, with $z_{n+1} = (x_{n+1}, y_{n+1})$. When using $\hat{f}_n$ to generate a point prediction for $x_{n+1}$, since the prediction rule is learnt from examples in the bag, intuitively, the distance between the predicted value $\hat{f}(x_{n+1})$ and the true value $y_{n+1}$ informs how different $z_{n+1}$ is compared to the rest examples in the bag. In this case, the prediction set is constructed by collecting all values that lie within a certain distance from the true value, i.e., all values such that $d(\cdot, B)$ smaller than a threshold.
 
-A critical intuition behind constructing this prediction region is \textit{symmetry}, that is, all data points are treated symmetrically within the \gls{cp} framework. The exchangeability assumption implies that the rank of $y_{n+1}$ is uniformly distributed over the observed values $y_1,\, y_2, \, ..., \, y_n $. 
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[scale=0.4]{figs/cp_symmetry.png}
+	\refstepcounter{figure}
+   	\addcontentsline{lof}{figure}{Figure~\thefigure: Illustration of Symmetrical Data}
+	\label{fig: cpsymmetry}
+	\vspace{0.5em} 
+	\\
+ 	{\small \textit{Figure \ref{fig: cpsymmetry}:} Illustration of Symmetrical Data in Conformal Prediction}}
+\end{figure}
 
+An important intuition behind selecting the threshold that eventually defines the prediction region is \textit{symmetry}, that is, all data points are treated symmetrically within the \gls{cp} framework \cite{angelopoulos2023video, angelopoulos2021gentle}. Suppose $d(z_1, B), \, d(z_2, B), \; ... \; ,d(z_n, B)$ is a sequence of observations in the form of conformity scores, the exchangeability assumption implies that the rank of a new data point $d(z_{n+1}, B)$ is uniformly distributed over the observed values. Figure \ref{fig: cpsymmetry} illustrates the concept of symmetry, in which the new data point is equally likely to take any value on the number line. As a result, the $(1 - \tau)$-th quantile of all the conformity scores is a natural answer to achieve the coverage probability stated in Formula \ref{eq: finitecp}. Recall that the coverage probability is achieved on the $n+1$ samples, the quantile value should be adjusted with a finite-sample correction, resulting in a threshold that is exactly equal to 
 
+\begin{equation}
+\vspace{0.7em}
+\frac{\lceil(1 - \tau)(n + 1)\rceil}{n}\text{-th quantile of conformity scores}
+\label{eq:cpquantile}
+\vspace{0.7em}
+\end{equation}
 
+\noindent
+\textbf{Finite-sample Validity} Note that the coverage guarantee provided by the \gls{cp} framework is marginal, meaning it holds on average over all data points. This is a significantly weaker requirement than the conditional coverage, which requires the guarantee to hold for each individual input (Figure \ref{fig: coverage}). Nevertheless, \gls{cp} remains a powerful tool for uncertainty quantification. The finite-sample coverage guarantee is valid regardless of the size of the observations bag or the choice made for the underlying prediction algorithm or the non-conformity score function. Under the distance interpretation presented earlier, a smaller score indicates that the new sample conforms more closely with the existing observations. In this case, the function is also referred as a negatively-oriented score and, to be precise, it is actually a non-conformity measure. A positively-oriented one also works in practice provided with correct modifications. 
 
-The finite-sample guarantee offered by the \gls{cp} framework is valid regardless of the size of the bag or the choice made for the underlying prediction algorithm or the non-conformity scores. However, the non-conformity score function is an important engineering decision and has 
+Although coverage is guaranteed for any conformity scoring function, this scoring method is actually an important engineering decision and has significant impact on the effectiveness of the constructed prediction set. Imagine a classification problem, if we produce a set that contains all possible classes, then surely the true label is covered by the set. However, such prediction set is neither informational nor actionable, offering little value in application. This leads to a second evaluation criterion for \gls{cp}: while ensuring coverage guarantees, ideally the yielded prediction set should be as compact as possible.
 
+\begin{figure}[htbp]
+	\centering
+	\includegraphics[scale=0.28]{figs/overview_coverage.png}
+	\refstepcounter{figure}
+   	\addcontentsline{lof}{figure}{Figure~\thefigure: Example of Different Coverage Types}
+	\label{fig: coverage}
+	\vspace{0.5em} 
+	\\
+ 	{\small \textit{Figure \ref{fig: coverage}:} Example of Different Coverage Types}}
+\end{figure}
 
- 
+\vspace{1em}
+\noindent \textbf{A Link to Hypothesis Testing} It is noticeable that \gls{cp} exhibits a couple of structural similarities to hypothesis testing, which is a fundamental tool in statistical inference and perhaps sounds more familiar to most ears. For example, both methods require a predefined significance level and involves using a certain threshold to make decisions. In fact, these terms are often used interchangeably in many research work. Therefore, we seek to interpret the \gls{cp} framework through a hypothesis testing perspective, so that to gain a deeper and clearer understanding of \gls{cp}. 
+\vspace{2em}
 
+\begin{table}[h]
+    \centering
+    \refstepcounter{table}
+   	\addcontentsline{lot}{table}{Table~\thetable: Comparison between Conformal Prediction and Hypothesis Testing}
+   	
+ 	{\small \textit{Table \ref{tab:cpht_comparison}:} Comparisons between conformal prediction and hypothesis testing}
+	\vspace{0.7em}
 
-
-
-
-
-
- 
-
-		
-		
-(can add a figure illustrating why conformal prediction works, i.e., symmetry).
-
-finite sample adjustment		
-s	\item [Notation] 
-	-  \\
-	- A conformity score function s.  and has an impact on the size on the prediction set, i.e., the efficiency. The conformity score function can be either a negatively- or positively oriented, in which … And it can be a random variable as well. \\
-
-s
-
-		Marginal coverage is guaranteed regardless of the choices in dataset and black
-		box model (add one figure). Only the model predictions are required to apply the technique.
-	\item [A Link to Statistical Testing] (clarify the relationship between conformal prediction and hypothesis testing) In this video (22:21), it is explained the intuition why conformal prediction guarantees the coverage, which is quite similar to the spirit of hypothesis testing. 
-	
-	     \begin{table}[h]
-    		\centering
-    		\caption{Comparison between CP and Hypothesis Testing}
-
-    		\renewcommand{\arraystretch}{1.2}
-   			\begin{tabular}{| m{6cm} | m{6cm} |}
-     			\hline
-      		   	\textbf{CP} & \textbf{Hypothesis Testing} \\
-               	\hline
-        		(desired) Coverage level & Confidence level \\
-        	   	\hline
-        		Nominal error level (1 - Coverage level) & Significance level \\
-        		\hline
-        		The conformity score of the new instance & p-value (is an empirical term) \\
-        		\hline
-    		\end{tabular}
-        	\label{tab:comparison}
-		\end{table}
+    \renewcommand{\arraystretch}{1.2}
+   	\begin{tabular}{| m{1.5cm} | m{6cm} | m{5.8cm} |}
+    \hline
+    &\textbf{Conformal Prediction} & \textbf{Hypothesis Testing} \\
+    \hline
+    \textbf{Input} & nominal mis-coverage level $\tau$ & significance level $\alpha$ \\
+    \hline
+    \textbf{Decision rule} & compare the conformity score of a data point against the quantile value & compare $p$-value, which is an empirical measure, to the significance level \\ 
+    \hline
+	\textbf{Output} & prediction interval offering marginal coverage probability $1 - \tau$ & confidence interval that contains the true parameter value with probability ($1 - \alpha$)  \\
+	\hline        		
+    \end{tabular}
+    \label{tab:cpht_comparison}
+\end{table}
+	  	
+Table \ref{tab:cpht_comparison} offers a summary of the terms used in \gls{cp} alongside with their parallel in hypothesis testing.	 
 	  	
 		The coverage parameters which should be pre-set plays a similar role as the confidence interval in hypothesis testing. 
 		Conformal prediction is like hypothesis testing with hypotheses: \\

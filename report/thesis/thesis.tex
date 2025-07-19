@@ -250,27 +250,70 @@ However, these \gls{uq} techniques face several challenges in practice. Some met
 
 \vspace{0.5cm}
 
-Post-hoc uncertainty calibration techniques can be applied in the restricted scenarios described above. Instead of assessing and measuring the uncertainty on the model level, calibration targets on adjusting a model's predicted probabilities to make the reported uncertainties better aligned with the actual likelihoods.
+Post-hoc uncertainty calibration techniques can serve as an effective approach in the restricted scenarios described above. Instead of assessing and measuring uncertainties on the model level, calibration targets on adjusting a model's predicted probabilities to make the reported uncertainties better aligned with the actual likelihoods.
 
 Platt Scaling \cite{platt1999probabilistic} probably is the first calibration technique applied in modern machine learning. This method is introduced in the context of Support Vector Machines and is intended for classification problems. For regression problems, one widely used calibration technique is Isotonic Regression \cite{niculescumizil2005predicting}, a technique of fitting a step-wise line to a sequence of observations such that the fitted line is non-decreasing (or non-increasing) everywhere. The monotonicity of the resulting line allows to preserve the order of predicted quantiles, making this method appealing for calibration. For example, \cite{pmlr-v80-kuleshov18a} show that accurate uncertainty estimates can be obtained by training a recalibrator on a holdout dataset using isotonic regression.
 
-Recently, Conformal Prediction (CP) \cite{shafer2008tutorial, vovk2005algorithmic} is emerged as a new, distribution-free framework for uncertainty quantification. This technique has been widely adopted for both classification and regression problems despite of its relatively short history. Fundamentally, CP serves as a model-agnostic wrapper and can be applied with any arbitrary prediction algorithms. It works by constructing a prediction interval (for regression) or a set of possible values (for classification) that will cover the true value with a predefined probability (also referred as the finite-sample guarantee property of \gls{cp}). The fact that \gls{cp} is applied in a post-hoc fashion with minimal assumptions enables it to capture both aleatoric and epistemic uncertainties \cite{mossina2024CVPR}. Moreover, like most other post-hoc calibration methods, \gls{cp} offers the advantage of being light-weighted with little overhead to implement. We present a thorough introduction into the \gls{cp} framework in the following section.
+Recently, Conformal Prediction (CP) \cite{shafer2008tutorial, vovk2005algorithmic} is emerged as a new, distribution-free framework for uncertainty quantification. This technique has been widely adopted for both classification and regression problems despite of its relatively short history. Fundamentally, CP serves as a model-agnostic wrapper and can be applied with any arbitrary prediction algorithms. It works by constructing a prediction interval (for regression) or a set of possible values (for classification) that will cover the true value with a predefined probability. The fact that \gls{cp} is applied in a post-hoc fashion with minimal assumptions enables it to capture both aleatoric and epistemic uncertainties \cite{mossina2024CVPR}. Moreover, like most other post-hoc calibration methods, \gls{cp} offers the advantage of being light-weighted with little overhead to implement. We present a thorough introduction into the \gls{cp} framework in the following section.
 
 \section{Conformal Prediction}
 \label{sec: reviewCP}
-
 \subsection{Theoretical Background}
-Suppose that we are in the supervised learning framework with a predictive algorithm $f$ that maps some features  $X \in R^d$ to the target variable $Y$, which can be either continuous or categorical. Let $\{\left(X_i, Y_i\right)\}_{i=1}^n \overset{\text{i.i.d.}}{\sim} P$ is 
+We start by introducing the concept of \textit{exchangeable data}, which is an key prerequisite for understanding \gls{cp}.
+\newline
+
+\noindent
+\textbf{Definition (Exchangeability):}  
+A sequence of random variables \( (Z_1, Z_2, \dots, Z_n) \) is said to be \textit{exchangeable} if its joint probability distribution is invariant under any permutation of the indices. That is, for every permutation \( \pi \) of the set \( \{1, 2, \dots, n\} \),
+\[
+P(Z_1, \dots, Z_n) = P(Z_{\pi(1)}, \dots, Z_{\pi(n)})
+\]
+
+\noindent Note that exchangeability allows for dependencies among data points, as long as the joint distribution is invariant under any permutation. Accordingly, it is weaker than the i.i.d. assumption. Then, the goal of \gls{cp} can be formally defined as: 
+\newline
+
+\noindent
+\textbf{Definition (Conformal Prediction):}  Let \(B = \{(x_1, y_1), \dots, (x_n, y_n)\}\) be a bag of observed examples from an exchangeable joint distribution $\mathbb{P}_{X,Y}$, with $x_i \subset R^d$ representing some features and  $Y$ the target variable. Given a new unseen input \(x_{n+1}\), conformal prediction constructs a prediction region \( \mathcal{C}_n^\alpha(x_{n+1}) \) using a \textit{non-conformity score function} such that
+\vspace{0.7em}
+\[
+\mathbb{P}\left( y_{n+1} \in \mathcal{C}_n^\alpha(x_{n+1}) \right) \geq 1 - \alpha
+\vspace{0.7em}
+\]
+
+\noindent
+where \( \alpha \in (0, 1) \) is the predefined nominal mis-coverage rate. This probability is also referred as the finite-sample guarantee property of \gls{cp} and is taken over the joint distribution of all \(n + 1\) samples. Moreover, the prediction regions for different $\alpha$ should be nested. That means, if  $\alpha_1 \ge \alpha_2$, then $1 - \alpha_1$ is a lower confidence level than $1 - \alpha_2$ and we have $ \; \mathcal{C}_n^{\alpha_1}(x_{n+1}) \subseteq \mathcal{C}_n^{\alpha_2}(x_{n+1})$.  
+
+\vspace{0.7em}
+\textbf{Non-conformity score function} is a real-valued function  measures how dissimilar the new example $x_{n+1}$ is compared to the existing examples in the bag $B$. Now generalizing the setting presented earlier to a supervised learning framework, a predictive algorithm $f$ that maps features to the target variable naturally leads to a non-conformity measure. Denote $\hat{f}_n$ the predictor trained on the $n$ observations in the bag for obtaining a point prediction for $x_{n+1}$. Since the prediction rule is learnt from all existing examples in the bag, intuitively, the distance between the predicted value $\hat{f}(x_{n+1})$ and the true value $y_{n+1}$ informs how different $(x_{n+1}, y_{n+1})$ is compared to the rest examples in the bag. As a result, the prediction set is constructed by collecting all values that lie within a certain distance from the true value.
+
+A critical intuition behind constructing this prediction region is \textit{symmetry}, that is, all data points are treated symmetrically within the \gls{cp} framework. The exchangeability assumption implies that the rank of $y_{n+1}$ is uniformly distributed over the observed values $y_1,\, y_2, \, ..., \, y_n $. 
 
 
 
 
-Starting from i.i.d data, and provide an intuitive demonstration how the prediction interval is constructed (can add a figure illustrating why conformal prediction works, i.e., symmetry). From the most intuitive expression to the finite-sample adjusted expression. 
+The finite-sample guarantee offered by the \gls{cp} framework is valid regardless of the size of the bag or the choice made for the underlying prediction algorithm or the non-conformity scores. However, the non-conformity score function is an important engineering decision and has 
+
+
+ 
+
+
+
+
+
+
+
+ 
+
 		
-s	\item [Notation] Then, relax the i.i.d assumption to exchangeability, and lay a formal definition of the conformal prediction. And list the most importance three ingredients of the conformal predictions. \\
-	- A trained predictor f \\
-	- A conformity score function s. The conformity score is an important engineering decision and has an impact on the size on the prediction set, i.e., the efficiency. The conformity score function can be either a negatively- or positively oriented, in which … And it can be a random variable as well. \\
-	-	A target coverage alpha	\\
+		
+(can add a figure illustrating why conformal prediction works, i.e., symmetry).
+
+finite sample adjustment		
+s	\item [Notation] 
+	-  \\
+	- A conformity score function s.  and has an impact on the size on the prediction set, i.e., the efficiency. The conformity score function can be either a negatively- or positively oriented, in which … And it can be a random variable as well. \\
+
+s
 
 		Marginal coverage is guaranteed regardless of the choices in dataset and black
 		box model (add one figure). Only the model predictions are required to apply the technique.
@@ -306,7 +349,7 @@ s	\item [Notation] Then, relax the i.i.d assumption to exchangeability, and lay 
 
 
 \subsection{Extensions of Conformal Prediction}
-Since the transductive version of \gls{cp} was first proposed in \cite{gammerman1998learning}, several variants have been developed with different computational complexities, formal guarantees, and practical applications.
+Since the transductive version of \gls{cp} that was first proposed in \cite{gammerman1998learning}, several variants of \gls{cp} have been developed with different computational complexities, formal guarantees, and practical applications.
 
 To address the aforementioned inefficient computation problem of \gls{fcp}, Split Conformal Prediction (\gls{scp}), also known as Inductive Conformal Prediction (ICP), was first introduced in \cite{papadopoulos2002inductive} by replacing the transductive inference with inductive inference.  aims to learn a general prediction rule about the data using the observed records. Then, this rule can be applied directly to obtain predictions when new data arrives in sequence, without re-using the training data and retraining the model repeatedly. The main concept involves splitting the data into two non-overlapping subsets, designated for training and calibration, respectively. A predictive model is fit exclusively on the training set, then non-conformity measures are computed on the calibration set to determine the prediction interval's width. Due to its simplicity and computational efficiency, \gls{scp} is one of the most commonly used techniques in the \gls{cp} family. We delve into methodological steps of \gls{scp} with pseudo-code in Section \ref{sec:scp}.
 
@@ -340,12 +383,9 @@ Although the neural networks are pre-trained, there still remain numerous hyperp
 
 We tune the hyperparameters progressively. First, we focus on those configurations common to all algorithms, then we explore the hyperparameters specific to search algorithms in the respective sections. We start by conducting a thorough analysis on the baseline method, i.e., \gls{scp} with ensemble predictor, to find the optimal general setting, like the number of quantiles, the size of the initial dataset (before fitting the surrogate), the acquisition function and the sampling strategy, etc. Then, this optimal setting is applied to other more sophisticated approaches.
 
-We borrow the implementation of \gls{bananas} from NASLib \footnote{https://github.com/automl/NASLib}, which is a modularized repository and enables us to integrate new blocks relatively easily. To be precise, we leverage their implementations for the ensemble predictor and the modules for the \textit{trainer} and \textit{optimizer}. Building on that, we add new modules for the quantile regressor, the distribution estimators, and the calibration algorithms. In addition, we also modify the export functionalities so that we can access more intermediate outputs, such as the estimated distribution at each iteration.
+We borrow the implementation of \gls{bananas} from NASLib \footnote{https://github.com/automl/NASLib}, which is a modern Python-based framework for \gls{nas} that is developed by the AutoML Freiburg group. NASLib is modularized, enabling a relatively easy integration of the new calibration block. In NASLib, each \gls{nas} algorithm typically comprises a \textit{trainer} shared across algorithms for initiating search and evaluations and an \textit{optimizer} for encapsulating specific search logics, including an inherent \textit{predictor} if applicable. To be precise, we leverage their implementations for the \textit{trainer} and the ensemble neural network. Building on that, we implement new modules for the quantile regressor, the distribution estimators, and the calibration algorithms. In addition, we also modify the export functionalities in order to access more intermediate outputs, such as the estimated distribution at each iteration.
 
-
-
-
-\section{Baseline}
+\section{SCP using Ensemble}
 We consider \gls{scp} with the ensemble predictor as the baseline calibrated strategy. 
 
 

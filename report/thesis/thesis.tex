@@ -298,6 +298,7 @@ where \( \tau \in (0, 1) \) is the predefined nominal mis-coverage rate. This pr
  	{\small \textit{Figure \ref{fig: cpsymmetry}:} Illustration of Symmetrical Data in Conformal Prediction}}
 \end{figure}
 
+\vspace{0.5em} 
 An important intuition behind selecting the threshold that eventually defines the prediction region is \textit{symmetry}, that is, all data points are treated symmetrically within the \gls{cp} framework \cite{angelopoulos2023video, angelopoulos2021gentle}. Suppose $d(z_1, B), \, d(z_2, B), \; ... \; ,d(z_n, B)$ is a sequence of observations in the form of conformity scores, the exchangeability assumption implies that the rank of a new data point $d(z_{n+1}, B)$ is uniformly distributed over the observed values. Figure \ref{fig: cpsymmetry} illustrates the concept of symmetry, in which the new data point is equally likely to take any value on the number line. As a result, the $(1 - \tau)$-th quantile of all the conformity scores is a natural answer to achieve the coverage probability stated in Formula \ref{eq: finitecp}. Recall that the coverage probability is achieved on the $n+1$ samples, the quantile value should be adjusted with a finite-sample correction, resulting in a threshold that is exactly equal to 
 
 \begin{equation}
@@ -323,7 +324,7 @@ Although coverage is guaranteed for any conformity scoring function, this scorin
  	{\small \textit{Figure \ref{fig: coverage}:} Example of Different Coverage Types}}
 \end{figure}
 
-\vspace{1em}
+\vspace{1.5em}
 \noindent \textbf{A Link to Hypothesis Testing} It is noticeable that \gls{cp} exhibits a couple of structural similarities to hypothesis testing, which is a fundamental tool in statistical inference and perhaps sounds more familiar to most ears. For example, both methods involves producing an interval and relying on a certain threshold to make decisions. In fact, these terms are often used interchangeably in many research work. This motivates us to seek an interpretation of the \gls{cp} framework through the hypothesis testing perspective, such that we gain a deeper and clearer understanding of \gls{cp}. \vspace{2em}
 
 \begin{table}[h]
@@ -348,42 +349,56 @@ Although coverage is guaranteed for any conformity scoring function, this scorin
     \end{tabular}
     \label{tab:cpht_comparison}
 \end{table}
-	  	
+	 
+\vspace{0.5em} 	  	
 Both methods take a predefined value ranging from 0 to 1 as input. In the context of \gls{cp}, this value is often interpreted as mis-coverage rate or error rate, referring to the probability that a prediction region fails to cover the true value. The corresponding concept in hypothesis testing is the significance level, referring to the probability of rejecting the null hypothesis when it is actually true. Table \ref{tab:cpht_comparison} offers a summary of the terms used in \gls{cp} alongside with their parallel in hypothesis testing.
 
 Intuitively, we can think \gls{cp} as running a sequence of hypothesis tests for a given new point $x_{n+1}$, with each testing a candidate value for $y_{n+1}$. The hypotheses are as: \\
 
-\vspace{-0.7em}
+\vspace{-0.3em}
 \indent $H_0$: The new example $(x_{n+1}, y)$ conforms to the existing observations. \\
 \indent	$H_1$: The new example $(x_{n+1}, y)$ does not conform to the existing observations. \\
-\vspace{-0.7em}
+\vspace{-0.3em}
 
 \noindent In this context, the fraction of conformity scores that is larger than that for $(x_{n+1}, y)$, or equivalently, the complement of the quantile of the conformity score for $(x_{n+1}, y)$, can be seen as a $p$-value. If the $p$-value exceeds the predefined significance level, we fail to reject the null hypothesis, and consequently, this candidate $y$ is included in the prediction set. In fact, this interpretation from the hypothesis testing perspective reflects the core idea of the approach known as full conformal prediction, which we formally introduce in the following section.
 
 \subsection{Full Conformal Prediction}
 In fact, conformal prediction is originally designed for a transductive setting, in which the prediction for a test point is generated using the entire dataset available at the inference time \cite{gammerman1998learning}. Hence, this transductive \gls{cp} framework is also known as \gls{fcp}. Typically, new observations are revealed sequentially, which means, after the prediction is generated for a test point, its true value is observed before the next prediction is made. 
 
-The core idea for constructing a prediction set for a given test point $x_{n+1}$ is to iterate over all possible values in the target variable space. As performed in hypothesis testing, for each candidate $y$, a conformity score and its corresponding $p$-value will be calculated. Specifically, the conformity score for candidate $\tilde{y}$ is computed in a way where a prediction rule $\hat{f}_{\tilde{y}}$ is learnt using all pairs in the bag \(B = \{(x_1, y_1), \dots, (x_n, y_n), (x_{n+1}, \tilde{y})\}\), then the conformity score is computed as a distance measure between $\hat{f}_{\tilde{y}}(x_{n+1})$ and $\tilde{y}$. This process is repeated for all available candidates and the prediction set is constructed by collecting every $\tilde{y}$ with which the null hypothesis can not be rejected. Typically, if the target variable space is continuous, the space is first discretized to form a finite grid, then each element in the set can be checked, e.g., using grid search \cite{angelopoulos2021gentle}.
+The core idea for constructing a prediction set for a given test point $x_{n+1}$ is to iterate over all possible values in the target variable space. As performed in hypothesis testing, for each candidate $y$, a conformity score and its corresponding $p$-value will be calculated. Specifically, the conformity score for candidate $\tilde{y}$ is computed in a way where a prediction rule $\hat{f}_{\tilde{y}}$ is learnt using all pairs in the bag \(B = \{(x_1, y_1), \dots, (x_n, y_n), (x_{n+1}, \tilde{y})\}\), then the conformity score is computed as a distance measure between $\hat{f}_{\tilde{y}}(x_{n+1})$ and $\tilde{y}$. This process is repeated for all available candidates and the prediction set is constructed by collecting every $\tilde{y}$ with which the null hypothesis in the previous sub-section can not be rejected. Typically, if the target variable space is continuous, the space is first discretized to form a finite grid, then each element in the set can be checked, e.g., using grid search \cite{angelopoulos2021gentle}.
 
 Moreover, after the true value $y_{n+1}$ is revealed, the underlying bag of observations gets updated by including this data point, and the above procedure needs to start from scratch when generating prediction for each new test point. Suppose the target variable space has a size of $K$, to generate prediction regions for $m$ instances, the underlying prediction algorithm should fit for $K \cdot m$ times. Clearly, \gls{fcp} is in general extremely computationally expensive and renders the application of \gls{fcp} highly unsuitable for training-intensive works, such as with neural networks.
 
 \subsection{Extensions of Conformal Prediction}
 Since the transductive version of \gls{cp} that was first proposed in \cite{gammerman1998learning}, several variants of \gls{cp} have been developed with different computational complexities, formal guarantees, and practical applications.
 
-To address the aforementioned inefficient computation problem of \gls{fcp}, Split Conformal Prediction (\gls{scp}), also known as Inductive Conformal Prediction (ICP), was first introduced in \cite{papadopoulos2002inductive} by replacing the transductive inference with inductive inference.  aims to learn a general prediction rule about the data using the observed records. Then, this rule can be applied directly to obtain predictions when new data arrives in sequence, without re-using the training data and retraining the model repeatedly. The main concept involves splitting the data into two non-overlapping subsets, designated for training and calibration, respectively. A predictive model is then fit exclusively on the training set, then (non-)conformity measures are computed on the calibration set to determine the prediction interval's width. Due to its simplicity and computational efficiency, \gls{scp} is one of the most commonly used techniques in the \gls{cp} family. We delve into methodological steps of \gls{scp} with pseudo-code in Section \ref{sec:scp}.
+To address the aforementioned inefficient computation problem of \gls{fcp}, Split Conformal Prediction (\gls{scp}), also known as Inductive Conformal Prediction (ICP), was first introduced in \cite{papadopoulos2002inductive} by replacing the transductive inference with inductive inference.  aims to learn a general prediction rule about the data using the observed records. Then, this rule can be applied directly to obtain predictions when new data arrives in sequence, without re-using the training data and retraining the model repeatedly. The main concept involves splitting the data into two non-overlapping subsets, designated for training and calibration, respectively. A predictive model is fit exclusively on the training set, then (non-)conformity scores are computed using the calibration set to obtain the quantile value that determines the width of the prediction interval. Due to its simplicity and computational efficiency, \gls{scp} is one of the most commonly used techniques in the \gls{cp} family. We introduce the methodological steps of \gls{scp} in details with pseudo-code in Section \ref{sec:scp}.
 
---------
+\vspace{0.5em} 	
+Apart from hight computational cost, \gls{cp} still faces several challenges in practice: 
+\vspace{0.2em} 
 
-Limitations of split conformal predictions:
-- Distribution shift. The conformal prediction is built on the core assumption of exchangeability, which means the data points are identically distributed. However, this assumption is hard to meet in real-world application. For example, with time-series data this assumption is generally violated due to the temporal relationships. 
-- Adaptivity. Once the conformity scores are computed on the calibration set, the decision threshold is settled and is applied to all test datapoints, regardless of the intrinsic complexity of the exact example. It is desirable that the threshold can adapts to the difficulty of the problem and produce a larger prediction interval/set on hard-to-solve example and smaller prediction interval/set on easy-to-solve example. This limitation echoes with the characteristic of Conformal Prediction that the guaranteed coverage is only marginal over all datapoints but not conditional on a specific data points..
+\noindent \textbf{Distribution / Covariate Shift:} The finite-sample validity offered by \gls{cp} depends on exchangeable data. However, the key assumption of exchangeability is often violated in real-world applications, in which the underlying data generation process might vary over time. For example, in finance market behavior can shift drastically in response to major world events. \\
+ \noindent \textbf{Adaptivity:} The conformity score adopted in the original \gls{scp} work is based on the  absolute residual $|y - \hat{y}|$, which leads to a prediction interval with fixed width and does not adapt to the intrinsic complexity of the specific test example.
 
-Variations of Conformal predictions have been proposed to overcome the limitations. There are three main streams:
-- find an empirical coverage rate which leads to the desired coverage level. For example, if the desired coverage rate is 90%, the calibration set suggests that the alpha should be set to 93%, then 93% is used for generating prediction on the test set. 
-- find an efficient conformity score: Alternatively, […] apply the conformal prediction in an online setting to dynamically incorporate the conformity score of new data points.
+\vspace{0.5em}  
+Various \gls{cp} algorithms have been developed to address limitations and broaden application domains. These extended algorithms can be mainly categorized into three types in accordance with the structural components in a \gls{cp} framework. 
+
+One line of work focus on the coverage rate. Instead of using a static predefined mis-coverage rate $\tau$ for computing the quantile of conformity scores, \cite{gibbs2021adaptive} develops a method called \textit{ACI} where the applied coverage level is dynamically adapted based on empirical mis-coverage frequency of previous prediction sets. This approach is applied in an online setting. At each time $t$, the applied coverage rate $\tau_t$ is derived by decreasing (resp. increasing) the current value if the prediction sets were historically under-covering (resp. over-covering). The amplitude of rate adjustment is jointly controlled by the pre-specified learning rate and the empirical mis-coverage level. As an example, if the preset target coverage rate is 90\%, historical coverage rate suggests the applied coverage should set to 93\%, then this adjusted value is used for computing quantile. In this setting, the empirical mis-coverage frequency of previous examples serves as a signal of distribution shift or violation of exchangeability. \cite{gibbs2021adaptive} show that \textit{ACI} is capable of forming prediction sets that are robust to changes in the underlying data distribution. \cite{zaffran2022adaptive} extends \textit{ACI} to time-series data and introduce \textit{AgACI}, which is a parameter-free variant of \textit{ACI} that uses online expert aggregation to adaptively combine multiple ACI experts. In contrast to \textit{ACI}, where the learning rate should be carefully chosen in advance, \textit{AgACI} leverages a number of $k$ experts working with different learning rates, and automatically learns the optimal learning rate by aggregating across experts such that each expert's contribution is proportional to their corresponding performances over previous iterations. \cite{zaffran2022adaptive} show \textit{AgACI} demonstrates strong performance and produces tighter, well-calibrated prediction intervals consistently.  
+\vspace{0.5em} 
+
+Another line of work strives to find suitable and efficient conformity score function. For example, \cite{romano2020classification} proposes a novel conformity score crafted for  multi-label classification tasks. While providing marginal coverage, this score is also fully adaptive to data complexities, thereby improves approximate conditional coverage. In parallel, \cite{romano2019conformalized} develops a conformity score that involves both upper and lower quantiles given by a specific coverage rate, enabling to combine the strengths of quantile regression and conformal prediction.
+\vspace{0.5em} 
+
+The underlying prediction algorithm also plays an important role in \gls{cp}, since the trained predictor determines the base from which intervals are constructed. 
+
+
+
 - find suitable predictor: The trained predictor can be just a poor approximation of the real data generation process.
 
 Besides, […] proposes a CP algorithm that samples datapoints using Monte-Carlo sampling to approach the real distribution of labels in case the ground-truth is ambiguous and consequently cause a biased distribution in manually-annotated labels.
+
+application wise
 
 % chapter 3
 \include{methodology}
@@ -404,7 +419,7 @@ We tune the hyperparameters progressively. First, we focus on those configuratio
 
 We borrow the implementation of \gls{bananas} from NASLib \footnote{https://github.com/automl/NASLib}, which is a modern Python-based framework for \gls{nas} that is developed by the AutoML Freiburg group. NASLib is modularized, enabling a relatively easy integration of the new calibration block. In NASLib, each \gls{nas} algorithm typically comprises a \textit{trainer} shared across algorithms for initiating search and evaluations and an \textit{optimizer} for encapsulating specific search logics, including an inherent \textit{predictor} if applicable. To be precise, we leverage their implementations for the \textit{trainer} and the ensemble neural network. Building on that, we implement new modules for the quantile regressor, the distribution estimators, and the calibration algorithms. In addition, we also modify the export functionalities in order to access more intermediate outputs, such as the estimated distribution at each iteration.
 
-\section{SCP using Ensemble}
+\section{Baseline}
 We consider \gls{scp} with the ensemble predictor as the baseline calibrated strategy. 
 
 

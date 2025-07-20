@@ -358,16 +358,19 @@ Intuitively, we can think \gls{cp} as running a sequence of hypothesis tests for
 \indent	$H_1$: The new example $(x_{n+1}, y)$ does not conform to the existing observations. \\
 \vspace{-0.7em}
 
-\noindent In this context, the complement of the quantile of the conformity score for $(x_{n+1}, y)$ can be seen as a $p$-value. If the $p$-value exceeds the predefined significance level, we fail to reject the null hypothesis, and consequently, this candidate $y$ is included in the prediction set. In fact, this interpretation from the hypothesis testing perspective reflects the core idea of the approach known as full conformal prediction, which we introduce in the following section.
+\noindent In this context, the fraction of conformity scores that is larger than that for $(x_{n+1}, y)$, or equivalently, the complement of the quantile of the conformity score for $(x_{n+1}, y)$, can be seen as a $p$-value. If the $p$-value exceeds the predefined significance level, we fail to reject the null hypothesis, and consequently, this candidate $y$ is included in the prediction set. In fact, this interpretation from the hypothesis testing perspective reflects the core idea of the approach known as full conformal prediction, which we formally introduce in the following section.
 
 \subsection{Full Conformal Prediction}
-\gls{fcp}
+In fact, conformal prediction is originally designed for a transductive setting, in which the prediction for a test point is generated using the entire dataset available at the inference time \cite{gammerman1998learning}. Hence, this transductive \gls{cp} framework is also known as \gls{fcp}. Typically, new observations are revealed sequentially, which means, after the prediction is generated for a test point, its true value is observed before the next prediction is made. 
 
+The core idea for constructing a prediction set for a given test point $x_{n+1}$ is to iterate over all possible values in the target variable space. As performed in hypothesis testing, for each candidate $y$, a conformity score and its corresponding $p$-value will be calculated. Specifically, the conformity score for candidate $\tilde{y}$ is computed in a way where a prediction rule $\hat{f}_{\tilde{y}}$ is learnt using all pairs in the bag \(B = \{(x_1, y_1), \dots, (x_n, y_n), (x_{n+1}, \tilde{y})\}\), then the conformity score is computed as a distance measure between $\hat{f}_{\tilde{y}}(x_{n+1})$ and $\tilde{y}$. This process is repeated for all available candidates and the prediction set is constructed by collecting every $\tilde{y}$ with which the null hypothesis can not be rejected. Typically, if the target variable space is continuous, the space is first discretized to form a finite grid, then each element in the set can be checked, e.g., using grid search \cite{angelopoulos2021gentle}.
+
+Moreover, after the true value $y_{n+1}$ is revealed, the underlying bag of observations gets updated by including this data point, and the above procedure needs to start from scratch when generating prediction for each new test point. Suppose the target variable space has a size of $K$, to generate prediction regions for $m$ instances, the underlying prediction algorithm should fit for $K \cdot m$ times. Clearly, \gls{fcp} is in general extremely computationally expensive and renders the application of \gls{fcp} highly unsuitable for training-intensive works, such as with neural networks.
 
 \subsection{Extensions of Conformal Prediction}
 Since the transductive version of \gls{cp} that was first proposed in \cite{gammerman1998learning}, several variants of \gls{cp} have been developed with different computational complexities, formal guarantees, and practical applications.
 
-To address the aforementioned inefficient computation problem of \gls{fcp}, Split Conformal Prediction (\gls{scp}), also known as Inductive Conformal Prediction (ICP), was first introduced in \cite{papadopoulos2002inductive} by replacing the transductive inference with inductive inference.  aims to learn a general prediction rule about the data using the observed records. Then, this rule can be applied directly to obtain predictions when new data arrives in sequence, without re-using the training data and retraining the model repeatedly. The main concept involves splitting the data into two non-overlapping subsets, designated for training and calibration, respectively. A predictive model is fit exclusively on the training set, then (non-)conformity measures are computed on the calibration set to determine the prediction interval's width. Due to its simplicity and computational efficiency, \gls{scp} is one of the most commonly used techniques in the \gls{cp} family. We delve into methodological steps of \gls{scp} with pseudo-code in Section \ref{sec:scp}.
+To address the aforementioned inefficient computation problem of \gls{fcp}, Split Conformal Prediction (\gls{scp}), also known as Inductive Conformal Prediction (ICP), was first introduced in \cite{papadopoulos2002inductive} by replacing the transductive inference with inductive inference.  aims to learn a general prediction rule about the data using the observed records. Then, this rule can be applied directly to obtain predictions when new data arrives in sequence, without re-using the training data and retraining the model repeatedly. The main concept involves splitting the data into two non-overlapping subsets, designated for training and calibration, respectively. A predictive model is then fit exclusively on the training set, then (non-)conformity measures are computed on the calibration set to determine the prediction interval's width. Due to its simplicity and computational efficiency, \gls{scp} is one of the most commonly used techniques in the \gls{cp} family. We delve into methodological steps of \gls{scp} with pseudo-code in Section \ref{sec:scp}.
 
 --------
 
@@ -407,13 +410,13 @@ We consider \gls{scp} with the ensemble predictor as the baseline calibrated str
 
 % chapter 6
 \chapter{Conclusion}
-This chapter summarizes the central findings of this work and discusses the empirical implications.
+This chapter presents the central findings of this work as well as their critical discussions (Section \ref{sec: discussion}). Finally, it highlights limitations and corresponding opportunities for further research (Section \ref{sec: future_work}).
 
 \section{Discussion}
-\label{sec: discussin}
+\label{sec: discussion}
 
 \section{Limitations and Future Work}
-At last, we review the limitations of this work and highlight the opportunities for further research in this chapter.
+\label{sec: future_work}
 
 
 % Reference

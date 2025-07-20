@@ -79,7 +79,7 @@ As reviewed in Section \ref{sec: reviewCP}, numerous conformal prediction algori
 \label{sec:scp}
 To begin, a natural choice for a baseline calibration strategy is the \gls{scp}. In this section, we start by introducing the standard \gls{scp} procedure, then proceed with the adaptions required to incorporate it into the \gls{bananascp} framework. 
 
-Implementation steps of \gls{scp} are summarized in Algorithm \ref{alg:SCP}. Imagine a regression task where the non-conformity level is measured by the absolute residual, i.e. $|y_i - \hat{y}(x_i)|$. In this case, the algorithm produces a prediction interval for the test point with a width of $\left[\hat{y}_{test} - \hat{q}\;,\; \hat{y}_{test} + \hat{q}\right]$, where $\hat{q}$ is the conformity threshold as defined in line 6.
+Implementation steps of \gls{scp} are summarized in Algorithm \ref{alg:SCP}. Imagine a regression task where the non-conformity level is measured by the absolute residual, i.e. $|y_i - \hat{y}(x_i)|$. In this case, the algorithm produces a prediction interval for the test point with a width of $\left[\hat{y}_{test} - \hat{q}\;,\; \hat{y}_{test} + \hat{q}\right]$, where $\hat{q}$ is the conformity threshold as defined in line 6 in.
 
 \begin{algorithm}[htbp]
   \caption{Split Conformal Prediction}

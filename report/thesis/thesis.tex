@@ -272,7 +272,7 @@ P(Z_1, \dots, Z_n) = P(Z_{\pi(1)}, \dots, Z_{\pi(n)})
 \newline
 
 \noindent
-\textbf{Definition (Conformal Prediction):}  Let \(B = \{(x_1, y_1), \dots, (x_n, y_n)\}\) be a bag of observed examples from an exchangeable joint distribution $\mathbb{P}_{X,Y}$, with $x_i \subset R^d$ representing some features and  $Y$ the target variable. Given a new unseen input \(x_{n+1}\), conformal prediction constructs a prediction region \( \mathcal{C}_n^\tau(x_{n+1}) \) using a \textit{non-conformity score function} such that
+\textbf{Definition (Conformal Prediction):}  Let \(B = \{(x_1, y_1), \dots, (x_n, y_n)\}\) be a bag of observed examples from an exchangeable joint distribution $\mathbb{P}_{X,Y}$, with $x_i \subset R^d$ representing some features and  $Y$ the target variable. Given a new unseen input \(x_{n+1}\), conformal prediction constructs a prediction region \( \mathcal{C}_n^\tau(x_{n+1}) \) using a \textit{conformity score function} such that
 \vspace{0.7em}
 
 \begin{equation}
@@ -285,7 +285,7 @@ P(Z_1, \dots, Z_n) = P(Z_{\pi(1)}, \dots, Z_{\pi(n)})
 where \( \tau \in (0, 1) \) is the predefined nominal mis-coverage rate. This probability is also known as the \textbf{finite-sample validity} property of \gls{cp} and is taken over the joint distribution of all \(n + 1\) samples. Moreover, the prediction regions for different $\tau$ should be nested. That means, if  $\tau_1 \ge \tau_2$, then $1 - \tau_1$ is a lower confidence level than $1 - \tau_2$ and we have $ \; \mathcal{C}_n^{\tau_1}(x_{n+1}) \subseteq \mathcal{C}_n^{\tau_2}(x_{n+1})$ \cite{shafer2008tutorial}.  
 
 \vspace{0.7em}
-\textbf{Non-conformity score function} is a real-valued function  measures how dissimilar the new example $x_{n+1}$ is compared to the existing examples in the bag $B$. Now generalizing the earlier settingto a supervised learning framework, a predictive algorithm $f$ that maps features to the target variable naturally induces a non-conformity measure. Specifically, we denote $\hat{f}_n$ the predictor trained on the $n$ existing observations in the bag and $d(z_{n+1}, B)$ the non-conformity function, with $z_{n+1} = (x_{n+1}, y_{n+1})$. When using $\hat{f}_n$ to generate a point prediction for $x_{n+1}$, since the prediction rule is learnt from examples in the bag, intuitively, the distance between the predicted value $\hat{f}(x_{n+1})$ and the true value $y_{n+1}$ informs how different $z_{n+1}$ is compared to the rest examples in the bag. In this case, the prediction set is constructed by collecting all values that lie within a certain distance from the true value, i.e., all values such that $d(\cdot, B)$ smaller than a threshold.
+\textbf{Conformity score function} is a real-valued function  measures how dissimilar the unseen example $x_{n+1}$ is compared to the existing examples in the bag $B$. Now generalizing this setting to a supervised learning framework, a predictive algorithm $f$ that maps features to the target variable naturally induces a conformity measure. Specifically, we denote $\hat{f}_n$ the predictor trained on the $n$ existing observations in the bag and $d(z_{n+1}, B), \; z_{n+1} = (x_{n+1}, y_{n+1})$ the conformity function, such that a higher value indicates a greater deviation of the new sample from the existing ones. When using $\hat{f}_n$ to generate a point prediction for $x_{n+1}$, since the prediction rule is learnt from examples in the bag, intuitively, the distance between the predicted value $\hat{f}_n(x_{n+1})$ and the true value $y_{n+1}$ informs how different $z_{n+1}$ is compared to the rest examples in the bag. With a conformity score function of this kind, the prediction set is constructed by collecting all values that lie within a certain distance from the true value, i.e., all values such that $d(\cdot, B)$ smaller than a threshold.
 
 \begin{figure}[htbp]
 	\centering
@@ -308,9 +308,9 @@ An important intuition behind selecting the threshold that eventually defines th
 \end{equation}
 
 \noindent
-\textbf{Finite-sample Validity} Note that the coverage guarantee provided by the \gls{cp} framework is marginal, meaning it holds on average over all data points. This is a significantly weaker requirement than the conditional coverage, which requires the guarantee to hold for each individual input (Figure \ref{fig: coverage}). Nevertheless, \gls{cp} remains a powerful tool for uncertainty quantification. The finite-sample coverage guarantee is valid regardless of the size of the observations bag or the choice made for the underlying prediction algorithm or the non-conformity score function. Under the distance interpretation presented earlier, a smaller score indicates that the new sample conforms more closely with the existing observations. In this case, the function is also referred as a negatively-oriented score and, to be precise, it is actually a non-conformity measure. A positively-oriented one also works in practice provided with correct modifications. 
+\textbf{Finite-sample Validity} Note that the coverage guarantee provided by the \gls{cp} framework is marginal, meaning it holds on average over all data points. This is a significantly weaker requirement than the conditional coverage, which requires the guarantee to hold for each individual input (Figure \ref{fig: coverage}). Nevertheless, \gls{cp} remains a powerful tool for uncertainty quantification, because the finite-sample coverage is valid regardless of the size of the observations bag or the choice made for the underlying prediction algorithm or the conformity score function. Under the distance interpretation presented earlier, a smaller score indicates that the new sample conforms more closely with the existing observations. In such case, the function is also referred as a negatively-oriented score and, to be precise, it is actually a non-conformity measure. A positively-oriented one also works in practice, provided with correct modifications. 
 
-Although coverage is guaranteed for any conformity scoring function, this scoring method is actually an important engineering decision and has significant impact on the effectiveness of the constructed prediction set. Imagine a classification problem, if we produce a set that contains all possible classes, then surely the true label is covered by the set. However, such prediction set is neither informational nor actionable, offering little value in application. This leads to a second evaluation criterion for \gls{cp}: while ensuring coverage guarantees, ideally the yielded prediction set should be as compact as possible.
+Although coverage is guaranteed for any conformity scoring function, this scoring method is actually an important engineering decision and has significant impact on the effectiveness of the constructed prediction set. Imagine a classification problem, if we produce a set that contains all possible classes, then surely the true label is covered by the set. However, such prediction set is neither informational nor actionable, offering little value in application. Naturally, this introduces a second evaluation criterion for \gls{cp}: while ensuring coverage guarantees, ideally the yielded prediction set should be as compact as possible.
 
 \begin{figure}[htbp]
 	\centering
@@ -324,8 +324,7 @@ Although coverage is guaranteed for any conformity scoring function, this scorin
 \end{figure}
 
 \vspace{1em}
-\noindent \textbf{A Link to Hypothesis Testing} It is noticeable that \gls{cp} exhibits a couple of structural similarities to hypothesis testing, which is a fundamental tool in statistical inference and perhaps sounds more familiar to most ears. For example, both methods require a predefined significance level and involves using a certain threshold to make decisions. In fact, these terms are often used interchangeably in many research work. Therefore, we seek to interpret the \gls{cp} framework through a hypothesis testing perspective, so that to gain a deeper and clearer understanding of \gls{cp}. 
-\vspace{2em}
+\noindent \textbf{A Link to Hypothesis Testing} It is noticeable that \gls{cp} exhibits a couple of structural similarities to hypothesis testing, which is a fundamental tool in statistical inference and perhaps sounds more familiar to most ears. For example, both methods involves producing an interval and relying on a certain threshold to make decisions. In fact, these terms are often used interchangeably in many research work. This motivates us to seek an interpretation of the \gls{cp} framework through the hypothesis testing perspective, such that we gain a deeper and clearer understanding of \gls{cp}. \vspace{2em}
 
 \begin{table}[h]
     \centering
@@ -350,13 +349,16 @@ Although coverage is guaranteed for any conformity scoring function, this scorin
     \label{tab:cpht_comparison}
 \end{table}
 	  	
-Table \ref{tab:cpht_comparison} offers a summary of the terms used in \gls{cp} alongside with their parallel in hypothesis testing.	 
-	  	
-		The coverage parameters which should be pre-set plays a similar role as the confidence interval in hypothesis testing. 
-		Conformal prediction is like hypothesis testing with hypotheses: \\
-			H0: test instance i conforms to the training instances. \\
-			H1: test instance i does not conform to the training instances. \\
-\end{description}}
+Both methods take a predefined value ranging from 0 to 1 as input. In the context of \gls{cp}, this value is often interpreted as mis-coverage rate or error rate, referring to the probability that a prediction region fails to cover the true value. The corresponding concept in hypothesis testing is the significance level, referring to the probability of rejecting the null hypothesis when it is actually true. Table \ref{tab:cpht_comparison} offers a summary of the terms used in \gls{cp} alongside with their parallel in hypothesis testing.
+
+Intuitively, we can think \gls{cp} as running a sequence of hypothesis tests for a given new point $x_{n+1}$, with each testing a candidate value for $y_{n+1}$. The hypotheses are as: \\
+
+\vspace{-0.7em}
+\indent $H_0$: The new example $(x_{n+1}, y)$ conforms to the existing observations. \\
+\indent	$H_1$: The new example $(x_{n+1}, y)$ does not conform to the existing observations. \\
+\vspace{-0.7em}
+
+\noindent In this context, the complement of the quantile of the conformity score for $(x_{n+1}, y)$ can be seen as a $p$-value. If the $p$-value exceeds the predefined significance level, we fail to reject the null hypothesis, and consequently, this candidate $y$ is included in the prediction set. In fact, this interpretation from the hypothesis testing perspective reflects the core idea of the approach known as full conformal prediction, which we introduce in the following section.
 
 \subsection{Full Conformal Prediction}
 \gls{fcp}
@@ -365,7 +367,7 @@ Table \ref{tab:cpht_comparison} offers a summary of the terms used in \gls{cp} a
 \subsection{Extensions of Conformal Prediction}
 Since the transductive version of \gls{cp} that was first proposed in \cite{gammerman1998learning}, several variants of \gls{cp} have been developed with different computational complexities, formal guarantees, and practical applications.
 
-To address the aforementioned inefficient computation problem of \gls{fcp}, Split Conformal Prediction (\gls{scp}), also known as Inductive Conformal Prediction (ICP), was first introduced in \cite{papadopoulos2002inductive} by replacing the transductive inference with inductive inference.  aims to learn a general prediction rule about the data using the observed records. Then, this rule can be applied directly to obtain predictions when new data arrives in sequence, without re-using the training data and retraining the model repeatedly. The main concept involves splitting the data into two non-overlapping subsets, designated for training and calibration, respectively. A predictive model is fit exclusively on the training set, then non-conformity measures are computed on the calibration set to determine the prediction interval's width. Due to its simplicity and computational efficiency, \gls{scp} is one of the most commonly used techniques in the \gls{cp} family. We delve into methodological steps of \gls{scp} with pseudo-code in Section \ref{sec:scp}.
+To address the aforementioned inefficient computation problem of \gls{fcp}, Split Conformal Prediction (\gls{scp}), also known as Inductive Conformal Prediction (ICP), was first introduced in \cite{papadopoulos2002inductive} by replacing the transductive inference with inductive inference.  aims to learn a general prediction rule about the data using the observed records. Then, this rule can be applied directly to obtain predictions when new data arrives in sequence, without re-using the training data and retraining the model repeatedly. The main concept involves splitting the data into two non-overlapping subsets, designated for training and calibration, respectively. A predictive model is fit exclusively on the training set, then (non-)conformity measures are computed on the calibration set to determine the prediction interval's width. Due to its simplicity and computational efficiency, \gls{scp} is one of the most commonly used techniques in the \gls{cp} family. We delve into methodological steps of \gls{scp} with pseudo-code in Section \ref{sec:scp}.
 
 --------
 

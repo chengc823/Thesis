@@ -1,6 +1,6 @@
 \chapter{Methodology}
 \label{ch3}
-Despite of its provable strength, \gls{bananas} assumes a Gaussian distribution for measuring uncertainty. However, this assumption does not necessarily hold in real world. To mitigate the potential limitations caused by inaccurate uncertainty estimates, this work introduces a new framework that integrates conformal prediction-based uncertainty calibration into the \gls{bananas} framework in an online setting. 
+Despite of its provable strength, \gls{bananas} assumes a Gaussian distribution for measuring uncertainty. However, this assumption does not necessarily hold in real world. To mitigate the potential limitations caused by inaccurate uncertainty estimates, this work proposes a new framework that integrates a conformal prediction-based uncertainty calibration process into \gls{bananas} in an online setting. 
 
 An algorithm outlining the overall procedure of \gls{bananascp} is presented in Section \ref{sec:overview}, followed by detailed descriptions of each methodological step. Section \ref{sec:cp} presents different conformal predictions algorithms to be explored. Next in Section \ref{sec:distest}, methods for the estimation and evaluation of the conditional distribution of each candidate architecture are discussed. Finally, in Section \ref{sec:acq} we introduce how the calibrated distribution can be combined with different acquisition functions and acquisition search strategies in the Bayesian optimization process.
 
@@ -8,7 +8,7 @@ An algorithm outlining the overall procedure of \gls{bananascp} is presented in 
 \section{The BANANAS--CP Framework}
 \label{sec:overview}
 
-Refer to Section {\ref{sec:bananas} for a detailed introduction of the original \gls{bananas} algorithm. In this section, we emphasis the key ideas of the uncertainty calibration mechanism, as outlined in Step 1 to 6 of the inner iteration in Algorithm {\ref{alg:OCP}.
+Refer to Section {\ref{sec:bananas} for a detailed introduction of the original \gls{bananas} algorithm. In this section, we emphasis the key ideas of the uncertainty calibration mechanism, which corresponds to Step 1 to 6 of the inner iteration in Algorithm {\ref{alg:OCP}.
 
 \begin{algorithm}[htbp]
   \caption{The BANANAS--CP Framework}

@@ -153,13 +153,27 @@ We borrow the implementation of \gls{bananas} from NASLib \footnote{https://gith
 Building on this structure, we add new modules for constructing the \gls{bananascp} framework, including a quantile regressor, distribution estimators (along with the compatible acquisition functions), and the calibration algorithms. We leverage the existing implementation for \textit{trainer} with mild modifications on the export functionalities, aiming for a better access to intermediate outputs, such as the estimated distribution at each iteration. In addition, we also provide tools for analyzing and interpreting the experimental results.
 
 % chapter 5
-\chapter{Experiment Results}
+\chapter{Results}
 This chapter presents the performance of the methods introduced in Chapter \ref{ch3}, evaluated using the experimental setups described in Chapter \ref{ch4}. 
 
 \section{Baseline}
 \label{sec: baseline}
-We begin with the baseline strategy, \gls{scp} with the ensemble predictor. 
 
+\subsection{Search and Calibration Setting}
+\label{sec: sc_setting}
+To establish baseline performance, we run experiments for both the original \gls{bananas} method and the approach incorporating \gls{scp} with an ensemble predictor on all three datasets. In this sub-section, we explore general search and calibration settings to gain a first insight of the performance of \gls{bananascp}.
+
+For the pure \gls{bananas}, we follow the best settings reported in \cite{white2019bananas}, using an ensemble of 5 \gls{fnns}, along with  \gls{its} and a mutation strategy that mutates the top 2 performing architectures for computing acquisition scores. For the variant that incorporates SCP calibration, we evaluate under different configurations: number of the initial model evaluations (either 10 or 30), split rate representing the fraction of data points assigned into the calibration set (either 0.3 or 0.5), and number of quantiles (10). For example, specifying 20 quantile levels yields a percentile vector with 20 values (0, 0.05, 0.1, ..., 0.95, 1). After applying a filtering step to remove extreme percentiles, the remaining values are used as mis-coverage rates when performing conformal prediction, and the resulting calibrated quantiles form the basis for a linearly-interpolated distribution. Unless otherwise specified, 10 quantiles are used throughout the experiments, since results on both the synthetic dataset (Table \ref{table:distest}) and CIFAR10 (Appendix \ref{appendix: b}) indicate that 10 quantiles yield more robust estimates than 20 when the dataset is relatively small with up to 150 data points.
+
+Figure \ref{} presents the search performances for strategies with different initial dataset sizes (top) and train-calibration splitting ratios (bottom). Search performance, measured by validation accuracy of the best architecture found so far, and calibration error \gls{rmsce} are reported at each epoch. Specifically, the line denotes the average over 50 trials, and the surrounding band represents the variation, corresponding to one standard deviation. 
+
+
+\subsection{Acquisition Function}
+Next, we explore the impact of acquisition functions using the best search and calibration setting found in Section \ref{sec: sc_setting}.
+
+
+\subsection{Acquisition Search Strategy}
+Experiments on the acquisition function presented in the previous sub-section su
 
 
 % chapter 6
@@ -192,6 +206,7 @@ The datasets used for experiments and algorithm evaluations are sourced from the
 In case of access or permission issues to the private repository, please reach out at: chechen@mail.uni-mannheim.de.
 
 \chapter{Additional Experimental Results}
+\label{appendix: b}
 
 
 % Declare non-Plagiarism and independent work

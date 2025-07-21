@@ -150,10 +150,10 @@ The hyperparameters are tuned progressively. In the first stage, we focus on con
 We borrow the implementation of \gls{bananas} from NASLib \footnote{https://github.com/automl/NASLib}, which is a modern Python-based framework for \gls{nas} developed by the AutoML Freiburg group. NASLib is well modularized, enabling a relatively easy integration of the new calibration block. In NASLib, each \gls{nas} algorithm typically comprises a \textit{trainer} for initiating search and evaluation iterations and an \textit{optimizer} for encapsulating specific search logics, including an inherent \textit{predictor} if applicable. Specifically, \textit{trainer} serves as a generic engine and is shared across all NAS algorithms. All predictors should conform to a particular interface so that they can be invoked inside the \textit{trainer}. 
 
 \vspace{0.2em}
-Building on this structure, we add new modules for the quantile regressor, the distribution estimators (including compatible acquisition functions), and the calibration algorithms. We leverage the existing implementation for \textit{trainer} with mild modifications on the export functionalities, aiming for a better access to intermediate outputs, such as the estimated distribution at each iteration. In addition, we also provide tools for analyzing and interpreting the experimental resulst.
+Building on this structure, we add new modules for constructing the \gls{bananascp} framework, including a quantile regressor, distribution estimators (along with the compatible acquisition functions), and the calibration algorithms. We leverage the existing implementation for \textit{trainer} with mild modifications on the export functionalities, aiming for a better access to intermediate outputs, such as the estimated distribution at each iteration. In addition, we also provide tools for analyzing and interpreting the experimental results.
 
 % chapter 5
-\chapter{Results}
+\chapter{Experiment Results}
 This chapter describes the performance of the methods presented in Chapter \ref{ch3} applied under the experimental setups described in Chapter \ref{ch4}.
 
 \section{Baseline}

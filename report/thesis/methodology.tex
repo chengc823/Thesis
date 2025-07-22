@@ -1,9 +1,6 @@
 \chapter{Methodology}
 \label{ch3}
-Despite of its provable strength, \gls{bananas} assumes a Gaussian distribution for measuring uncertainty. However, this assumption does not necessarily hold in real world. To mitigate the potential limitations caused by inaccurate uncertainty estimates, this work proposes a new framework that integrates a conformal prediction-based uncertainty calibration process into \gls{bananas} in an online setting. 
-
-An algorithm outlining the overall procedure of \gls{bananascp} is presented in Section \ref{sec:overview}, followed by detailed descriptions of each methodological step. Section \ref{sec:cp} presents different conformal predictions algorithms to be explored. Next in Section \ref{sec:distest}, methods for the estimation and evaluation of the conditional distribution of each candidate architecture are discussed. Finally, in Section \ref{sec:acq} we introduce how the calibrated distribution can be combined with different acquisition functions and acquisition search strategies in the Bayesian optimization process.
-
+Despite of its provable strength, \gls{bananas} assumes a Gaussian distribution for measuring uncertainty. However, this assumption does not necessarily hold in real world. To mitigate the potential limitations caused by inaccurate uncertainty estimates, this work proposes a new framework, \gls{bananascp}, that integrates a conformal prediction-based uncertainty calibration process into \gls{bananas} in an online setting. To begin, we present an algorithm outlining the overall procedure of \gls{bananascp} in Section \ref{sec:overview}, and give detailed descriptions of each methodological step in the following sections. 
 
 \section{The BANANAS--CP Framework}
 \label{sec:overview}
@@ -75,6 +72,7 @@ Next, as in the standard  Bayesian optimization process, the acquisition functio
 \section{Uncertainty Calibration Algorithms}
 \label{sec:cp}
 As reviewed in Section \ref{sec: reviewCP}, numerous conformal prediction algorithms have been proposed in recent research. This work identifies several approaches applicable in \gls{nas} for building a calibration set and computing conformity scores. This section provides an overview of these splitting strategies, as well as the conformity scoring functions that are commonly used for regression problems.
+
 \subsection{Split Conformal Prediction}
 \label{sec:scp}
 To begin, a natural choice for a baseline calibration strategy is the \gls{scp}. In this section, we start by introducing the standard \gls{scp} procedure, then proceed with the adaptions required to incorporate it into the \gls{bananascp} framework. 
@@ -100,7 +98,7 @@ Implementation steps of \gls{scp} are summarized in Algorithm \ref{alg:SCP}. Ima
 \end{algorithm}
 
 In this work, we explore \gls{scp} in combination with different prediction algorithms. First, we follow the settings in \gls{bananas} and use an ensemble of five \gls{fnns} as the underlying surrogate model. In this case, note that the bounds of the prediction set as identified in Algorithm \ref{alg:SCP} should not be simply interpreted as the quantile values of a distribution, since the prediction algorithm does not directly model the $\tau$-quantile of the variable Y, i.e., ${Q_Y(\tau)= F_{Y}^{-1}(\tau) = \inf \left\{y\colon F_{Y}(y)\geq \tau\}$, with $\tau \in [0, 1]}$ denoting a quantile level and $F_Y$ its cumulative distribution function. Thus, the ensemble predictor must be used in conjunction with a valid distribution assumption to obtain valid quantile values. Motivated by the goal of achieving a completely distribution-agnostic solution, we next replace the ensemble model with a quantile regressor that directly models the quantiles of a distribution. In the remainder of this section, we discuss the configurations designated for each prediction algorithm. 
-\vspace{0.7em}
+\vspace{0.5em}
 \begin{description}[leftmargin=0cm, listparindent=\parindent]
 	\item [Ensemble Predictor] Following the settings in the original \gls{bananas}, an ensemble by default consists of five neural networks, where each neural network is a fully-connected multi-layer perceptron with 20 layers of width 20. The neural networks are trained by minimizing the mean absolute error (MAE), using the Adam optimizer with a learning rate of 0.01. In parallel to \gls{bananas}, we assume that the validation accuracy of each unseen candidate architecture $a$ follows a Gaussian distribution, which is parameterized by the predictive mean ($\hat{\mu}$) and standard deviation ($\hat{\sigma}$) provided by the ensemble model, as demonstrated in equation \ref{eq:ensemble_gaussian}. For a specific significance level $\alpha$ (suppose $\alpha<0.5$), the central quantile interval can be written as:
 		\vspace{0.7em}
@@ -240,11 +238,11 @@ Implementation of \gls{btcp} is shown in Algorithm \ref{alg:BtCP}. Noteably, if 
 
 \section{Distribution Estimation}
 \label{sec:distest}
-As described in Section \ref{sec:bananas}, Bayesian optimization generally relies on a continuous posterior distribution at $X=x$ to obtain the acquisition score. Here, we denote by $F_t(x)$ the \gls{cdf} of the posterior distribution of the data point $x$ at step $t$. In the context of NAS, where the target variable is assumed to be continuous and real-valued, the distribution can be represented by the inverse of its \gls{cdf}, or quantile function without loss of generality, i.e. $Q_{t}(x) = F^{-1}_{t}(x)$. 
+As described in Section \ref{sec:bananas}, Bayesian optimization generally relies on a continuous posterior distribution at $X=x$ to obtain the acquisition score. In this section, we discuss how the conditional distribution is estimated and evaluated. Here, we denote by $F_t(x)$ the \gls{cdf} of the posterior distribution of the data point $x$ at step $t$. In the context of NAS, where the target variable is assumed to be continuous and real-valued, the distribution can be represented by the inverse of its \gls{cdf}, or quantile function without loss of generality, i.e. $Q_{t}(x) = F^{-1}_{t}(x)$. 
 
+\vspace{0.3em}
 In the \gls{bananascp} framework, as outlined in Algorithm \ref{alg:OCP}, we are able to generate calibrated quantile estimates for a finite set of discrete quantile levels. Intuitively, assuming the quantiles estimates are accurate, increasing the granularity of quantile levels should lead to a more accurate approximation of the underlying continuous distribution. However, it is computationally prohibited to estimate an infinite number of quantiles in practice, especially with significantly limited training data. Therefore, we propose an approach for constructing a continuous distribution from discrete quantile estimates with mild assumption. Specifically, the distribution estimator is defined as:
 
-\vspace{0.5em}
 \begin{description}[leftmargin=0cm, listparindent=\parindent]
 \item[Definition] Let $\{q_i\}_{i=1}^n$ be a quantile of percentile levels such that $0<q_1<q_2, ..., <q_n<1$, and $\{v_i\}_{i=1}^n$ are the corresponding quantiles, i.e., $F^{-1}(q_i)=v_i$, the empirical \gls{cdf} of the distributions $\hat{F}$ is constructed by applying linear interpolation between adjacent quantiles. Consequently, the \gls{pdf} of a specific interval $\left(v_a, v_b\right), a,b \in \{1,..., n\}$ and $a<b$ is:
 \vspace{0.5em}
@@ -259,7 +257,7 @@ Table \ref{table:distest} reports the performance of three distribution estimato
 
 Having considered the behaviors of the various acquisition functions employed in the real \gls{bananascp} application (see Section \ref{sec:acq}), we additionally present several visualizations based on a synthetic dataset with 150 samples (Figure \ref{fig:distest10}, Figure \ref{fig:distest20}) to confirm the shapes of the estimated distributions are not significantly deviated from that of the true underlying distribution, thereby assuring the effectiveness of the acquisition functions.
 
-\vspace{1em}
+\vspace{0.5em}
 \item[Evaluation Metrics] Within the \gls{bananascp} framework, the calibration quality at a specific epoch is measured by the \gls{rmsce} \cite{pmlr-v80-kuleshov18a}. Suppose $\hat{F}^{-1}_t$ is the \gls{cdf} of the distribution estimated at the  $t$-th step and $y_t$ is the true value revealed after the estimation, consider a sequence of $\{(\hat{F}^{-1}_t, y_t)\}_{t=1}^T$ that represents a neural architecture search process after $T$ epochs, the calibration error at the $T$-th epoch is defined as:
 	\vspace{0.5em}
 	\begin{equation}
@@ -408,6 +406,7 @@ Having considered the behaviors of the various acquisition functions employed in
 \label{sec:acq}
 Finally, we describe the acquisition functions and the aquisition optimization strategies used within the \gls{bananascp} framework.
 
+\vspace{0.1em}
 \subsection{Acquisition Functions}
 We consider four commonly used acquisition functions. Consistent with the notation in the previous sections, $\hat{f}(a)$ is the predicted performance of architecture $a$ and $\hat{F}_a$ represents the \gls{cdf} of the estimated distribution of $f(a)$. Then, depending on the acquisition function used, the specific acquisition score can be calculated by: 
 
@@ -418,7 +417,7 @@ We consider four commonly used acquisition functions. Consistent with the notati
 \item[\gls{ei}:] The expected value of improvements can be written as $\mathbb{E}[\max(0,  f(a)- f_{max}})]$, with $f_{max}$ being the highest model performance ever observed. 
 \end{description}
 
-\vspace{0.3em}
+\vspace{0.1em}
 \subsection{Acquisition Optimization Strategy}
 In parallel to the settings in \cite{white2019bananas} (see Section \ref{sec:bananas}), we compare three different approaches for constructing a set with 100 \footnote{ We have conducted preliminary experiments using 1,000 candidate samples as well. The results indicate that increasing the sample size does not lead to significant improvements in performance. Considering the size of the search space (NAS-Bench-201), and the required computational time, the candidate set size is fixed at 100 for all subsequent primary experiments.} candidates in order to compute the acquisition scores. The motivations and the  specific approaches are described below:
  

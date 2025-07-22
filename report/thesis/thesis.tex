@@ -106,7 +106,7 @@ NAS-Bench-201 is a cell-based architecture search space. Each cell is expressed 
 		\centering
 		\includegraphics[scale=0.48]{figs/nas_bench_201.png}
 		\refstepcounter{figure}
-   		\addcontentsline{lof}{figure}{Figure~\thefigure: Illustration of the overall network architecture structure in NAS-Bench-201}
+   		\addcontentsline{lof}{figure}{Figure~\thefigure: Illustration of the Overall Network Architecture Structure in NAS-Bench-201}
 		\label{fig: nasbench201}
 			\parbox{\linewidth}{
 	 		\vspace{0.7em}
@@ -132,7 +132,7 @@ Since its introduction, NAS-Bench-201 has contributed to the \gls{nas} community
 NAS-Bench-201 also serves as a foundation for extending benchmark datasets. In particualr, \cite{jung2023neural} evaluates all 6,466 non-isomorphic architectures in the space for robustness against adversarial attacks and common image corruptions, and introduces a dataset that includes both clean and robust accuracy values. This dataset covers adversarial attacks and corruptions of different severity levels, enabling a systematical study on how architectural variations impact robustness.
 
 \vspace{0.2em}
-In this work, we leverage the API offered by NAS-Bench-201 and directly query the pre-computed train and test metrics of architectures \footnote{Performance metrics for training and testing on the three datasets are downloaded from NASLib: \ulr{https://github.com/automl/NASLib/tree/Develop}}. Validation accuracies on each of the three datasets are illustrated in Figure \ref{fig: val_acc_201}. Notably, NAS-Bench-201 also provides several analytical metrics, such as model rankings and accuracy correlations across the three datasets, which further guide our post-hoc analysis of the experimental results.
+In this work, we leverage the API offered by NAS-Bench-201 and directly query the pre-computed train and validation metrics of architectures \footnote{Performance metrics for training and testing on the three datasets are downloaded from NASLib: \ulr{https://github.com/automl/NASLib/tree/Develop}}. Distributions of architecture validation accuracies on each of the three datasets are illustrated in Figure \ref{fig: val_acc_201}. Notably, NAS-Bench-201 also provides several analytical metrics, such as model rankings and accuracy correlations across the three datasets, which further guide our post-hoc analysis of the experimental results.
 
 \begin{figure}[H]
 	\centering
@@ -173,13 +173,13 @@ This chapter presents the performance of the methods introduced in Chapter \ref{
 \label{sec: sc_setting}
 To establish baseline performance, we run experiments for both the original \gls{bananas} method and the approach incorporating \gls{scp} with an ensemble predictor on all three datasets. In this sub-section, we explore general search and calibration settings to gain a first insight of the performance of \gls{bananascp}.
 
-For the pure \gls{bananas}, we follow the best settings reported in \cite{white2019bananas}, using an ensemble of 5 \gls{fnns}, along with  \gls{its} and a mutation strategy that mutates the top 2 performing architectures for computing acquisition scores. For the variant that incorporates SCP calibration, we evaluate under different configurations: number of the initial model evaluations (either 10 or 30), split rate representing the fraction of data points assigned into the calibration set (either 0.3 or 0.5), and number of quantiles (10). For example, specifying 20 quantile levels yields a percentile vector with 20 values (0, 0.05, 0.1, ..., 0.95, 1). After applying a filtering step to remove extreme percentiles, the remaining values are used as mis-coverage rates when performing conformal prediction, and the resulting calibrated quantiles form the basis for a linearly-interpolated distribution. Unless otherwise specified, 10 quantiles are used throughout the experiments, since results on both the synthetic dataset (Table \ref{table:distest}) and CIFAR10 (Appendix \ref{appendix: b}) indicate that 10 quantiles yield more robust estimates than 20 when the dataset is relatively small with up to 150 data points.
+For the pure \gls{bananas}, we follow the best settings reported in \cite{white2019bananas}, using an ensemble of 5 \gls{fnns} with 10 initial model evaluations, along with \gls{its} and a mutation strategy that mutates the top 2 performing architectures for computing acquisition scores. For the variant that incorporates SCP calibration, we evaluate the search performance under different configurations: number of the initial model evaluations (either 10 or 30), split rate representing the fraction of data points assigned into the calibration set (either 0.3 or 0.5), and number of quantiles (10). For example, specifying 20 quantile levels yields a percentile vector with 20 values [0, 0.05, 0.1, ..., 0.95, 1]. After applying a filtering step to remove extreme percentiles, the remaining values are used as mis-coverage rates when performing conformal prediction, and the resulting calibrated quantiles form the basis for fitting a linearly-interpolated distribution. Unless otherwise specified, 10 quantiles are used throughout the experiments, since results on both the synthetic dataset (Table \ref{table:distest}) and CIFAR10 (Appendix \ref{appendix: b}) indicate that 10 quantiles yield more robust estimates than 20 when the dataset is relatively small with up to 150 data points.
 
-Figure \ref{} presents the search performances for strategies with different initial dataset sizes (top) and train-calibration splitting ratios (bottom). Search performance, measured by validation accuracy of the best architecture found so far, and calibration error \gls{rmsce} are reported at each epoch. Specifically, the line denotes the average over 50 trials, and the surrounding band represents the variation, corresponding to one standard deviation. 
+Figure \ref{} and Figure \ref{} present the performances for search strategies with different initial dataset sizes when the train-calibration splitting ratio is set at 0.3 and 0.5, respectively. Specifically, search performance, measured by validation accuracy of the best architecture ever found, and calibration error \gls{rmsce} are reported at each epoch. The line denotes the average over 50 trials, and the surrounding band represents the variation, corresponding to one standard deviation. 
 
 
 \subsection{Acquisition Function}
-Next, we explore the impact of acquisition functions using the best search and calibration setting found in Section \ref{sec: sc_setting}.
+Next, we explore the impact of acquisition functions using the best search and calibration settings reported in Section \ref{sec: sc_setting}.
 
 
 \subsection{Acquisition Search Strategy}

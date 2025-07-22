@@ -129,25 +129,25 @@ In this work, we explore \gls{scp} in combination with different prediction algo
 	\item [Quantile Regressor] We now explain how a quantile regressor can be leveraged to build a probabilistic surrogate for Bayesian optimization. We follow the methods established previously in \cite{romano2019conformalized, salinas2023optimizing}.
 	
 	
-	We start with a brief introduction into the quantile regression \cite{koenker1978regression}. Suppose $(x, y) \sim F$ denote data drawn from a joint distribution that is characterized by its cumulative distribution function $F$, the aim of the conditional quantile regression is to estimate a given quantile of the conditional distribution of $Y$ given $X=x$. The conditional quantile function for $\alpha$-quantile is:
+	We start with a brief introduction into the quantile regression \cite{koenker1978regression}. Suppose $(x, y) \sim F$ denote data drawn from a joint distribution that is characterized by its cumulative distribution function $F$, the aim of the conditional quantile regression is to estimate a given quantile of the conditional distribution of $Y$ given $X=x$. The conditional quantile function for $\tau$-quantile is:
 		\begin{equation}
-			Q(\alpha) = \inf \left\{ y \in \mathbb{R} : \mathbb{P}(Y \leq y \mid X) \geq \alpha \right\}
+			Q(\tau) = \inf \left\{ y \in \mathbb{R} : \mathbb{P}(Y \leq y \mid X) \geq \tau \right\}
 		\label{quantilefunc}
 		\end{equation}
 		
 	\noindent and can be estimated by minimizing the Pinball loss on the training data \cite{koenker1978regression}:
 		\begin{equation}
-			\ell_\alpha(y, \hat{y}) = 
+			\ell_\tau(y, \hat{y}) = 
 			\begin{cases}
-			\alpha (y - \hat{y}), & \text{if } y \geq \hat{y} \\
-			(1 - \alpha)(\hat{y} - y), & \text{otherwise}
+			\tau (y - \hat{y}), & \text{if } y \geq \hat{y} \\
+			(1 - \tau)(\hat{y} - y), & \text{otherwise}
 			\end{cases}
 		\label{pinballloss}
 		\end{equation}
 		
-	\noindent where $\hat{y}$ is the predicted quantile value.	 As illustrated in Figure \ref{fig:CQR}, the Pinball loss is asymmetric and the intuition behind is that under-estimate and over-estimate receive different penalties across quantiles. 	For instance, if $\alpha=0.9$, then we would expect that empirically 90\% of observations should fall below the prediction. In this case, the loss function places a higher penalty for underestimate.	
+	\noindent where $\hat{y}$ is the predicted quantile value.	 As illustrated in Figure \ref{fig:CQR}, the Pinball loss is asymmetric and the intuition behind is that under-estimate and over-estimate receive different penalties across quantiles. 	For instance, if $\tau=0.9$, then we would expect that empirically 90\% of observations should fall below the prediction. In this case, the loss function places a higher penalty for underestimate.	
 	
-	Quantile regression in the \gls{bananascp} framework is implemented by training a dedicated neural network for each quantile level $q_i$ in the array $q$ as defined in Algorithm \ref{alg:OCP} using the corresponding Pinball loss $\ell_{q_i}(y, \hat{y})$. 
+	Quantile regression in the \gls{bananascp} framework is implemented by training a dedicated neural network for each quantile level $\tau_j$ in the quantile array as defined in Algorithm \ref{alg:OCP} using the corresponding Pinball loss $\ell_{\tau_j}(y, \hat{y})$. 
 	
 	 While quantile regression can model the shape of any continuous distribution given enough data, the predictions are not guaranteed to be well calibrated in practice. In fact, it is not uncommon that quantile regression generates non-monotonic predictions, a phenomenon referred as quantile crossing. To address this issue, we apply a post-hoc calibration upon the predicted quantiles using the \gls{cqr} from \cite{romano2019conformalized}. This method consists of a novel conformity score tailored for quantile estimation and the key idea of calibration is to apply quantile-aware offsets, which are computed on the calibration set, on the original predicted quantiles. 
 		 
@@ -163,12 +163,12 @@ In this work, we explore \gls{scp} in combination with different prediction algo
 	 A close work is \cite{salinas2023optimizing} that employs \gls{cqr} to obtain quantiles with robust coverage during hyperparameter tuning via Bayesian optimization. Specifically, the calibrated quantiles are used to select the candidate for the next search, where a set of candidates is first sampled uniformly at random, and then for each of those candidates a random quantile is simply picked and is treated as the acquisition score (Figure \ref{fig:CQR}). We follow their notation and interpretation in defining the conformity score for a quantile surrogate:  
 	 
 	 \begin{equation}
-		E_i = \max \big\{\hat{q}_{\alpha_j}(x_i) - y_i, \; y_i - \hat{q}_{1-\alpha_j}(x_i) \big\}
+		E_i = \max \big\{\hat{q}_{\tau_j}(x_i) - y_i, \; y_i - \hat{q}_{1-\tau_j}(x_i) \big\}
 	 \vspace{0.7em}
 	 \label{scoreCQR}
 	 \end{equation}
 	 
-	 \noindent where $\hat{q}_{\alpha}(x_i)$ denotes the predicted $\alpha$-quantile at $x_i$. Note that the sign of the score is positive when the target $y_i$ is outside of the interval and negative when the target falls inside the predicted interval. This allows the conformity score to account for both overcoverage and undercoverage cases. In addition, the score amplitude always measures the distance to the closer quantile between $\hat{q}_{\alpha_j}(x_i)$ and $\hat{q}_{1-\alpha_j}(x_i)$ \cite{romano2019conformalized, salinas2023optimizing}.	 
+	 \noindent where $\hat{q}_{\tau}(x_i)$ denotes the predicted $\tau$-quantile at $x_i$. Note that the sign of the score is positive when the target $y_i$ is outside of the interval and negative when the target falls inside the predicted interval. This allows the conformity score to account for both overcoverage and undercoverage cases. In addition, the score amplitude always measures the distance to the closer quantile between $\hat{q}_{\tau_j}(x_i)$ and $\hat{q}_{1-\tau_j}(x_i)$ \cite{romano2019conformalized, salinas2023optimizing}.	 
 
 \end{description}
 
@@ -179,7 +179,7 @@ Solving a NAS problem is usually computationally expensive, as each neural archi
 The \gls{cvcp} method is a natural extension of \gls{scp} and is first formally presented in  \cite{vovk2015cross}. At each step, the evaluated architectures are devided at random into $K$ folds. A dedicated surrogate model is trained on $K-1$ folds, while the remaining one is used as the calibration set to calculate the conformity scores. This process is repeated for $K$ times over each individual fold. Finally, conformity scores from all calibration folds are combined to form the overall calibration set, on which the quantile is computed to determine the calibration offset. For an unseen data point, the prediction is obtained by aggregating the predictions of the $K$ trained models, e.g., by taking the average of the model outputs.  Algorithm \ref{alg:CVCP} summarizes this procedure. 
 
 \vspace{1em}
-\begin{algorithm}[htbp]
+\begin{algorithm}[t]
   \caption{Conformal Prediction with Cross-validation}
   \label{alg:CVCP}
   \begin{algorithmic}[1]

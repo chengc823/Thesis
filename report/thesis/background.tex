@@ -119,15 +119,14 @@ Next, we return to the NAS framework "Bayesian optimization + neural predictor".
 	
 	\item [Neural Predictor] This item is about choosing an appropriate neural network for surrogate, which maps architecture encodings to the corresponding performances. To select the optimal neural predictor, several candidates are examined, include VAEs, GCNs, and FNNs with either adjacency matrix or path-based encoding. These predictors are first trained on a dataset, which is formed by randomly sampling a set of architectures and their corresponding validation accuracies from the search space, and then compared on holdout set. Among all tested neural predictors, FNNs with path encoding demonstrates the strongest performance.
 	 
-	\item [Uncertainty Estimation] Uncertainty estimates are required to form the probabilistic distribution. In particular, 
-		Bayesian neural networks (BNNs) and an ensemble of \gls{fnns} are investigated. For BNNs, the posterior distribution is inferred over the network weights. For \gls{fnns}, the predictive distribution is simply modeled as a Gaussian, parameterized by the mean and standard deviation of the ensemble base learners' predictions. The results show that an ensemble of even only 3 to 5 neural networks in general yields more reliable uncertainty estimates than BNNs.
+	\item [Uncertainty Estimation] Uncertainty estimates are required to form the probabilistic distribution. In particular, Bayesian neural networks (BNNs) and an ensemble of \gls{fnns} are investigated. For BNNs, the posterior distribution is inferred over the network weights. For \gls{fnns}, the predictive distribution is simply modeled as a Gaussian, parameterized by the mean and standard deviation of the ensemble base learners' predictions. The results show that an ensemble of even only 3 to 5 neural networks in general yields more reliable uncertainty estimates than BNNs.
 	
 	\item [Acquisition Function] In the experiments, five commonly used acquisition functions are examined: \gls{ts}, \gls{its}, \gls{ucb}, \gls{pi}, and \gls{ei}. Each function is adapted to the Gaussian assumption, thereby requiring only the mean and standard deviation estimates to compute the acquisition scores. The experiments show that overall \gls{its} yields the best performance among all the options, although the marginal outperformance is subtle. The results indicate that the acquisition function does not have as significant impact on the search performance as the other examined components in the framework.
 		
 	\item [Acquisition Optimization] In each iteration of the Bayesian optimization, the goal is to select a candidate from the search space that maximizes the acquisition score. Evaluating the acquisition function for every architecture available in the search space is computationally infeasible, therefore \cite{white2019bananas} proposes to create a set of 100 to 1000 candidates and then choose the architecture with the maximal acquisition score in this set. Specifically, \cite{white2019bananas} explores various approaches for creating this candidate set. The simplest and most natural way is to draw architectures at random. Consider that architectures close in edit distance to those used for training the surrogate model are likely to have more accurate estimates, an alternative is a mutation-based sampling approach, where the candidate set is created via local search by randomly modifying an operation or an edge of the best-performing architectures that have been evaluated so far. In additional, \cite{white2019bananas} also examines a hybrid approach that combines random search with mutation-based search. Their experiments show that the mutation-based approach outperforms its competitors and suggest it is better to search locally rather than globally.
 \end{description}}
 
-Finally, the best components found in the aforementioned analyses are transformed into the BANANAS algorithm, which composed of an ensemble of \gls{fnns} using the path encoding, and \gls{its} with a mutation strategy for acquisition (Figure \ref{fig: bananas}). Specifically, uncertainty is modeled with a Gaussian distribution.
+Finally, the best components found in the aforementioned analyses are transformed into the BANANAS algorithm. Considering its strength in both prediction and uncertainty quantification, an ensemble of \gls{fnns} using the path encoding is employed as the surrogate model and typically uncertainty is modeled as a Gaussian distribution. In addition, \gls{its} with a mutation strategy for acquisition (Figure \ref{fig: bananas}). 
 
 \begin{figure}[t]
 	\centering
@@ -143,7 +142,7 @@ Finally, the best components found in the aforementioned analyses are transforme
 \section{Uncertainty Quantification Methods}
 While \gls{bananas} employs a relatively simple method for uncertainty estimation, there are many commonly used \gls{uq} techniques that are generally more theoretically grounded and sophisticated. In this section, we review some of these \gls{uq} methods and explain the rationale for choosing \gls{cp} for the development of our approach. Despite not directly tied to this work, this thesis aspires to offer a comprehensive overview of common \gls{uq} techniques applied in deep learning.
 
-\gls{uq} is the science of quantitative characterization and estimation of uncertainties in both computational and real world applications. Formally, the source of uncertainty can be categorized into two types:
+Formally, \gls{uq} is the science of quantitative characterization and estimation of uncertainties in both computational and real world applications. The source of uncertainty can be categorized into two types:
 
 \begin{description}[leftmargin=0cm]
 \item[Aleatory Uncertainty:] also known as data uncertainty, refers to uncertainty that arises due to inherent noices or randomness in a system and can not be reduced. \item[Epistemic Uncertainty:] also known as model uncertainty, refers to uncertainty that arises due to lack of knowledge, and can be reduced by better modeling or collecting more data.
@@ -151,11 +150,11 @@ While \gls{bananas} employs a relatively simple method for uncertainty estimatio
 
 A family of methods for quantifying uncertainty directly model the full predictive distribution of the output, i.e., $p(y \mid x)$. One example is the Gaussian Process, which is typically parameterized by a kernel function and the predictive inference can be obtained in an analytical manner based on the observations. Another important example is the Bayesian Neural Network \cite{kendall2017uncertainties, neal1996bayesian}, in which each weight in the network is seen as a random variable rather than a single number. In practice, however, the posterior distributions over weights are intractable due to the integral operation and the high dimensionality. Therefore, the posterior can only be approximated using e.g.,  variational inference or Monte-Carlo sampling methods \cite{neal1996bayesian, springenberg2016bayesian}, both requiring multiple forward passes through the network. 
 
-Like the inference stage in BNNs, some methods also rely on aggregating statistics from sub-networks, such as Monte-Carlo Dropout \cite{gal2016dropout} and Deep Ensemble \cite{lakshminarayanan2017simple}. The idea of Monte-Carlo Dropout is to apply \textit{dropout}, a regularization technique often used for preventing overfitting during the training time by randomly deactivating neurons, also at the inference time. Specifically, the model run multiple times on the same input with stochastically deactivated neurons and thereby get  different predictions, which approximate the distribution of the output. Deep Ensemble involves using a network that outputs two values in the final layer, corresponding to the predicted mean $\mu(x)$ and the variance $\sigma^2(x)$, respectively. This neural network is typically trained by minimizing a custom loss function in which $\mu(x)$ and $\sigma^2(x)$ have opposing effects. To avoid overfitting and lower estimation variance, multiple instances of the neural network are initialized with different weights and trained independently. Then, the final estimates of $\mu(x)$ and $\sigma^2(x)$ are obtained by aggregating the predictions from all these sub-networks. 
+Like the inference stage in BNNs, some methods also rely on aggregating statistics from sub-networks, such as Monte-Carlo Dropout \cite{gal2016dropout} and Deep Ensemble \cite{lakshminarayanan2017simple}. The idea of Monte-Carlo Dropout is to apply \textit{dropout}, a regularization technique often used for preventing overfitting during the training time by randomly deactivating neurons, also at the inference time. Specifically, the model run multiple times on the same input with stochastically deactivated neurons and thereby get  different predictions, which are seen as the approximation to the distribution of the output. Deep Ensemble involves using a network that outputs two values in the final layer, corresponding to the predicted mean $\mu(x)$ and the variance $\sigma^2(x)$, respectively. This neural network is typically trained by minimizing a custom loss function in which $\mu(x)$ and $\sigma^2(x)$ have opposing effects. To avoid overfitting and lower estimation variance, multiple instances of the neural network are initialized with different weights and trained independently. Then, the final estimates of $\mu(x)$ and $\sigma^2(x)$ are obtained by aggregating the predictions from all these sub-networks. 
 
 Another popular approach is Quantile Regression (QR) \cite{koenker1978regression}. Instead of modeling the full distribution, QR only models a sequence of discrete quantiles of the output. We present QR with more details in Section \ref{sec:cp}. 
 
-However, these \gls{uq} techniques face several challenges in practice. Some methods require multiple forward propagations either during the training or inference time, such as BNNs, Deep Ensemble. This is in general computationally intensive and may cause the models difficult to scale and consequently limit their applications for real-time prediction or in an online setting. In addition, the inference quality of BNNs depends in if the prior of weights is correctly specified, which demands expertise and can potentially introduce human bias. On the other hand, some models are pre-trained and are only accessible via API, making intervening the training process practically infeasible \cite{mossina2024CVPR}. Moreover, pre-trained models developed using certain datasets may struggle to generalize across different domains or contexts. 
+However, these \gls{uq} techniques face several challenges in practice. Some methods require multiple forward propagations either during the training or inference time, such as BNNs, Deep Ensemble. This is in general computationally intensive and may cause the models difficult to scale and consequently limit their applications for real-time prediction or in an online setting. In addition, the inference quality of BNNs depends on if the prior of weights is correctly specified, which demands expertise and can potentially introduce human bias. On the other hand, some models are pre-trained and are only accessible via API, making intervening the training process practically infeasible \cite{mossina2024CVPR}. Moreover, pre-trained models developed using certain datasets may struggle to generalize across different domains or contexts. 
 
 \vspace{0.3cm}
 Post-hoc uncertainty calibration techniques can serve as an effective approach in the restricted scenarios described above. Instead of assessing and measuring uncertainties on the model level, calibration targets on adjusting a model's predicted probabilities to make the reported uncertainties better aligned with the actual likelihoods.
@@ -181,7 +180,7 @@ P(Z_1, \dots, Z_n) = P(Z_{\pi(1)}, \dots, Z_{\pi(n)})
 \newline
 
 \noindent
-\textbf{Definition (Conformal Prediction):}  Let \(B = \{(x_1, y_1), \dots, (x_n, y_n)\}\) be a bag of observed examples from an exchangeable joint distribution $\mathbb{P}_{X,Y}$, with $x_i \subset R^d$ representing some features and  $Y$ the target variable. Given a new unseen input \(x_{n+1}\), conformal prediction constructs a prediction region \( \mathcal{C}_n^\tau(x_{n+1}) \) using a \textit{conformity score function} such that
+\textbf{Definition (Conformal Prediction):}  Let \(B = \{(x_1, y_1), \dots, (x_n, y_n)\}\) be a bag of observed examples from an exchangeable joint distribution $\mathbb{P}_{X,Y}$, with $X \subset R^d$ representing some features and  $Y$ the target variable. Given a new unseen input \(x_{n+1}\), conformal prediction constructs a prediction region \( \mathcal{C}_n^\tau(x_{n+1}) \) using a \textit{conformity score function} such that
 \vspace{0.7em}
 
 \begin{equation}
@@ -196,9 +195,9 @@ where \( \tau \in (0, 1) \) is the predefined nominal mis-coverage rate. This pr
 \vspace{0.7em}
 \textbf{Conformity score function} is a real-valued function  measures how dissimilar the unseen example $x_{n+1}$ is compared to the existing examples in the bag $B$. Now generalizing this setting to a supervised learning framework, a predictive algorithm $f$ that maps features to the target variable naturally induces a conformity measure. Specifically, we denote $\hat{f}_n$ the predictor trained on the $n$ existing observations in the bag and $d(z_{n+1}, B), \; z_{n+1} = (x_{n+1}, y_{n+1})$ the conformity function, such that a higher value indicates a greater deviation of the new sample from the existing ones. When using $\hat{f}_n$ to generate a point prediction for $x_{n+1}$, since the prediction rule is learnt from examples in the bag, intuitively, the distance between the predicted value $\hat{f}_n(x_{n+1})$ and the true value $y_{n+1}$ informs how different $z_{n+1}$ is compared to the rest examples in the bag. With a conformity score function of this kind, the prediction set is constructed by collecting all values that lie within a certain distance from the true value, i.e., all values such that $d(\cdot, B)$ smaller than a threshold.
 
-\begin{figure}[htbp]
+\begin{figure}[H]
 	\centering
-	\includegraphics[scale=0.4]{figs/cp_symmetry.png}
+	\includegraphics[scale=0.35]{figs/cp_symmetry.png}
 	\refstepcounter{figure}
    	\addcontentsline{lof}{figure}{Figure~\thefigure: Illustration of Symmetrical Data}
 	\label{fig: cpsymmetry}
@@ -220,8 +219,6 @@ An important intuition behind selecting the threshold that eventually defines th
 \noindent
 \textbf{Finite-sample Validity} Note that the coverage guarantee provided by the \gls{cp} framework is marginal, meaning it holds on average over all data points. This is a significantly weaker requirement than the conditional coverage, which requires the guarantee to hold for each individual input (Figure \ref{fig: coverage}). Nevertheless, \gls{cp} remains a powerful tool for uncertainty quantification, because the finite-sample coverage is valid regardless of the size of the observations bag or the choice made for the underlying prediction algorithm or the conformity score function. Under the distance interpretation presented earlier, a smaller score indicates that the new sample conforms more closely with the existing observations. In such case, the function is also referred as a negatively-oriented score and, to be precise, it is actually a non-conformity measure. A positively-oriented one also works in practice, provided with correct modifications. 
 
-Although coverage is guaranteed for any conformity scoring function, this scoring method is actually an important engineering decision and has significant impact on the effectiveness of the constructed prediction set. Imagine a classification problem, if we produce a set that contains all possible classes, then surely the true label is covered by the set. However, such prediction set is neither informational nor actionable, offering little value in application. This concern naturally introduces a second evaluation criterion for \gls{cp}: while ensuring coverage guarantees, ideally the yielded prediction set should be as compact as possible.
-
 \begin{figure}[htbp]
 	\centering
 	\includegraphics[scale=0.28]{figs/overview_coverage.png}
@@ -233,10 +230,12 @@ Although coverage is guaranteed for any conformity scoring function, this scorin
  	{\small \textit{Figure \ref{fig: coverage}:} Example of Different Coverage Types}}
 \end{figure}
 
-\vspace{1.5em}
-\noindent \textbf{A Link to Hypothesis Testing} It is noticeable that \gls{cp} exhibits a couple of structural similarities to hypothesis testing, which is a fundamental tool in statistical inference and perhaps sounds more familiar to most ears. For example, both methods involves producing an interval and relying on a certain threshold to make decisions. In fact, these terms are often used interchangeably in many research work. This motivates us to seek an interpretation of the \gls{cp} framework through the hypothesis testing perspective, such that we gain a deeper and clearer understanding of \gls{cp}. \vspace{1em}
+Although coverage is guaranteed for any conformity scoring function, this scoring method is actually an important engineering decision and has significant impact on the effectiveness of the constructed prediction set. Imagine a classification problem, if we produce a set that contains all possible classes, then surely the true label is covered by the set. However, such prediction set is neither informational nor actionable, offering little value in application. This concern naturally introduces a second evaluation criterion for \gls{cp}: while ensuring coverage guarantees, ideally the yielded prediction set should be as compact as possible.
 
-\begin{table}[h]
+\vspace{1.5em}
+\noindent \textbf{A Link to Hypothesis Testing} It is noticeable that \gls{cp} exhibits a couple of structural similarities to hypothesis testing, which is a fundamental tool in statistical inference and perhaps sounds more familiar to most ears. For example, both methods involves producing an interval and relying on a certain threshold to make decisions. In fact, these terms are often used interchangeably in many research work. This motivates us to seek an interpretation of the \gls{cp} framework through the hypothesis testing perspective, such that we gain a deeper and clearer understanding of \gls{cp}.
+
+\begin{table}[t]
     \centering
     \refstepcounter{table}
    	\addcontentsline{lot}{table}{Table~\thetable: Comparison between Conformal Prediction and Hypothesis Testing}
@@ -253,23 +252,22 @@ Although coverage is guaranteed for any conformity scoring function, this scorin
     \hline
     \textbf{Decision rule} & compare the conformity score of a data point against the quantile value & compare $p$-value, which is an empirical measure, to the significance level \\ 
     \hline
-	\textbf{Output} & prediction interval offering marginal coverage probability $1 - \tau$ & confidence interval that contains the true parameter value with probability ($1 - \alpha$)  \\
+	\textbf{Output} & prediction interval offering marginal coverage with probability $1 - \tau$ & confidence interval that contains the true parameter value with probability $1 - \alpha$  \\
 	\hline        		
     \end{tabular}
     \label{tab:cpht_comparison}
 \end{table}
-	 
-\vspace{0.5em} 	  	
+	  	
 Both methods take a predefined value ranging from 0 to 1 as input. In the context of \gls{cp}, this value is often interpreted as mis-coverage rate or error rate, referring to the probability that the prediction region fails to cover the true value. The corresponding concept in hypothesis testing is the significance level, referring to the probability of rejecting the null hypothesis when it is actually true. Table \ref{tab:cpht_comparison} offers a summary of the terms used in \gls{cp} alongside with their parallel in hypothesis testing.
 
-Intuitively, we can think \gls{cp} as running a sequence of hypothesis tests for a given new point $x_{n+1}$, with each testing a candidate value for $y_{n+1}$. The hypotheses are as: \\
+Intuitively, we can think \gls{cp} as running a sequence of hypothesis tests for a given new point $x_{n+1}$, with each testing a candidate value for $y_{n+1}$, denoted as $\tilde{y}$. Hypotheses are defined as: \\
 
 \vspace{-0.3em}
-\indent $H_0$: The new example $(x_{n+1}, y)$ conforms to the existing observations. \\
-\indent	$H_1$: The new example $(x_{n+1}, y)$ does not conform to the existing observations. \\
+\indent $H_0$: The new example $(x_{n+1}, \; \tilde{y})$ conforms to the existing observations. \\
+\indent	$H_1$: The new example $(x_{n+1}, \; \tilde{y})$ does not conform to the existing observations. \\
 \vspace{-0.3em}
 
-\noindent In this context, the fraction of conformity scores that is larger than that for $(x_{n+1}, y)$, or equivalently, the complement of the quantile of the conformity score for $(x_{n+1}, y)$, can be seen as a $p$-value. If the $p$-value exceeds the predefined significance level, we fail to reject the null hypothesis, and consequently, this candidate $y$ is included in the prediction set. In fact, this interpretation from the hypothesis testing perspective reflects the core idea of the approach known as full conformal prediction, which we formally introduce in the following section.
+\noindent After obtaining conformity scores for all $n+1$ data points, in this context, the fraction of conformity scores that is larger than that for $(x_{n+1}, \tilde{y})$, or equivalently, the complement of the quantile of the conformity score for $(x_{n+1}, \tilde{y})$, can be seen as a $p$-value. If the $p$-value exceeds the predefined significance level, we fail to reject the null hypothesis, and consequently, this candidate $\tilde{y}$ is included in the prediction set. In fact, this interpretation from the hypothesis testing perspective reflects the core idea of the approach known as full conformal prediction, which we formally introduce in the following section.
 
 \subsection{Full Conformal Prediction}
 In fact, conformal prediction is originally designed for a transductive setting, in which the prediction for a test point is generated using the full dataset available at the inference time \cite{gammerman1998learning}. Hence, this transductive \gls{cp} framework is also known as \gls{fcp}. Typically, new observations are revealed sequentially, which means, after the prediction is generated for a test point, its true value is observed before the next prediction is made. 

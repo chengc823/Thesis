@@ -132,7 +132,17 @@ Since its introduction, NAS-Bench-201 has contributed to the \gls{nas} community
 NAS-Bench-201 also serves as a foundation for extending benchmark datasets. In particualr, \cite{jung2023neural} evaluates all 6,466 non-isomorphic architectures in the space for robustness against adversarial attacks and common image corruptions, and introduces a dataset that includes both clean and robust accuracy values. This dataset covers adversarial attacks and corruptions of different severity levels, enabling a systematical study on how architectural variations impact robustness.
 
 \vspace{0.2em}
-In this work, we leverage the API offered by NAS-Bench-201 and directly query the pre-computed train and test metrics of architectures \footnote{Performance metrics for training and testing on the three datasets are downloaded from NASLib: \ulr{https://github.com/automl/NASLib/tree/Develop}}. Notably, NAS-Bench-201 also provides several analytical metrics, such as model rankings and accuracy correlations across the three datasets, which further guide our post-hoc analysis of the experimental results.
+In this work, we leverage the API offered by NAS-Bench-201 and directly query the pre-computed train and test metrics of architectures \footnote{Performance metrics for training and testing on the three datasets are downloaded from NASLib: \ulr{https://github.com/automl/NASLib/tree/Develop}}. Validation accuracies on each of the three datasets are illustrated in Figure \ref{fig: val_acc_201}. Notably, NAS-Bench-201 also provides several analytical metrics, such as model rankings and accuracy correlations across the three datasets, which further guide our post-hoc analysis of the experimental results.
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.38]{figs/nas_bench_201_val_acc.pdf}
+	\refstepcounter{figure}
+   	\addcontentsline{lof}{figure}{Figure~\thefigure: Distribution of Validation Accuracies of Architectures in NAS-Bench-201}
+	\label{fig: val_acc_201}
+	\\
+ 	{\small \textit{Figure \ref{fig: val_acc_201}:} Distribution of validation accuracies of architectures in NAS-Bench-201}}
+\end{figure}
 
 
 \section{Setups and Implementation}

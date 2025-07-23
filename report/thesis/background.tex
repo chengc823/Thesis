@@ -4,9 +4,7 @@ This chapter offers the technical background related to the research question of
 \section{Neural Architecture Search}
 \subsection{Overview}
 \label{sec: nas}
-In the recent decades, deep learning has achieved remarkable success in a variety of areas, including computer vision, natural language understanding, and machine translation. This success is partly attributed to the carefully designed neural network architectures. With the rising demand for efficient architecture engineering in complex domains, \gls{nas} has emerged as a technique for automating the design of neural architectures for specific tasks.
- 
-\gls{nas} has been a rapidly progressing research domain in the past years. Since the seminal work that achieves competitive performance on CIFAR-10 \cite{zoph2017neural}, numerous \gls{nas} algorithms built on different techniques have been proposed. In general, \gls{nas} algorithms can be characterized by three key dimensions: search space, search strategy, and performance evaluation strategy \cite{elsken2019neural, white2023survey, wistuba2019survey}. Figure \ref{fig: nas_overview} illustrates a typical architetcture search process.
+\gls{nas}, the process of automating the neural architecture design, has been a rapidly progressing research domain in the past years. Since the seminal work that achieves competitive performance on CIFAR-10 \cite{zoph2017neural}, numerous \gls{nas} algorithms built on different techniques have been proposed. In general, \gls{nas} algorithms can be characterized by three key dimensions: search space, search strategy, and performance evaluation strategy \cite{elsken2019neural, white2023survey, wistuba2019survey}. Figure \ref{fig: nas_overview} illustrates a typical architetcture search process.
 
 
 \begin{figure}[htbp]
@@ -16,13 +14,16 @@ In the recent decades, deep learning has achieved remarkable success in a variet
    	\addcontentsline{lof}{figure}{Figure~\thefigure: Overview of Neural Architecture Search}
 	\label{fig: nas_overview}
 	\parbox{\linewidth}{
-	 \vspace{0.5em}
+	 \vspace{1em}
  	 {\small \textit{Figure \ref{fig: nas_overview}:} Overview of an architecture search process. The search strategy iteratively selects architectures from a predefined search space $\mathcal{A}$. The performance estimation strategy evaluates the model performance on the target dataset and then communicates back the performance to the search strategy.  \cite{white2023survey}.
 	}
  	}
 \end{figure}
 
+\vspace{0.5em}
 \noindent Next, we provide definitions of the terms and review the research progress of each domain.
+
+\vspace{-1em}
 \begin{description}[leftmargin=0cm, listparindent=\parindent]
 	\item [Search Space] A search space defines a set of architectures that the search algorithm is allowed to select. The search space is often the first step when setting up \gls{nas} and perhaps is also the most essential step, because
 		the design of the search space represents an important trade-off between human bias and efficiency of search: a
@@ -207,7 +208,7 @@ where \( \tau \in (0, 1) \) is the predefined nominal mis-coverage rate. This pr
 \end{figure}
 
 \vspace{0.5em} 
-An important intuition behind selecting the threshold that eventually defines the prediction region is \textit{symmetry}, that is, all data points are treated symmetrically within the \gls{cp} framework \cite{angelopoulos2021gentle}. Suppose $d(z_1, B), \, d(z_2, B), \; ... \; ,d(z_n, B)$ is a sequence of observations in the form of conformity scores, the exchangeability assumption implies that the rank of a new data point $d(z_{n+1}, B)$ is uniformly distributed over the observed values. Figure \ref{fig: cpsymmetry} illustrates the concept of symmetry, in which the new data point is equally likely to take any value on the number line. As a result, the $(1 - \tau)$-th quantile of all the conformity scores is a natural answer to achieve the coverage probability stated in Formula \ref{eq: finitecp}. Recall that the coverage probability is achieved on the $n+1$ samples, the quantile value should be adjusted with a finite-sample correction, resulting in a threshold that is exactly equal to 
+An important intuition behind selecting the threshold that eventually defines the prediction region is \textit{symmetry}, that is, all data points are treated symmetrically within the \gls{cp} framework \cite{angelopoulos2021gentle}. Suppose $d(z_1, B), \, d(z_2, B), \; ... \; ,d(z_n, B)$ is a sequence of observations in the form of conformity scores, the exchangeability assumption implies that the rank of a new data point $d(z_{n+1}, B)$ is uniformly distributed over the observed values. Figure \ref{fig: cpsymmetry} illustrates the concept of symmetry. As a result, the $(1 - \tau)$-th quantile of all the conformity scores is a natural answer to achieve the coverage probability stated in Formula \ref{eq: finitecp}. Recall that the coverage probability is achieved on the $n+1$ samples, the quantile value should be adjusted with a finite-sample correction, resulting in a threshold that is exactly equal to 
 
 \begin{equation}
 \vspace{0.7em}

@@ -72,18 +72,29 @@ Some contents
 
 % chapter 1
 \chapter{Introduction}
-\gls{bananascp} \\
-\gls{bananas} \\
-\gls{nas} \\
-\gls{cp}
+\label{ch:intro}
+
+\section{Motivation}
+Over the last decades, deep learning has achieved remarkable success in a variety of areas, including computer vision, natural language processing, and machine translation. This success is partly attributed to the carefully designed neural network architectures. Driven by the rising demand for efficient architecture engineering in complex domains, \gls{nas} has emerged as a technique for automating the design of task-specific neural architectures.
+
+Recently, a \gls{nas} framework “Bayesian optimization + neural predictor” has been developed and demonstrated strong efficiency. In particular, \cite{white2019bananas}  performs a thorough evaluation on the framework and develops the search algorithm BANANAS based on the analyses. This \gls{nas} algorithm offers both effectiveness and scalability and has achieved state-of-the-art performance on popular benchmarks. However, BANANAS still replies on a Gaussian assumption for uncertainty estimation, which is a critical step in the Bayesian optimization process. This assumption does not necessarily hold and thus may restrict the effectiveness of BANANAS in real-world applications
+
+Previous studies have shown that accurate uncertainty estimates improve the performances of deep learning models \cite{pmlr-v80-kuleshov18a}. In particular, \cite{deshpande2024online} also applies uncertainty calibration in the context of Bayesian optimization and demonstrates that calibrated Bayesian optimization converges to better optima in fewer steps. Motivated by prior findings, we seek to enhance the uncertainty quantification method used in BANANAS. To mitigate the limitation of relying on the Gaussian assumption, we propose in this work to incorporate \gls{cp},  a model-agnostic approach for uncertainty quantification \cite{shafer2008tutorial, vovk2005algorithmic}, into the BANANAS framework, since \gls{cp} offers strong theoretical guarantee, flexibility, and practical applicability. A closely related work is \cite{salinas2023optimizing}, which introduces a framework based on conformalized quantile regression for hyperparameter tuning using Bayesian optimization. Specifically, this work employees a quantile regressor as the surrogate and calibrates quantile estimates using \gls{cp} so that the model can handle non-Gaussian or heteroskedastic observation noises. The experiments show that this innovative operation can yield more robust performances compared to other state-of-the-art methods.
+
+\section{Contributions and Limitations}
+In this work, we review various \gls{cp} algorithms and identify several that can be relatively easily integrated into the exiting BANANAS framework. Based on the analyses, we extend BANANAS by incorporating a \gls{cp}-based uncertainty calibration step and introduce the new framework BANANAS-CP. 
+
+The core idea of BANANAS-CP is to form calibrated conditional posterior distributions for computing acquisition scores at each step in a Bayesian optimization procedure. With a well-calibrated distribution, 
+
+
+
+BANANAS-CP is highly flexible and can be applied with any acquisition function.  
+
+
 \gls{scp}
 \gls{cvcp}
 \gls{btcp} 
 
-\label{ch:intro}
-
-\section{Related Work}
-\section{Contributions and Limitations}
 \section{Outline}
 Having gained an overview of the research question and the background, the remainder of this thesis is organized as follows. First, Chapter 2 reviews the related works on neural architecture search, uncertainty quantification, and in particular, conformal prediction. In Chapter 3, after proposing a novel framework to incorporate uncertainty calibration into the architecture search process in Section \ref{sec:overview}, we describe its methodological steps in more detail. In Section \ref{sec:cp}, we identify different types of conformal prediction algorithms that are applicable for \gls{nas}, and consider the use of the underlying surrogate models. In Section \ref{sec:distest} and Section \ref{sec:acq}, we further examine how the calibrated predictions can be incorporated into a Bayesian optimization process. In Chapter 4, we present an overview of the general experiment setups and the strategy for progressively tuning configurations, along with a description of the benchmark dataset used for research. In Chapter 5, we present the experimental results and compare the performance of the algorithms with state-of-the-art methods. Finally, Chapter 6 and Chapter 7 conclude this work and discuss potential future directions.
 
@@ -122,7 +133,7 @@ Architectures in the search space are evaluated on three datasets that are widel
 \begin{description}[leftmargin=0cm, listparindent=\parindent]
  	\item[CIFAR10]:	The dataset consists of 60K $32\times32$ color images in 10 classes. In NAS-Bench-201, 25K images with 10 classes are assigned into the training and the validation sets, respectively. The test set contains 10K images, with 1K images per class.
  	\item[CIFAR100]: This dataset has the same images as CIFAR-10 but in 100 classes. The training set has 50K images, and each of the validation and the test sets has 5K images.
- 	\item[ImageNet-16-120]: This dataset contains 151.7K training images, 3K validation images, and 3K test images with 120 classes. Each image has 16$\times$16 pixels.
+ 	\item[ImageNet16-120]: This dataset contains 151.7K training images, 3K validation images, and 3K test images with 120 classes. Each image has 16$\times$16 pixels.
 \end{description} 
 
 
@@ -147,7 +158,7 @@ In this work, we leverage the API offered by NAS-Bench-201 and directly query th
 
 \section{Setups and Implementation}
 \label{sec: setups}
-We now present the common experimental setups used throughout this study. As introduced in Chapter \ref{ch3}, we primarily run experiments for five calibrated NAS algorithms varying in calibration techniques and/or surrogate predictors: \gls{scp} with ensemble predictor, \gls{scp} with quantile regressor, \gls{cvcp} with ensemble predictor, \gls{cvcp} with quantile regressor, and \gls{btcp} with ensemble predictor. In line with \cite{white2019bananas}, each algorithm is given a search budget of 150 epochs to ensure consistent benchmarking with \gls{bananas}. As in previous works, the validation accuracy is used as the supervision signal to guide the search. Each algorithm is repeated for 50 trials with different random seeds and the final results are obtained by aggregating the performance across all trials. 
+We now present the common experimental setups used throughout this study. As introduced in Chapter \ref{ch3}, we primarily run experiments for five calibrated NAS algorithms varying in calibration techniques and/or surrogate predictors: \gls{scp} with ensemble predictor, \gls{scp} with quantile regressor, \gls{cvcp} with ensemble predictor, \gls{cvcp} with quantile regressor, and \gls{btcp} with ensemble predictor. In line with \cite{white2019bananas}, each algorithm is given a search budget of 150 epochs to ensure consistent benchmarking with BANANAS. As in previous works, the validation accuracy is used as the supervision signal to guide the search. Each algorithm is repeated for 50 trials with different random seeds and the final results are obtained by aggregating the performance across all trials. 
 
 \vspace{0.2em}
 Although training neural networks is avoided thanks to the benchmark datset, each search algorithm still involves a large number of hyperparameters, making it unrealistic to tune them all. Also, not all hyperparameters have the same impact on search performance; some might be more important than the others. Therefore, we select a subset of hyperparameters that we believe, either base on experience or preliminary testing results, are less important or already well-set, and fix their values throughout the experiments. For instance, we believe path-encoding is stronger than other architecture encoding techniques, thus architectures are always encoded using paths present in the cell in all experiments. As for the acquisition optimization strategy, the number of candidates that the acquisition function evaluates in each iteration is fixed at 100 and the maximal mutation allowed for each model is  1 in case the mutation strategy is adopted. In addition, we follow \cite{white2019bananas} and output 10 architectures to mimic the parallelized evaluation procedure.
@@ -157,10 +168,10 @@ The hyperparameters are tuned progressively. In the first stage, we focus on con
 	conduct separate experiments that are  discussed in the respective sections.
 
 \vspace{0.2em}
-We borrow the implementation of \gls{bananas} from NASLib \footnote{https://github.com/automl/NASLib}, which is a modern Python-based framework for \gls{nas} developed by the AutoML Freiburg group. NASLib is well modularized, enabling a relatively easy integration of the new calibration block. In NASLib, each \gls{nas} algorithm typically comprises a \textit{trainer} for initiating search and evaluation iterations and an \textit{optimizer} for encapsulating specific search logics, including an inherent \textit{predictor} if applicable. Specifically, \textit{trainer} serves as a generic engine and is shared across all NAS algorithms. All predictors should conform to a particular interface so that they can be invoked inside the \textit{trainer}. 
+We borrow the implementation of BANANAS from NASLib \footnote{https://github.com/automl/NASLib}, which is a modern Python-based framework for \gls{nas} developed by the AutoML Freiburg group. NASLib is well modularized, enabling a relatively easy integration of the new calibration block. In NASLib, each \gls{nas} algorithm typically comprises a \textit{trainer} for initiating search and evaluation iterations and an \textit{optimizer} for encapsulating specific search logics, including an inherent \textit{predictor} if applicable. Specifically, \textit{trainer} serves as a generic engine and is shared across all NAS algorithms. All predictors should conform to a particular interface so that they can be invoked inside the \textit{trainer}. 
 
 \vspace{0.2em}
-Building on this structure, we add new modules for constructing the \gls{bananascp} framework, including a quantile regressor, distribution estimators (along with the compatible acquisition functions), and the calibration algorithms. We leverage the existing implementation for \textit{trainer} with mild modifications on the export functionalities, aiming for a better access to intermediate outputs, such as the estimated distribution at each iteration. In addition, we also provide tools for analyzing and interpreting the experimental results.
+Building on this structure, we add new modules for constructing the BANANAS-CP framework, including a quantile regressor, distribution estimators (along with the compatible acquisition functions), and the calibration algorithms. We leverage the existing implementation for \textit{trainer} with mild modifications on the export functionalities, aiming for a better access to intermediate outputs, such as the estimated distribution at each iteration. In addition, we also provide tools for analyzing and interpreting the experimental results.
 
 % chapter 5
 \chapter{Results}
@@ -171,19 +182,152 @@ This chapter presents the performance of the methods introduced in Chapter \ref{
 
 \subsection{Search and Calibration Setting}
 \label{sec: sc_setting}
-To establish baseline performance, we run experiments for both the original \gls{bananas} method and the approach incorporating \gls{scp} with an ensemble predictor on all three datasets. In this sub-section, we explore general search and calibration settings to gain a first insight of the performance of \gls{bananascp}.
+To establish baseline performance, we run experiments for both the original BANANAS method and the approach incorporating \gls{scp} with an ensemble predictor on all three datasets. In this sub-section, we explore general search and calibration settings to gain a first insight of the performances of BANANAS-CP.
 
-For the pure \gls{bananas}, we follow the best settings reported in \cite{white2019bananas}, using an ensemble of 5 \gls{fnns} with 10 initial model evaluations, along with \gls{its} and a mutation strategy that mutates the top 2 performing architectures for computing acquisition scores. For the variant that incorporates SCP calibration, we evaluate the search performance under different configurations: number of the initial model evaluations (either 10 or 30), split rate representing the fraction of data points assigned into the calibration set (either 0.3 or 0.5), and number of quantiles (10). For example, specifying 20 quantile levels yields a percentile vector with 20 values [0, 0.05, 0.1, ..., 0.95, 1]. After applying a filtering step to remove extreme percentiles, the remaining values are used as mis-coverage rates when performing conformal prediction, and the resulting calibrated quantiles form the basis for fitting a linearly-interpolated distribution. Unless otherwise specified, 10 quantiles are used throughout the experiments, since results on both the synthetic dataset (Table \ref{table:distest}) and CIFAR10 (Appendix \ref{appendix: b}) indicate that 10 quantiles yield more robust estimates than 20 when the dataset is relatively small with up to 150 data points.
+The pure BANANAS serves as the benchmark. We follow the best settings reported in \cite{white2019bananas}, using an ensemble of 5 \gls{fnns} with 10 initial model evaluations, along with \gls{its} and a mutation strategy that mutates the top 2 performing architectures in each epoch for computing acquisition scores. For the variant that incorporates SCP calibration, we evaluate the search performance under different configurations: number of the initial model evaluations (either 10 or 30), split rate representing the fraction of data points assigned into the calibration set (either 0.3 or 0.5), and number of quantiles (10). For example, specifying 20 quantile levels yields a percentile vector with 20 values [0, 0.05, 0.1, ..., 0.95, 1]. After applying a filtering step to remove extreme percentiles, the remaining values are used as mis-coverage rates when performing conformal prediction, and the resulting calibrated quantiles form the basis for fitting a linearly-interpolated distribution. Unless otherwise specified, 10 quantiles are used throughout the experiments, since results on both the synthetic dataset (Table \ref{table:distest}) and CIFAR10 (Appendix \ref{appendix: b}) indicate that 10 quantiles yield more robust estimates than 20 when the dataset is relatively small with up to 150 data points.
 
-Figure \ref{} and Figure \ref{} present the performances for search strategies with different initial dataset sizes when the train-calibration splitting ratio is set at 0.3 and 0.5, respectively. Specifically, search performance, measured by validation accuracy of the best architecture ever found, and calibration error \gls{rmsce} are reported at each epoch. The line denotes the average over 50 trials, and the surrounding band represents the variation, corresponding to one standard deviation. 
+Figure \ref{fig: init_size_cal_rate_03} and Figure \ref{fig: init_size_cal_rate_05} present the performances for search strategies with different initial dataset sizes when the train-calibration splitting ratio is set at 0.3 and 0.5, respectively. Specifically, calibration error \gls{rmsce} (top), computed only when the calibration set contains at least as many quantile levels as observations, and search performance (bottom), measured by the validation accuracy of the best architecture found so far, are reported at each epoch. The line denotes the average over 50 trials, and the surrounding band represents the variation, corresponding to one standard deviation. 
 
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.35]{figs/init_size_cal_rate_03.png}
+	\refstepcounter{figure}
+   	\addcontentsline{lof}{figure}{Figure~\thefigure: Impact of Initial Dataset Size on Performance (Calibration Rate=0.3)}
+   	\label{fig: init_size_cal_rate_03}
+	\\
+	\parbox{\linewidth}{
+	 \vspace{1em}
+ 	  	{\small \textit{Figure \ref{fig: init_size_cal_rate_03}:} Comparison of NAS performances with different initial
+ 	  	evaluations when calibration set contains 30\% of all data points.}}
+ 	}
+\end{figure}
+
+\vspace{0.3em}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.35 ]{figs/init_size_cal_rate_05.png}
+	\refstepcounter{figure}
+   	\addcontentsline{lof}{figure}{Figure~\thefigure: Impact of Initial Dataset Size on Performance (Calibration Rate=0.5)}
+	\label{fig: init_size_cal_rate_05}
+	\\
+ 	\parbox{\linewidth}{
+	\vspace{1em}
+ 	  	{\small \textit{Figure \ref{fig: init_size_cal_rate_05}:} Comparison of NAS performances with different initial
+ 	  	evaluations when calibration set contains 50\% of all data points.}}
+ 	}
+\end{figure}
+
+In terms of the final validation accuracy, pure BANANAS without calibration consistently demonstrates the strongest search performance across different configurations and different datasets. In particular, the marginal performance gains is greater when evaluated on dataset with larger variations such as ImageNet-16-120. For SCP, the effect of the initial evaluation size varies across subroutines, but a smaller initialization set often results in slightly more stable performance according to the standard deviation. The search trajectory suggests that this is likely because SCP with more initial evaluations has higher chance getting stuck in local maxima. 
+
+According to \gls{rmsce}, SCP can significantly reduce the calibration errors compared to the uncalibrated baseline especially in early epochs, indicating the calibrated distribution aligns better with the empirical observations. Typically, for all methods, the variation in \gls{rmsce} across experiment repetitions decreases over the search time, while calibration consistently leads to less variant results. However, the advantage in distribution estimate of SCP does not translate into an improved search performance. Both methods, whether calibrated or not, achieve comparable validation accuracies, even at early epochs.  As search progresses, \gls{rmsce} of all methods converge closer.  In certain cases, the uncalibrated method even achieves lower calibration error toward the end of the search.
+
+Although it does not outperforms the pure, uncalibrated BANANAS method, \gls{scp} with 10 initial evaluations and 50\% data for calibration in general demonstrates the strongest performance among all \gls{scp} approaches, achieving the best and most stable validation accuracies.
 
 \subsection{Acquisition Function}
-Next, we explore the impact of acquisition functions using the best search and calibration settings reported in Section \ref{sec: sc_setting}.
+Now we explore the impact of acquisition functions for \gls{scp} using the best search and calibration settings reported in Section \ref{sec: sc_setting}. Figure \ref{fig: scp_acq_func} displays the empirical results for the four acquisition functions that are described in Section \ref{subsec:acq_func}. 
 
+\vspace{0.5em}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.35 ]{figs/scp_acq_func.png}
+	\refstepcounter{figure}
+   	\addcontentsline{lof}{figure}{Figure~\thefigure: Impact of Acquisition Function on SCP Performance (Initial Size=10, Calibration Rate=0.5)}
+	\label{fig: scp_acq_func}
+	\\
+ 	\parbox{\linewidth}{
+	\vspace{1em}
+ 	  	{\small \textit{Figure \ref{fig: scp_acq_func}:} Performances of SCP using various acquisition functions, with 10 initial evaluations and calibration set containing 50\% of all data points.
+ 	  	}}
+ 	}
+\end{figure}
+
+In line with the findings for BANANAS \cite{white2019bananas}, the choice of acquisition function appears to have little to no effect on performance for SCP. For each of the datasets, all methods end up in comparable validation accuracies, with the error bands around the average value significantly overlapped and indistinguishable throughout the search time. Moreover, no single acquisition function dominates across different datasets: \gls{its} and \gls{pi} perform a bit better than the others on CIFAR10, while \gls{pi} and \gls{ucb} are slightly ahead on CIFAR100 and ImageNet16-120, respectively. Although the effect of acquisition function on average validation accuracy is subtle, introducing randomness into the search process appears to reduce performance variability. Among these acquisition functions, \gls{its} introduces the most randomness due to its sampling-based nature and consistently yields the smallest standard deviation in performance. Regarding the calibration error, acquisition functions exhibit a similar behavior, displaying only minor differences and no clearly dominant method.
 
 \subsection{Acquisition Search Strategy}
-Experiments on the acquisition function presented in the previous sub-section su
+Next, we explore different acquisition optimization strategies. Since former experiments indicates that the choice of acquisition function has little impact for \gls{scp}, to ensure consistent comparison with the uncalibrated baseline, we adopt \gls{its} for the acquisition function when testing various acquisition search strategies.
+\vspace{0.5em}
+
+\noindent \textbf{Sampling Strategy} We begin by exploring different sampling strategies, namely mutation, dynamic, and random sampling, ordered in increasing levels of randomness. The results are visualized in Figure .
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\noindent \textbf{Number of Architectures for Mutation} 
+
+the number of architectures to mutate in each search step. 
+
+
+
+
+
+
+Figure \ref{fig: scp_arch_mutate} displays the results for SCP that mutates the top 2/4/6 performing architectures in one epoch. The effect of increasing the number of architectures for mutation is not clear. 
+
+
+An interesting observation is that SCP that mutates 4 architectures has shown highest standard deviation. 
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.35 ]{figs/scp_arch_mutate.png}
+	\refstepcounter{figure}
+   	\addcontentsline{lof}{figure}{Figure~\thefigure: Impact of Number of Architectures to Mutate on SCP Performance (Initial Size=10, Calibration Rate=0.5)}
+	\label{fig: scp_arch_mutate}
+	\\
+ 	\parbox{\linewidth}{
+	\vspace{1em}
+ 	  	{\small \textit{Figure \ref{fig: scp_arch_mutate}:} Performances of SCP when mutating various number of top-performing architectures, with 10 initial evaluations and calibration set containing 50\% of all data points.}}
+ 	}
+\end{figure}
+
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[scale=0.35 ]{figs/gaussian_arch_mutate.png}
+	\refstepcounter{figure}
+   	\addcontentsline{lof}{figure}{Figure~\thefigure: Impact of Number of Architectures to Mutate on BANANAS Performance (Initial Size=10, Calibration Rate=0.5)}
+	\label{fig: gaussian_arch_mutate}
+	\\
+ 	\parbox{\linewidth}{
+	\vspace{1em}
+ 	  	{\small \textit{Figure \ref{fig: gaussian_arch_mutate}:} Performances of pure BANANAS when mutating various number of top-performing architectures.}}
+ 	}
+\end{figure}
+
+
+
+
+
+
+
+\section{Methods Based on Ensemble Predictor}
+
+
+
+\section{Methods Based on Quantile Regressor}
+
+\section{Diagnosis Analysis}
+
 
 
 % chapter 6

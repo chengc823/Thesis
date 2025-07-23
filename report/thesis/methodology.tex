@@ -412,6 +412,7 @@ Finally, we describe the acquisition functions and the aquisition optimization s
 
 \vspace{0.1em}
 \subsection{Acquisition Functions}
+\label{subsec:acq_func}
 We consider four commonly used acquisition functions. Consistent with the notation in the previous sections, $\hat{f}(a)$ is the predicted performance of architecture $a$ and $\hat{F}_a$ represents the \gls{cdf} of the estimated distribution of $f(a)$. Then, depending on the acquisition function used, the specific acquisition score can be calculated by: 
 
 \begin{description}[leftmargin=0cm, itemsep=1pt] 
@@ -423,7 +424,8 @@ We consider four commonly used acquisition functions. Consistent with the notati
 
 \vspace{0.1em}
 \subsection{Acquisition Optimization Strategy}
-In parallel to the settings in \cite{white2019bananas} (see Section \ref{sec:bananas}), we compare three different approaches for constructing a set with 100 \footnote{ We have conducted preliminary experiments using 1,000 candidate samples as well. The results indicate that increasing the sample size does not lead to significant improvements in performance. Considering the size of the search space (NAS-Bench-201), and the required computational time, the candidate set size is fixed at 100 for all subsequent primary experiments.} candidates in order to compute the acquisition scores. The motivations and the  specific approaches are described below:
+\label{subsec:acq_strats}
+In parallel to the settings in \cite{white2019bananas} (see Section \ref{sec:bananas}), we compare three different approaches for constructing a set with 100 \footnote{ We have conducted preliminary experiments using 1,000 candidate samples. The results indicate that increasing the sample size does not lead to significant improvements in performance. Considering the size of the search space (NAS-Bench-201), and the required computational time, the candidate set size is fixed at 100 for all subsequent primary experiments.} candidates in order to compute the acquisition scores. The motivations and the  specific approaches are described below:
  
 \begin{description}[leftmargin=0cm, itemsep=1pt]
 \item[Mutation] We investigate the mutation-based search strategy because this approach demonstrates the best performance in \cite{white2019bananas}. In line with their approach, the candidates are selected by randomly changing one operation or one edge of the $k$ best models that have been found so far, where $k$ is a search hyperparameter with the default value of 2. 

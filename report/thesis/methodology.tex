@@ -77,7 +77,7 @@ As reviewed in Section \ref{sec: reviewCP}, numerous conformal prediction algori
 \label{sec:scp}
 To begin, a natural choice for a baseline calibration strategy is the \gls{scp}. In this section, we start by introducing the standard \gls{scp} procedure, then proceed with the adaptions required to incorporate it into the \gls{bananascp} framework. 
 
-Implementation steps of \gls{scp} are summarized in Algorithm \ref{alg:SCP}. Imagine a regression task where the non-conformity level is measured by the absolute residual, i.e. $|y_i - \hat{y}(x_i)|$. In this case, the algorithm produces a prediction interval for the test point with a width of $\left[\hat{y}_{test} - \hat{q}\;,\; \hat{y}_{test} + \hat{q}\right]$, where $\hat{q}$ is the conformity threshold as defined in line 6 in.
+Implementation steps of \gls{scp} are summarized in Algorithm \ref{alg:SCP}. Imagine a regression task where the non-conformity level is measured by the absolute residual, i.e. $|y_i - \hat{y}(x_i)|$. In this case, the algorithm produces a prediction interval for the test point with a width of $\left[\hat{y}_{test} - \hat{q}\;,\; \hat{y}_{test} + \hat{q}\right]$, where $\hat{q}$ is the quantile defined in line 6 in Algorithm \ref{alg:SCP}.
 
 \begin{algorithm}[htbp]
   \caption{Split Conformal Prediction}
@@ -115,7 +115,8 @@ In this work, we explore \gls{scp} in combination with different prediction algo
 	where $\Phi^{-1}_{1 - \alpha/2}$ denotes the $(1-\frac{\alpha}{2})$-th quantile of the standard normal distribution. \\
 	
 	Now, take a closer look at the formula \ref{math:gaussianinterval} and recall the example based on the absolute residuals, which is presented earlier in this section. We observe that the confidence interval under the Gaussian assumption takes a close form to the prediction interval produced by \gls{cp} when the conformity scoring function is exactly chosen as:
-		\vspace{0.7em}
+
+		\vspace{0.5em}
 		\begin{equation}
 			s(\cdot) = \frac{|y_i - \hat{y}(x_i)|}{\hat\sigma(x_i)}
 		\label{cpscore}

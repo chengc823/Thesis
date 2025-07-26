@@ -187,7 +187,7 @@ This chapter presents the performance of the methods introduced in Chapter \ref{
 \label{sec: sc_setting}
 To establish baseline performance, we run experiments for both the original BANANAS method and the approach incorporating \gls{scp} with an ensemble predictor on all three datasets. In this sub-section, we explore general search and calibration settings to gain a first insight of the performances of BANANAS-CP.
 
-The pure BANANAS serves as the benchmark. We follow the best settings reported in \cite{white2019bananas}, using an ensemble of 5 \gls{fnns} with 10 initial model evaluations, along with \gls{its} and a mutation strategy that mutates the top 2 performing architectures in each epoch for computing acquisition scores. For the variant that incorporates SCP calibration, we evaluate the search performance under different configurations: number of the initial model evaluations (either 10 or 30), split rate representing the fraction of data points assigned into the calibration set (either 0.3 or 0.5), and number of quantiles (10). For example, specifying 20 quantile levels yields a percentile vector with 20 values [0, 0.05, 0.1, ..., 0.95, 1]. After applying a filtering step to remove extreme percentiles, the remaining values are used as mis-coverage rates when performing conformal prediction, and the resulting calibrated quantiles form the basis for fitting a linearly-interpolated distribution. Unless otherwise specified, 10 quantiles are used throughout the experiments, since results on both the synthetic dataset (Table \ref{table:distest}) and NAS-Bench-201 (Appendix \ref{appendix: s1}) indicate that 10 quantiles produce more robust estimates than 20 when the dataset is relatively small with up to 150 data points.
+The pure BANANAS serves as the benchmark. We follow the best settings reported in \cite{white2019bananas}, using an ensemble of 5 \gls{fnns} with 10 initial model evaluations, along with \gls{its} and a mutation strategy that mutates the top 2 performing architectures in each epoch for computing acquisition scores. For the variant that incorporates SCP calibration, we evaluate the search performance under different configurations: number of the initial model evaluations (either 10 or 30), split rate representing the fraction of data points assigned into the calibration set (either 0.3 or 0.5), and number of quantiles (10). For example, specifying 20 quantile levels yields a percentile vector with 20 values [0, 0.05, 0.1, ..., 0.95, 1]. After applying a filtering step to remove extreme percentiles, the remaining values are used as mis-coverage rates when performing conformal prediction, and the resulting calibrated quantiles form the basis for fitting a linearly-interpolated distribution. Unless otherwise specified, 10 quantiles are used throughout the experiments, since results on both the synthetic dataset (Table \ref{table:distest}) and CIFAR10 (Appendix \ref{appendix: s1}) indicate that 10 quantiles produce more robust estimates than 20 when the dataset is relatively small with up to 150 data points.
 
 Figure \ref{fig: init_size_cal_rate_03} and Figure \ref{fig: init_size_cal_rate_05} present the performances for search strategies with different initial dataset sizes when the train-calibration splitting ratio is set at 0.3 and 0.5, respectively. Specifically, calibration error \gls{rmsce} (top), computed with Equation \ref{rmsce} when the calibration set contains at least as many quantile levels as observations, and search performance (bottom), measured by the validation accuracy of the best architecture found so far, are reported at each epoch. The line denotes the average over 50 trials, and the surrounding band represents the variation, corresponding to one standard deviation. In addition, we also report the values of mean and standard deviation of the final validation accuracy.
 
@@ -215,7 +215,7 @@ Figure \ref{fig: init_size_cal_rate_03} and Figure \ref{fig: init_size_cal_rate_
 	\\
  	\parbox{\linewidth}{
 	\vspace{1em}
- 	  	{\small \textit{Figure \ref{fig: init_size_cal_rate_05}:}\gls{rmsce} (top) and validation accuracy (bottom) of SCP--ensemble methods with different initial evaluations when calibration set contains 50\% of total data.}}
+ 	  	{\small \textit{Figure \ref{fig: init_size_cal_rate_05}:} \gls{rmsce} (top) and validation accuracy (bottom) of SCP--ensemble methods with different initial evaluations when calibration set contains 50\% of total data.}}
  	}
 \end{figure}
 
@@ -244,12 +244,13 @@ Now we explore the impact of acquisition functions for \gls{scp} using the best 
  	}
 \end{figure}
 
-In line with the findings for BANANAS \cite{white2019bananas}, the choice of acquisition function appears to have little to no effect on performances for SCP. For each of the datasets, all methods result in comparable validation accuracies and \gls{rmsce}, with the error bands around the average value significantly overlapped and indistinguishable throughout the search time. Moreover, no single acquisition function dominates across different datasets: when looking at the final validation accuracy, \gls{its} and \gls{pi} perform a bit better than the others on CIFAR10, while \gls{pi} and \gls{ucb} are slightly ahead on CIFAR100 and ImageNet16-120, respectively. Although the effect of acquisition function on mean validation accuracy is minor, introducing randomness into a mutation-based search process appears to reduce performance variability. Among these acquisition functions, \gls{its} is the most stochastic one due to its sampling-based nature and exhibits the smallest standard deviation on all datasets. 
+In line with the findings for BANANAS \cite{white2019bananas}, the choice of acquisition function appears to have little to no effect on performances for SCP. For each of the datasets, all methods result in comparable validation accuracies and \gls{rmsce}, with the error bands around the average value significantly overlapped and indistinguishable throughout the search time. Moreover, no single acquisition function dominates across different datasets: when looking at the final validation accuracy, \gls{its} and \gls{pi} perform a bit better than others on CIFAR10, while \gls{pi} and \gls{ucb} are slightly ahead on CIFAR100 and ImageNet16-120, respectively. Although the effect of acquisition function on mean validation accuracy is minor, introducing randomness into a mutation-based search process appears to reduce performance variability. Among these acquisition functions, \gls{its} is the most stochastic one due to its sampling-based nature and exhibits the smallest standard deviation on all datasets. 
 
 \subsection{Acquisition Search Strategy}
 Next, we explore different acquisition search strategies that are described in Section \ref{subsec:acq_strats}, namely \textit{mutation}, \textit{dynamic}, and \textit{random sampling}, ordered in increasing levels of randomness. Since former experiments indicates that the choice of acquisition function has little impact for \gls{scp}, to ensure consistent comparison with the pure BANANAS method, we adopt \gls{its} for the acquisition function when experimenting with various sampling approaches.
 
-Figure \ref{fig: scp_acq_search_strategy.png} reflects that acquisition search strategy has an impact on both uncertainty estimation and final performance for \gls{scp}. The mutation-based approach consistently delivers the best performance across datasets, achieving slightly higher and more stable final validation accuracies. Notably, when the level of randomness increases, the methods tend to end up with lower average performance and higher variability. We repeat the same experiments using the original BANANAS approach (Appendix \ref{appendix: s2}). While mutation- and dynamic-based methods exhibit similar behaviors, random-sampling consistent underperforms the others across datasets.
+Figure \ref{fig: scp_acq_search_strategy.png} reflects that acquisition search strategy has an impact on both uncertainty estimation and final performance for \gls{scp}. The mutation-based approach consistently delivers the best performance across datasets, achieving slightly higher and more stable final validation accuracies. Notably, when the level of randomness increases, the methods tend to end up with lower average performance and higher variability. We repeat the same experiments using the original BANANAS approach and also observe that, while mutation- and dynamic-based methods exhibit similar behaviors, random-sampling significantly underperforms the other approaches across all datasets (Appendix \ref{appendix: s2}).
+
 \vspace{0.3em}
 \begin{figure}[H]
 	\centering
@@ -371,17 +372,35 @@ In this section, we present the empirical performance of methods leveraging a qu
  			\vspace{0.5em}
   			{\small \textit{Figure \ref{fig: cvcp_quantile}:} \gls{rmsce} (top) and validation accuracy (bottom) of the original BANANAS approach and various methods that employ a quantile regressor trained on 10 quantile levels. All methods take 10 initial evaluation. SCP takes a train-calibration splitting ratio of 0.5 and CrossVal-CP is evaluated under 3-fold cross-validation.}
  	 	}	
-	\end{figure}	
+		\end{figure}	
  	\vspace{0.2em}
  	
  	Experimental results are outlined in Figure \ref{fig: cvcp_quantile}. In terms of \gls{rmsce}, all quantile regressor based approaches outperform the original BANANAS with a significant margin, especially at the early search phase. In particular, the application of cross-validation substantially enhances uncertainty calibration (as seen with the purple and orange lines compared to the green line), enabling RMSCE to converge more rapidly toward lower values. Across the three datasets, both cross-validation based strategies achieve a nearly equivalent final level of \gls{rmsce}, with the variant using \gls{its} for acquisition function slightly leading during the first 60 epochs.
  	
- 	Meanwhile, validation accuracies displayed in the bottom row show that, among the three quantile regressor based approaches, \gls{cvcp} combined with \gls{ei} consistently demonstrate the strongest performance. Notably, this specific configuration surpasses BANANAS on two datasets, CIFAR10 and CIFAR100, and achieve almost identical performance on ImageNet16-120, showing consistent competence and providing empirical supports for our hypothesis that acquisition functions that rely more deterministically on the shape of the distribution benefit from accurate uncertainty estimates. Additionally, while \gls{scp} leads to an increased variance in the final performance compared to BANANAS, cross-validation effectively mitigates this drawback, bring variance back to baseline levels and even slightly further reducing it. 	    	 	
+ 	Meanwhile, validation accuracies displayed in the bottom row show that, among the three quantile regressor based approaches, \gls{cvcp} combined with \gls{ei} consistently demonstrate the strongest performance. Notably, this specific configuration surpasses BANANAS on two datasets, CIFAR10 and CIFAR100, and achieve almost identical performance on ImageNet16-120, showing consistent competence and providing empirical supports for our hypothesis that acquisition functions that rely more deterministically on the shape of the distribution benefit from accurate uncertainty estimates.	Moreover, while \gls{scp} leads to an increased variance in the final performance compared to BANANAS, cross-validation effectively mitigates this drawback, bring variance back to the original levels and even slightly further reducing it. 
  	
+ 	We also evaluate the search performance under the same settings except with 20 quantile levels (Figure \ref{fig: cvcp_quantile_20}). \gls{rmsce} is not reported since calibration error for methods with different quantile levels are not directly comparable. We observe a similar pattern. Both \gls{cvcp} methods achieve comparable results and outperform BANANAS on CIFAR10 and CIFAR100, but the method replying on 20 quantiles slightly falls behind on ImageNet16-120, showing reduced performance stability. This observation also implies that the performance of methods on CIFAR10 and CIFAR100 tend to be more closely correlated.
+ 	
+ 	\vspace{0.7em}
+		\begin{figure}[H]
+			\centering
+			\includegraphics[scale=0.295 ]{figs/cvcp_quantile_20.png}
+			\refstepcounter{figure}
+			\addcontentsline{lof}{figure}{Figure~\thefigure: Performances of \gls{cvcp} with Quantile Regressors Trained on Varying Quantile Levels}
+			\label{fig: cvcp_quantile_20}
+			\\
+ 			\parbox{\linewidth}{
+ 			\vspace{0.5em}
+  			{\small \textit{Figure \ref{fig: cvcp_quantile_20}:} \gls{rmsce} (top) and validation accuracy (bottom) of the original BANANAS approach and two \gls{cvcp} methods that employ a quantile regressor trained on 10 or 20 quantile levels. All methods take 10 initial evaluation and CrossVal-CP is evaluated under 3-fold cross-validation.}
+ 	 	}	
+	\end{figure}	 	
+ 	   	 	
  	\end{description}
 
 
 \section{Diagnosis Analysis}
+
+Having conducted experiements for all 
 
 summary of prerformance
 
@@ -392,7 +411,9 @@ summary of prerformance
 This chapter presents the central findings of this work as well as their critical discussions (Section \ref{sec: discussion}). Finally, it highlights limitations and corresponding opportunities for further research (Section \ref{sec: future_work}).
 
 \section{Discussion}
-cross-validation has different effects with different preditors.
+cross-validation has different effects with different predictors.
+qutile better to be combined with EI
+mutation or local search is better with small budget
 \label{sec: discussion}
 
 \section{Limitations and Future Work}
@@ -424,6 +445,8 @@ In case of access or permission issues to the private repository, please reach o
 \label{appendix: s2}
 \section{Conformity Score Functions}
 \label{appendix: s3}
+
+
 
 
 % Declare non-Plagiarism and independent work

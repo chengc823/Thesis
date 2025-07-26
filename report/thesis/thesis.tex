@@ -57,7 +57,13 @@ colorlinks=true, urlcolor=blue, linkcolor=black, colorlinks,citecolor=green
 
 % Abstract
 \chapter{Abstract}
+Neural architecture search (NAS) has achieved breakthrough success in a great number of applications in the past few years. BANANAS, a search algorithm based on the framework “Bayesian optimization + neural predictor”, has shown strong efficiency and achieved state-of-the-art performance. However, BANANAS relies on a Gaussian assumption for uncertainty estimation, which may limits practical effectiveness. 
 
+Conformal prediction (CP) is a popular line of research in uncertainty quantification. It is particularly promising because it can be used with any prediction algorithm, requires no distributional assumption, and offers strong theoretical guarantees.
+ 
+By combining strengths of both sides, in this work, we present BANANAS--CP, an extension of BANANAS that leverages CP as a post-hoc calibration mechanism to enable modeling non-Gaussian, heteroscedastic uncertainties. Specifically, we identify three CP algorithms that are applicable in NAS and develop five calibrated search strategies, varying in  prediction algorithms and calibration procedures. 
+
+The approach is evaluated on the commonly used benchmark dataset NAS-Bench-201. Although this proposed method BANANAS--CP lacks strong empirical support and struggles to deliver competitive performance, with a flexible structure and support for various configurations, it allows analysis of the impactful factors of the framework from different aspects. By analyzing the performance of BANANAS-CP, we provide valuable insights into how uncertainty estimation impacts search performance within the BANANAS framework, which can guide future research directions.
 
 
 % Table of contents
@@ -86,7 +92,7 @@ In this work, we review various \gls{cp} methods and identify several algorithms
 
 Specifically, we carefully select three different \gls{cp} methods for uncertainty calibration: \gls{scp}, \gls{cvcp}, \gls{btcp}. As for the surrogate model in Bayesian optimization, we consider two different prediction algorithms: an ensemble predictor and a quantile regressor. These configurations result in a total of five distinct methods for neural architecture search. Although only two types of surrogate models are explored in this work, this framework in fact can be combined with any prediction algorithm that produces quantile estimates for any specified quantile levels, either based on a specific distribution assumption or via a probabilistic modeling approach. In addition, BANANAS-CP is highly flexible and can be applied with any acquisition function since it models the shape of the full conditional distribution for each data point. In contrast, the work based on conformalized quantile regression \cite{salinas2023optimizing}, which is mentioned in the previous section, only produces discrete quantile estimates and thereby can not be applied with acquisition functions relying on a continuous distribution, like Expected Improvement.
 
-We evaluate the performance of BANANAS-CP on the commonly used benchmark dataset NAS-Bench-201. Empirical results show that, in general, incorporating an uncertainty calibration step into the existing framework can significantly reduce calibration errors, suggesting enhanced uncertainty estimates. However, better uncertainty estimates can not always be efficiently translated into better search performance. Among the five variants of calibrated search methods, only \gls{cvcp} with a quantile regressor and a specific acquisition function has achieved better or comparable performances than the original BANANAS method. Despite of the  less encouraging empirical outcomes, our analyses provide insights intp the effect of uncertainty estimation on search performance within the BANANAS framework:
+We evaluate the performance of BANANAS-CP on the commonly used benchmark dataset NAS-Bench-201. Empirical results show that, in general, incorporating an uncertainty calibration step into the existing framework can significantly reduce calibration errors, suggesting enhanced uncertainty estimates. However, better uncertainty estimates can not always be efficiently translated into better search performance. Among the five variants of calibrated search methods, only \gls{cvcp} with a quantile regressor and a specific acquisition function has achieved better or comparable performances than the original BANANAS method. Despite of the  less encouraging empirical outcomes, our analyses provide insights into the effect of uncertainty estimation on search performance within the BANANAS framework:
 
 
 \textcolor{red}{limitations}
@@ -188,7 +194,7 @@ Figure \ref{fig: init_size_cal_rate_03} and Figure \ref{fig: init_size_cal_rate_
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[scale=0.35]{figs/init_size_cal_rate_03.png}
+	\includegraphics[scale=0.37]{figs/init_size_cal_rate_03.png}
 	\refstepcounter{figure}
    	\addcontentsline{lof}{figure}{Figure~\thefigure: Impact of Initial Set Size on SCP Performance (Calibration Rate=0.3)}
    	\label{fig: init_size_cal_rate_03}
@@ -204,7 +210,7 @@ Figure \ref{fig: init_size_cal_rate_03} and Figure \ref{fig: init_size_cal_rate_
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[scale=0.35 ]{figs/init_size_cal_rate_05.png}
+	\includegraphics[scale=0.37 ]{figs/init_size_cal_rate_05.png}
 	\refstepcounter{figure}
    	\addcontentsline{lof}{figure}{Figure~\thefigure: Impact of Initial Set Size on SCP Performance (Calibration Rate=0.5)}
 	\label{fig: init_size_cal_rate_05}
@@ -229,7 +235,7 @@ Now we explore the impact of acquisition functions for \gls{scp} using the best 
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[scale=0.35 ]{figs/scp_acq_func.png}
+	\includegraphics[scale=0.37 ]{figs/scp_acq_func.png}
 	\refstepcounter{figure}
    	\addcontentsline{lof}{figure}{Figure~\thefigure: Impact of Acquisition Function on SCP Performance}
 	\label{fig: scp_acq_func}
@@ -250,7 +256,7 @@ Figure \ref{fig: scp_acq_search_strategy.png} reflects that acquisition search s
 \vspace{0.3em}
 \begin{figure}[H]
 	\centering
-	\includegraphics[scale=0.35 ]{figs/scp_acq_search_strategy.png}
+	\includegraphics[scale=0.37 ]{figs/scp_acq_search_strategy.png}
 	\refstepcounter{figure}
    	\addcontentsline{lof}{figure}{Figure~\thefigure: Impact of Acquisition Search Strategy on SCP Performance}
 	\label{fig: scp_acq_search_strategy.png}
@@ -275,7 +281,7 @@ In this section, we continue using an ensemble predictor as the underlying predi
 	\vspace{0.3em}
 	\begin{figure}[H]
 		\centering
-		\includegraphics[scale=0.35 ]{figs/cvcp.png}
+		\includegraphics[scale=0.37 ]{figs/cvcp.png}
 		\refstepcounter{figure}
    		\addcontentsline{lof}{figure}{Figure~\thefigure: Performances of \gls{cvcp} with Ensemble Predictor under 3-fold Cross-Validation}
 		\label{fig: cvcp}
@@ -290,12 +296,12 @@ In this section, we continue using an ensemble predictor as the underlying predi
 	
 	\item[Performance for Bootstrap-CP:] An important engineering design within the \gls{btcp} framework is the number of bootstrapped samples. \cite{pmlr-v139-xu21h} suggests that conformalization with 20 to 30 bootstrapped samples is sufficient to yield good and stable outputs. However, considering the limited data availability and potential computation time, we restrict our experiments to 5 and 10 bootstrap samples. The reason behind is that \gls{btcp} methods using 5 bootstrap samples can be viewed as a fair comparison to approaches employing an ensemble of 5 \gls{fnns}, while \gls{btcp} with 10 bootstraps aligns with methods based on a quantile regressor with 10 quantile levels. 
 	
-		All ensemble-based approaches discussed so far employ a normalized absolute residual for conformity function, as specified by Equation \ref{cpscore}. In contrast, \gls{btcp} leverages a pure absolute residual \footnote{$|y_i - \hat{y}(x_i)|$} that disregards standard deviation estimate, because within a setting with only either 5 or 10 bootstraps, sub-samples may not have sufficient observations for variance estimation and may thereby introduce biases. Nevertheless, we have run experiments using this regular conformity score function (Appendix \ref{appendix: s3}). The empirical results support our prior expectations and show that including standard deviation deteriorates performance.
+		All ensemble-based approaches discussed so far employ a normalized absolute residual for conformity function, as specified by Equation \ref{cpscore}. In contrast, \gls{btcp} leverages a pure absolute residual \footnote{absolute residual: $|y_i - \hat{y}(x_i)|$} that disregards standard deviation estimate, because within a setting with only either 5 or 10 bootstraps, sub-samples may not have sufficient observations for variance estimation and may thereby introduce biases. Nevertheless, we have run experiments using this regular conformity score function (Appendix \ref{appendix: s3}). The empirical results support our prior expectations and show that including standard deviation deteriorates performance.
 	
 	\vspace{0.3em}
 	\begin{figure}[H]
 		\centering
-		\includegraphics[scale=0.35 ]{figs/bootstrap.png}
+		\includegraphics[scale=0.37 ]{figs/bootstrap.png}
 		\refstepcounter{figure}
    		\addcontentsline{lof}{figure}{Figure~\thefigure: Performances of \gls{btcp} with Ensemble Predictor}
 		\label{fig: btcp}
@@ -306,21 +312,23 @@ In this section, we continue using an ensemble predictor as the underlying predi
  	 	}	
 	\end{figure}	 
 	
-	Results displayed in Figure \ref{fig: btcp} demonstrate a similar pattern as the previous findings. In terms of the validation accuracy, BANANAS still consistently outperform all methods leveraging calibration techniques across datasets. \gls{scp} outperforms \gls{btcp} based approaches, offering the best and most stable final validation accuracy. For \gls{btcp}, the effect of increasing the number of bootstrap samples is unclear, as the differences in performance between the two variants are minimal and insignificant. Although the experiment results are somewhat disappointing, an interesting observation is \gls{btcp} with more bootstrap samples exhibits higher \gls{rmsce} and achieves poorer calibration outputs, indicating that more sophisticated calibration operations via CP may introduce extra noises into the model.
+	Results displayed in Figure \ref{fig: btcp} demonstrate a similar pattern as the previous findings. In terms of the validation accuracy, BANANAS still consistently outperform all methods leveraging calibration techniques across datasets. \gls{scp} outperforms \gls{btcp} based approaches, offering the best and most stable final validation accuracy. For \gls{btcp}, the effect of increasing the number of bootstrap samples is unclear, as the differences in performance between the two variants are minimal and insignificant. Although the experiment results are somewhat disappointing, an interesting observation is \gls{btcp} with more bootstrap samples exhibits higher \gls{rmsce} and achieves poorer calibration outputs, indicating that more advanced calibration procedures through CP might introduce additional noise into the model.
+		
+	\item[Prediction Error Analysis:] Overall, the original BANANAS outperforms all ensemble-based calibrated search methods. In contrast to our prior expectation, SCP distinguishes as the best choice for performing calibration in this setting, while alternative methods that support more efficient data use	in general underperform in terms of both \gls{rmsce} and validation accuracies. The decline in performance may stem from various factors, possibly arising   either during the model training phase or in the calibration process. While the latter is difficult to verify, it is straitforward to perform a sanity check on the training performance. To do this, we select a subset of evaluated methods that give the best performance in their respective group, and then compute their absolute prediction errors across the search duration. Specifically, in the context of \gls{cvcp} and \gls{btcp}, predictions are obtained by averaging across the outputs generated by models fitted on different subsets of the data. 
 	
-	\item[Prediction Error Analysis:] Overall, the original BANANAS outperforms all ensemble-based calibrated search methods. In contrast to our prior expectation, SCP distinguishes as the best choice for performing calibration in this setting, while alternative methods that support more efficient data use	in general underperform in terms of both \gls{rmsce} and validation accuracies. The decline in performance may stem from various factors, possibly arising   either during the model training phase or in the calibration process. While the latter is difficult to verify, it is straitforward to perform a sanity check on the training performance. To do this, we compute the absolute prediction error across the search duration for a selected subset of evaluated methods that give best performance in their respective group, and compare the prediction accuracies. Figure \ref{fig: pred_err} visualizes models' prediction errors over time, where mean and standard deviation are aggregated over epochs and experiment trials. Notably, since we follow the setup of \cite{white2019bananas} and output 10 architectures in parallel, the prediction errors are smoothed using a rolling window of size 10.
+	 Figure \ref{fig: pred_err} visualizes the prediction errors for selected methods over time, where mean and standard deviation are aggregated over 150 epochs and 50 experiment trials. Notably, since we follow the setup of \cite{white2019bananas} and output 10 architectures in parallel, the prediction errors are smoothed using a rolling window of size 10.
 	
 		\vspace{0.7em}
 		\begin{figure}[H]
 			\centering
-			\includegraphics[scale=0.387 ]{figs/prediction_error_ensemble.png}
+			\includegraphics[scale=0.39 ]{figs/prediction_error_ensemble.png}
 			\refstepcounter{figure}
-   			\addcontentsline{lof}{figure}{Figure~\thefigure: Prediction Error over Search Time for Ensemble-based Methods}
+   			\addcontentsline{lof}{figure}{Figure~\thefigure: Smoothed Absolute Prediction Error over Search Time for Ensemble-based Methods}
 			\label{fig: pred_err}
 			\\
  			\parbox{\linewidth}{
 			\vspace{1em}
- 	  			{\small \textit{Figure \ref{fig: pred_err}:} Absolute prediction error over epochs of different ensemble-based search methods: BANANAS, SCP with calibration ratio of 0.5, \gls{cvcp} with 3-fold cross-validation, and \gls{btcp} with 5 bootstraps.}
+ 	  			{\small \textit{Figure \ref{fig: pred_err}:} Absolute prediction error that is smoothed with a rolling window of size 10 of different ensemble-based search methods: BANANAS, SCP with calibration ratio of 0.5, \gls{cvcp} in 3-fold cross-validation, and \gls{btcp} with 5 bootstraps.}
  	 		}	
 		\end{figure}	
 
@@ -329,11 +337,28 @@ In this section, we continue using an ensemble predictor as the underlying predi
 \end{description} 
 
 \section{Methods Based on Quantile Regressor}
-In this section, we present the empirical performance of approaches using a quantile regressor for prediction.Specifically, we apply quantile regression in combination with two different \gls{cp} techniques: \gls{scp} and \gls{cvcp}.
+In this section, we present the empirical performance of methods using a quantile regressor for prediction.Specifically, we apply quantile regression in combination with two different \gls{cp} approaches: \gls{scp} and \gls{cvcp}.
 
 \begin{description}[leftmargin=0cm, listparindent=\parindent]
- 	\item[Performance for SCP:] We adopt the best settings 
+ 	\item[Performance for SCP:] Consistent with the ensemble-based cases, we adopt the settings reported in Section \ref{sec: sc_setting}, using \gls{its} as acquisition function and assigning 50\% of samples for calibration in each iteration. To facilitate easy comparisons, we also visualize the performances of the original BANANAS method and the baseline strategy, ensemble-based SCP, which proves to be the most efficient calibration method when using an ensemble predictor.
  	
+ 	\vspace{0.7em}
+	\begin{figure}[H]
+		\centering
+		\includegraphics[scale=0.37 ]{figs/scp_quantile.png}
+		\refstepcounter{figure}
+		\addcontentsline{lof}{figure}{Figure~\thefigure: Performances of \gls{scp} with Quantile Regressor}
+		\label{fig: scp_quantile}
+		\\
+ 		\parbox{\linewidth}{
+ 		\vspace{1em}
+  		{\small \textit{Figure \ref{fig: scp_quantile}:} Performances of \gls{scp} using a quantile regressor that fits on 10 quantile levels, with 10 initial evaluations and calibration set containing 50\% of all data points.}
+ 	 	}	
+	\end{figure}	
+ 	 	
+ 	Figure \ref{fig: scp_quantile}
+ 	
+ 	 	
  	\item[Performance for \gls{cvcp}:]
  	
 \end{description}

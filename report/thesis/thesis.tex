@@ -90,7 +90,7 @@ Previous studies have shown that accurate uncertainty estimates improve the perf
 \section{Contributions and Limitations}
 In this work, we review various \gls{cp} methods and identify several algorithms that are suitable for BANANAS and can be integrated into the existing framework with little overhead. Based on the evaluations, we propose a new framework BANANAS-CP, an extension of BANANAS that can produce conformalized distribution estimates at each epoch in Bayesian optimization, and supports tracking calibration qualities across the entire architecture search procedure. 
 
-Specifically, we carefully select three different \gls{cp} methods for uncertainty calibration: \gls{scp}, \gls{cvcp}, \gls{btcp}. On the Bayesian optimization side, we consider two different prediction algorithms for the surrograte model: an ensemble predictor and a quantile regressor. These configurations result in a total of five distinct methods for neural architecture search. Although only two types of surrogate models are explored in this work, this framework in fact can be combined with any prediction algorithm that produces quantile estimates for any specified quantile levels, either based on a specific distribution assumption or via a probabilistic modeling approach. In addition, BANANAS-CP is highly flexible and can be applied with any acquisition function since it models the shape of the full conditional distribution for each data point. In contrast, the work based on conformalized quantile regression \cite{salinas2023optimizing}, which is mentioned in the previous section, only produces discrete quantile estimates and thus can not be applied with acquisition functions requiring a continuous distribution, like Expected Improvement.
+Specifically, we carefully select three different \gls{cp} methods for uncertainty calibration: \gls{scp}, \gls{cvcp}, \gls{btcp}. For Bayesian optimization, we consider two different prediction algorithms for the surrograte model: an ensemble predictor and a quantile regressor. These configurations result in a total of five distinct methods for neural architecture search. Although only two types of surrogate models are explored in this work, this framework in fact can be combined with any prediction algorithm that produces quantile estimates for any specified quantile levels, either based on a specific distribution assumption or via a probabilistic modeling approach. In addition, BANANAS-CP is highly flexible and can be applied with any acquisition function since it models the shape of the full conditional distribution for each data point. In contrast, the work based on conformalized quantile regression \cite{salinas2023optimizing}, which is mentioned in the previous section, only produces discrete quantile estimates and thus can not be applied with acquisition functions requiring a continuous distribution, like Expected Improvement.
 
 We evaluate the performance of BANANAS-CP on the commonly used benchmark dataset NAS-Bench-201. Empirical results show that, in general, incorporating an uncertainty calibration step into BANANAS can significantly reduce calibration errors, suggesting enhanced uncertainty estimates. However, better uncertainty estimates can not always be efficiently translated into better search performance. Among the five variants of calibrated search methods, only \gls{cvcp} with a quantile regressor and a specific acquisition function has achieved better or comparable performances than the original BANANAS method. Despite of the  less encouraging empirical outcomes, our analyses provide insights into how uncertainty estimation impacts search performance within a Bayesian optimization based NAS framework:
 
@@ -189,7 +189,7 @@ To establish baseline performance, we run experiments for both the original BANA
 
 The pure BANANAS serves as the benchmark. We follow the best settings reported in \cite{white2019bananas}, using an ensemble of 5 \gls{fnns} with 10 initial model evaluations, along with \gls{its} and a mutation strategy that mutates the top 2 performing architectures in each epoch for computing acquisition scores. For the variant that incorporates SCP calibration, we evaluate the search performance under different configurations: number of the initial model evaluations (either 10 or 30), split rate representing the fraction of data points assigned into the calibration set (either 0.3 or 0.5), and number of quantiles (10). For example, specifying 20 quantile levels yields a percentile vector with 20 values [0, 0.05, 0.1, ..., 0.95, 1]. After applying a filtering step to remove extreme percentiles, the remaining values are used as mis-coverage rates when performing conformal prediction, and the resulting calibrated quantiles form the basis for fitting a linearly-interpolated distribution. Unless otherwise specified, 10 quantiles are used throughout the experiments, since results on both the synthetic dataset (Table \ref{table:distest}) and CIFAR10 (Appendix \ref{appendix: s1}) indicate that 10 quantiles produce more robust estimates than 20 when the dataset is relatively small with up to 150 data points.
 
-Figure \ref{fig: init_size_cal_rate_03} and Figure \ref{fig: init_size_cal_rate_05} present the performances for search strategies with different initial dataset sizes when the train-calibration splitting ratio is set at 0.3 and 0.5, respectively. Specifically, calibration error \gls{rmsce} (top), computed with Equation \ref{rmsce} when the calibration set contains at least as many quantile levels as observations, and search performance (bottom), measured by the validation accuracy of the best architecture found so far, are reported at each epoch. The line denotes the average over 50 trials, and the surrounding band represents the variation, corresponding to one standard deviation. In addition, we also report the values of mean and standard deviation of the final validation accuracy.
+Figure \ref{fig: init_size_cal_rate_03} and Figure \ref{fig: init_size_cal_rate_05} present the performances for search strategies with different initial dataset sizes when the train-calibration splitting ratio is set at 0.3 and 0.5, respectively. Specifically, calibration error \gls{rmsce} (top), computed with Equation \ref{rmsce} when the calibration set contains at least as many quantile levels as observations, and search performance (bottom), measured by the validation accuracy of the best architecture found so far, are visualized at each epoch. The line denotes the average over 50 trials, and the surrounding band represents the variation, corresponding to one standard deviation. In addition, we also report the values of mean and standard deviation of the final validation accuracy since this is the key metric for algorithm comparison.
 
 \begin{figure}[H]
 	\centering
@@ -246,8 +246,8 @@ Now we explore the impact of acquisition functions for \gls{scp} using the best 
 
 In line with the findings for BANANAS \cite{white2019bananas}, the choice of acquisition function appears to have little to no effect on performances for SCP. For each of the datasets, all methods result in comparable validation accuracies and \gls{rmsce}, with the error bands around the average value significantly overlapped and indistinguishable throughout the search time. Moreover, no single acquisition function dominates across different datasets: when looking at the final validation accuracy, \gls{its} and \gls{pi} perform a bit better than others on CIFAR10, while \gls{pi} and \gls{ucb} are slightly ahead on CIFAR100 and ImageNet16-120, respectively. Although the effect of acquisition function on mean validation accuracy is minor, introducing randomness into a mutation-based search process appears to reduce performance variability. Among these acquisition functions, \gls{its} is the most stochastic one due to its sampling-based nature and exhibits the smallest standard deviation on all datasets. 
 
-\subsection{Acquisition Search Strategy}
-Next, we explore different acquisition search strategies that are described in Section \ref{subsec:acq_strats}, namely \textit{mutation}, \textit{dynamic}, and \textit{random sampling}, ordered in increasing levels of randomness. Since former experiments indicates that the choice of acquisition function has little impact for \gls{scp}, to ensure consistent comparison with the pure BANANAS method, we adopt \gls{its} for the acquisition function when experimenting with various sampling approaches.
+\subsection{Acquisition Optimization Strategy}
+Next, we explore different acquisition optimization strategies that are described in Section \ref{subsec:acq_strats}, namely \textit{mutation}, \textit{dynamic}, and \textit{random sampling}, ordered in increasing levels of randomness. Since former experiments indicates that the choice of acquisition function has little impact for \gls{scp}, to ensure consistent comparison with the pure BANANAS method, we adopt \gls{its} for the acquisition function when experimenting with various sampling approaches.
 
 Figure \ref{fig: scp_acq_search_strategy.png} reflects that acquisition search strategy has an impact on both uncertainty estimation and final performance for \gls{scp}. The mutation-based approach consistently delivers the best performance across datasets, achieving slightly higher and more stable final validation accuracies. Notably, when the level of randomness increases, the methods tend to end up with lower average performance and higher variability. We repeat the same experiments using the original BANANAS approach and also observe that, while mutation- and dynamic-based methods exhibit similar behaviors, random-sampling significantly underperforms the other approaches across all datasets (Appendix \ref{appendix: s2}).
 
@@ -391,7 +391,7 @@ In this section, we present the empirical performance of methods leveraging a qu
 		\label{fig: cvcp_quantile_20}
 		\\
  		\parbox{\linewidth}{
- 		\vspace{0.5em}
+ 		\vspace{0.2em}
   		{\small \textit{Figure \ref{fig: cvcp_quantile_20}:} Validation accuracy of the original BANANAS approach and two \gls{cvcp} methods that employ a quantile regressor trained on 10 or 20 quantile levels. All methods take 10 initial evaluation and CrossVal-CP is evaluated under 3-fold cross-validation. 
   		}
  	 }	
@@ -399,10 +399,73 @@ In this section, we present the empirical performance of methods leveraging a qu
 	   	 	
 \end{description}
 \section{Diagnosis Analysis}
+After completing experiments for all methods, we provide a diagnosis analysis of the outcomes in this section. First, for each of the five calibration-based methods, we select the specific configuration that offers the best performance in the respective group. Performance of selected methods are summarized in Table \ref{tab: summary}.
 
-Having conducted experiements for all 
+\begin{table}[t]
 
-summary of prerformance
+\refstepcounter{table}
+\addcontentsline{lot}{table}{Table~\thetable: Performance Summary of Top Methods in Each Category}
+\parbox{\linewidth}{
+  {\small \textit{Table \ref{tab: summary}}: Performance of top-performing methods of each type. All listed methods take 10 initial evaluations and a mutation strategy modifying 2 architectures during acquisition assessment. \gls{its} is is selected for acquisition function for all strategies except for \gls{cvcp} Quantile, which employs \gls{ei}. Method-specific configurations are: SCP Ensemble and SCP Quantile take a train-calibration splitting rate of 0.5; \gls{cvcp} Ensemble and \gls{cvcp} Quantile use 3-fold cross-validation; and \gls{btcp} Ensemble comprises 5 bootstraps. All metrics are the aggregated values over 50 trials.}  
+  \vspace{1em}
+}
+\label{tab: summary}
+\centering
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{l|cc|cc|cc}
+\toprule
+\textbf{Method} 
+& \multicolumn{2}{c|}{\textbf{CIFAR10}} 
+& \multicolumn{2}{c|}{\textbf{CIFAR100}} 
+& \multicolumn{2}{c}{\textbf{ImageNet16-120}} \\
+& val. acc & RMSCE & val. acc & RMSCE & val. acc & RMSCE \\
+\midrule
+optimum 
+& 91.57 & 0.000 
+& 73.26 & 0.000 
+& 47.33 & 0.000 \\
+\midrule
+BANANAS
+& 91.148 & 0.179 
+& 72.691 & 0.162 
+& \textbf{46.804} & 0.185 \\
+SCP Ensemble 
+& 91.130 & 0.288 
+& 72.539 & 0.252 
+& 46.645 & 0.158 \\
+\gls{cvcp} Ensemble
+& 91.039 & 0.500 
+& 72.417 & 0.370 
+& 46.495 & 0.203 \\
+\gls{btcp} Ensemble
+& 91.122 & 0.422 
+& 72.326 & 0.301 
+& 46.523 & 0.191 \\
+\gls{scp} Quantile
+& 91.071 & 0.200 
+& 72.526 & 0.159 
+& 46.540 & 0.089 \\
+\gls{cvcp} Quantile 
+& \textbf{91.192} & \textbf{0.070} 
+& \textbf{72.829} & \textbf{0.062} 
+& 46.790 & \textbf{0.058} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+
+
+
+\begin{description}[leftmargin=0cm, listparindent=\parindent]
+	\item[Estimation Quality of Distribution]
+	
+	\item[Performance Correlation]
+
+	- scatter plot based on std of distribution at 30, 60, 90, 120, 150 epochs 
+\end{description}
+
 
 
 
@@ -413,11 +476,20 @@ This chapter presents the central findings of this work as well as their critica
 \section{Discussion}
 cross-validation has different effects with different predictors.
 qutile better to be combined with EI
-mutation or local search is better with small budget
+mutation or local search is better with small budget (cite the paper)
 \label{sec: discussion}
 
-\section{Limitations and Future Work}
+
+
+1.  uncertainty os not strongly correlated with performance, prediction accuracy is more important \\
+
+- Likewise, prior work that evaluates Bayesian optimization in a low budget setting shows that when the search budget is low (randomness), 
+- behaviors on cifar10 and cifar100 have higher correlations, supports knowledge transfer; 
+
+\section{Future Work}
 \label{sec: future_work}
+- combining with multi-fidelity search; apply on the robustness dataset ; encourage search / calibration locally (by quantifying the distance between architectures based on encodings, however, usually too sparse, truncated path or other projection-based methods), try other search space (seems nas-bench-201 produces too low variations)
+- distribution estimate that adjusted by standard deviation.
 
 
 % Reference
@@ -434,7 +506,7 @@ mutation or local search is better with small budget
 \appendix
 \chapter{Program Code and Data Resources}
 The source code and a documentation are available at the GitHub repository: \url{https://github.com/chengc823/Thesis.}
-The datasets used for experiments and algorithm evaluations are sourced from the \href{https://github.com/automl/NASLib/tree/Develop}{NASLib repository}. Experiment results reported in the thesis can found in the \href{https://mega.nz/file/eAd0CR5A#wyrbKvIwBmjKLyFu54-1kNYsa4Z9gg6VSqNzcFrU7lg}{MEGA drive.}
+The datasets used for experiments and algorithm evaluations are sourced from the \href{https://github.com/automl/NASLib/tree/Develop}{NASLib repository}. Experiment results reported in the thesis can found in the \href{https://mega.nz/file/eAd0CR5A#wyrbKvIwBmjKLyFu54-1kNYsa4Z9gg6VSqNzcFrU7lg}{drive.}
 
 In case of access or permission issues to the private repository, please reach out at: chechen@mail.uni-mannheim.de.
 

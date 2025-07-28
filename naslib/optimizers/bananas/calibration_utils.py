@@ -13,7 +13,7 @@ TrainCalDataSet: TypeAlias = tuple[list[Graph], list[Graph], list[float], list[f
 
 @dataclass
 class ConditionalEstimation:
-    point_prediction: ArrayLike
+    point_prediction: ArrayLike | dict[float, float]
     distribution: Distribution
 
 

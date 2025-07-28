@@ -1,10 +1,10 @@
 \chapter{Background}
-This chapter offers the technical background related to the research question of this work. We start by providing a comprehensive overview of \gls{nas} and introduce the three dimensions that characterize a \gls{nas} algorithm, followed by an anatomy of the high-performing search algorithm \gls{bananas}. Then, we review the existing uncertainty quantification techniques, with a focus on \gls{cp} algorithms, particularly those related to the novel framework we propose in Chapter~\ref{ch3}.
+This chapter offers the technical background related to the research question of this work. We start by providing a comprehensive overview of \gls{nas} and introduce the three dimensions that characterize a \gls{nas} algorithm, followed by an anatomy of the high-performing search algorithm BANANAS. Then, we review the existing uncertainty quantification techniques, with a focus on \gls{cp} algorithms, particularly those related to the novel framework we propose in Chapter~\ref{ch3}.
 
 \section{Neural Architecture Search}
 \subsection{Overview}
 \label{sec: nas}
-\gls{nas}, the process of automating the neural architecture design, has been a rapidly progressing research domain in the past years. Since the seminal work that achieves competitive performance on CIFAR-10 \cite{zoph2017neural}, numerous \gls{nas} algorithms built on different techniques have been proposed. In general, \gls{nas} algorithms can be characterized by three key dimensions: search space, search strategy, and performance evaluation strategy \cite{elsken2019neural, white2023survey, wistuba2019survey}. Figure \ref{fig: nas_overview} illustrates a typical architetcture search process.
+\gls{nas}, the process of automating the neural architecture design, has been a rapidly progressing research domain in the past years. Since the seminal work that achieves competitive performance on CIFAR-10 \cite{zoph2017neural}, numerous \gls{nas} algorithms built on different techniques have been proposed. In general, \gls{nas} algorithms can be characterized by three key dimensions: search space, search strategy, and performance evaluation strategy \cite{elsken2019neural, white2023survey, wistuba2019survey}. Figure \ref{fig: nas_overview} illustrates a typical architecture search process.
 
 
 \begin{figure}[htbp]
@@ -68,7 +68,7 @@ This chapter offers the technical background related to the research question of
 
 \subsection{Bayesian Optimization and BANANAS}
 \label{sec:bananas}
-As briefly mentioned in Section \ref{sec: nas}, \gls{nas} search strategies based on Bayesian optimization with a neural network as the surrogate model have demonstrated strong performance. In particular, \cite{white2019bananas} identifies five critical components of this framework. After performing a thorough analysis on each component's effect towards the search performance, \cite{white2019bananas} develops the \gls{bananas} algorithm based on both theoretical and empirical findings. This method is proven to be efficient and has achieved state-of-the-art performance on popular NAS benchmarks. 
+As briefly mentioned in Section \ref{sec: nas}, \gls{nas} search strategies based on Bayesian optimization with a neural network as the surrogate model have demonstrated strong performance. In particular, \cite{white2019bananas} identifies five critical components of this framework. After performing a thorough analysis on each component's effect towards the search performance, \cite{white2019bananas} develops the BANANAS algorithm based on both theoretical and empirical findings. This method is proven to be efficient and has achieved state-of-the-art performance on popular NAS benchmarks. 
 
 This section offers a comprehensive review of the study. We start with the theoretical background and give an introduction into Bayesian optimization. Next, we walk through the five identified key components and provide a summary of the experimental findings.
 
@@ -141,7 +141,7 @@ Finally, the best components found in the aforementioned analyses are transforme
 \end{figure}
 
 \section{Uncertainty Quantification Methods}
-While \gls{bananas} employs a relatively simple method for uncertainty estimation, there are many commonly used \gls{uq} techniques that are generally more theoretically grounded and sophisticated. In this section, we review some of these \gls{uq} methods and explain the rationale for choosing \gls{cp} for the development of our approach. Despite not directly tied to this work, this thesis aspires to offer a comprehensive overview of common \gls{uq} techniques applied in deep learning.
+While BANANAS employs a relatively simple method for uncertainty estimation, there are many commonly used \gls{uq} techniques that are generally more theoretically grounded and sophisticated. In this section, we review some of these \gls{uq} methods and explain the rationale for choosing \gls{cp} for the development of our approach. Despite not directly tied to this work, this thesis aspires to offer a comprehensive overview of common \gls{uq} techniques applied in deep learning.
 
 Formally, \gls{uq} is the science of quantitative characterization and estimation of uncertainties in both computational and real world applications. The source of uncertainty can be categorized into two types:
 

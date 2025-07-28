@@ -14,7 +14,7 @@ In this section, we focus on the key ideas of the uncertainty calibration mechan
     \textbf{Input - NAS parameters:}
     search space $\mathcal{A}$, evaluation dataset $\mathcal{D}$, exploration budget $T$, 
     the number of initially sampled architectures $t_{0}$, acquisition function $\phi$, surrogate model $\mathcal{M}$ that approximates the true objective function, function $\myfunc{f(\cdot)}$ returning validation error of an architecture after training. \newline
-    \textbf{Input - Calibration parameters:} a function $\myfunc{C(\cdot)$ to create calibration set, a non-conformity score function $\myfunc{s(\cdot)}$, and an array of desired quantile levels $q$. \vskip
+    \textbf{Input - Calibration parameters:} a function $\myfunc{C(\cdot)$ to create calibration set, a non-conformity score function $\myfunc{s(\cdot)}$, and an array of desired quantile levels $p$. \vskip
     \vspace{0.7em}
     \STATE Draw $t_{0}$ architectures {$\{a_{1}, a_{2},..., a_{t_{0}}\}$} uniformly at random from $\mathcal{A}$ and train each individual architecture on $\mathcal{D}$.
     \vspace{0.3em}
@@ -30,7 +30,7 @@ In this section, we focus on the key ideas of the uncertainty calibration mechan
 			\FOR {each $a_{i}$ in candidates}
 				\begin{enumerate}
 				\itemsep0em 
-				\item Estimate the value for each quantile level $q_i$ in $q$ and calibrate using conformity scores computed in the previous step, with $q_i$ implying a mis-coverage rate $2q_i$ or $2(1-q_i)$ for conformal prediction.
+				\item Estimate the value for each quantile level $p_i$ in $p$ and calibrate using conformity scores computed in the previous step, with $p_i$ implying a mis-coverage rate $2p_i$ or $2(1-p_i)$ for conformal prediction.
 				\item Fit a distribution $F_{i}$ based on the estimated quantile values.
 				\item Compute the acquisition score $\myfunc{\phi(a_{i})}$.
 				\end{enumerate}
@@ -59,7 +59,7 @@ In the standard BANANAS setting, the surrogate model is an ensemble of $m$ feedf
 \noindent
 where $a$ denotes an architecture sampled from the search space, and $f_i(a)$ is the predicted accuracy from the $i$-th base learner of the ensemble for architecture $a$.
 
-In the BANANAS--CP framework, a key distinction is that all architectures evaluated at step $\{0, 1, 2..., t-1\}$ are divided disjointly into a training set and a calibration set. Then, the surrogate model is trained exclusively using samples in the training set, while the calibration set is used to compute conformity scores for quantile calibration. In practice, at each iteration $t$, the surrogate model estimates a conditional distribution $\hat{F}$ for an unseen architecture over its validation accuracy on the target dataset, either based on a specific distribution assumption or a probabilistically-interpretable modeling approach, e.g. quantile regression. Following the definition in \cite{deshpande2024online, pmlr-v80-kuleshov18a}, calibration means that for any quantile level $p\in [0, 1]$, the empirical fraction of data-points below the $p$-th percentile of the predicted distribution $\hat{F}$ should converge to $p$ as the sample size goes to infinity. For example, if p = 80\%, then the 80th percentile of $\hat{F}$ is set to the threshold value such that 80\% of previously evaluated architectures fall below, thereby aligning with the empirical coverage. In an online setting, the objective of the calibration process can be defined as:
+In the BANANAS--CP framework, a key distinction is that all architectures evaluated at step $\{0, 1, 2..., t-1\}$ are divided disjointly into a training set and a calibration set. Then, the surrogate model is trained exclusively using samples in the training set, while the calibration set is used to compute conformity scores for quantile calibration. In practice, at each iteration $t$, the surrogate model estimates a conditional distribution $\hat{F}$ for an unseen architecture over its validation accuracy on the target dataset, either based on a specific distribution assumption or a probabilistically-interpretable modeling approach, e.g. quantile regression. Following the definition in \cite{deshpande2024online, pmlr-v80-kuleshov18a}, calibration means that for any quantile level $p\in [0, 1]$, the empirical fraction of data-points below the $p \times 100$-th percentile of the predicted distribution $\hat{F}$ should converge to $p$ as the sample size goes to infinity. For example, if $p$ = 0.8, then the 80-th percentile of $\hat{F}$ is set to the threshold value such that 80\% of previously evaluated architectures fall below, thereby aligning with the empirical coverage. In an online setting, the objective of the calibration process can be defined as:
 
 \begin{equation}
 \frac{1}{T} \sum_{t=1}^{T} \mathbb{I} \left\{ y_t \leq Q_t(p) \right\} \rightarrow p \quad \text{for all } p \in [0,1]
@@ -148,11 +148,11 @@ In this work, we explore \gls{scp} in combination with different prediction algo
 	
 	Quantile regression in the BANANAS--CP framework is implemented by training a dedicated neural network for each quantile level $\tau_j$ in the quantile array as defined in Algorithm \ref{alg:OCP} using the corresponding Pinball loss $\ell_{\tau_j}(y, \hat{y})$. 
 	
-	 While quantile regression can model the shape of any continuous distribution given enough data, the predictions are not guaranteed to be well calibrated in practice. In fact, it is not uncommon that quantile regression generates non-monotonic predictions, a phenomenon referred as quantile crossing. To address this issue, we apply a post-hoc calibration upon the predicted quantiles using the \gls{cqr} from \cite{romano2019conformalized}. This method consists of a novel conformity score tailored for quantile estimation and the key idea of calibration is to apply quantile-aware offsets, which are computed on the calibration set, on the original predicted quantiles.
+	 While quantile regression can model the shape of any continuous distribution given enough data, the predictions are not guaranteed to be well calibrated in practice. In fact, it is not uncommon that quantile regression generates non-monotonic predictions on increased quantiles, a phenomenon referred as quantile crossing. To address this issue, we apply a post-hoc calibration upon the predicted quantiles using the \gls{cqr} from \cite{romano2019conformalized}. This method consists of a novel conformity score tailored for quantile estimation and the key idea of calibration is to apply quantile-aware offsets, which are computed on the calibration set, on the original predicted quantiles.
 	 
 	 \begin{figure}[t]	
 	 	\centering
-		\includegraphics[scale=0.53]{figs/pinball_loss_and_CQR.png}
+		\includegraphics[scale=0.48]{figs/pinball_loss_and_CQR.png}
 		\refstepcounter{figure}
    		\addcontentsline{lof}{figure}{Figure~\thefigure: Pinball loss and CQR within Bayesian optimization}
 		\label{fig:CQR}
@@ -177,7 +177,7 @@ In this work, we explore \gls{scp} in combination with different prediction algo
 
 
 \subsection{Conformal Prediction with Cross-validation}}
-Solving a NAS problem is usually computationally expensive, as each neural architecture evaluation incurs the cost of fully training and validating the underlying model on the target dataset. Motivated by the fact that \gls{nas} based on Bayesian optimization is typically allocated with a budget of 100 to 200 epochs, an additional heuristic for constructing the calibration set via cross-validation (hereafter: \gls{cvcp}) is employed to avoid reducing the sample size for obtaining a holdout set as performed in \gls{scp}.
+Solving a NAS problem is usually computationally expensive, as each neural architecture evaluation incurs the cost of fully training and validating the underlying model on the target dataset. Motivated by the fact that \gls{nas} based on Bayesian optimization is typically allocated with a budget of 100 to 200 epochs, an additional heuristic that constructs the calibration set via cross-validation (hereafter: \gls{cvcp}) is employed to avoid reducing the sample size for obtaining a holdout set as performed in \gls{scp}.
 
 The \gls{cvcp} method is a natural extension of \gls{scp} and is first formally presented in  \cite{vovk2015cross}. At each step, the evaluated architectures are devided at random into $K$ folds. A dedicated surrogate model is trained on $K-1$ folds, while the remaining one is used as the calibration set to calculate the conformity scores. This process is repeated for $K$ times over each individual fold. Finally, conformity scores from all calibration folds are combined to form the overall calibration set, on which the quantile is computed to determine the calibration offset. For an unseen data point, the prediction is obtained by aggregating the predictions of the $K$ trained models, e.g., by taking the average of the model outputs.  Algorithm \ref{alg:CVCP} summarizes this procedure. 
 
@@ -219,7 +219,7 @@ In contrast to fitting $m$ neural networks on the same training data with differ
     A set of observations $\{(x_{i}, y_{i})\}_{i=1}^n$, number of bootstraps $B$, a prediction algorithm $h(\cdot)$, a non-conformity measure $\myfunc{s(\cdot)}$, nominal mis-coverage rate $\tau$, test data $x_{n+1}$. \vskip
     \textbf{Output:} a prediction set $\mathcal{C}_{\tau}(x_{n+1})}$ that covers $y_{n+1}$ with probability $1-\tau$. \vskip
     \vspace{0.5em}
-    \STATE Sample all available data with replacement and create $B$ subsets. $I_b$ denotes the indices of data points included in the $b$-th sample.
+    \STATE Sample all available data with replacement and create $B$ subsets. $I_b$ denotes the indices of data points included in the $b$-th bootstrap set.
     \STATE Train $\hat{h}_{b}(\cdot)$ on $\{(x_{i}, y_{i}) \mid i \in I_b\}$ for $b$ in 1, 2, ..., B
     \STATE Initialise a conformity scoring set $S=\emptyset$
     \FOR {$i$ in 1, 2, ..., n}
@@ -238,7 +238,7 @@ Jackknife+ is a type of \gls{cp} algorithm that is closely related to the \gls{l
 
 Jackknife+-after-boostrap \cite{kim2020predictive} integrates both approaches and provides a cost-efficient wrapper by leveraging only the available bootstrapped sets and their corresponding fitted models, thereby avoiding re-fitting ensembles on each individual bootstrapped sample. \cite{pmlr-v139-xu21h} extends this method to online setting and proves its efficiency for time-series data. In contrast to the \gls{cp} algorithms described in earlier sections, \gls{btcp} requires no data splitting because sampling with replacement automatically creates holdout sets. Training the bootstrap ensemble on random subsets from the full data also reduces the chance of overfitting.
 
-Implementation of \gls{btcp} is shown in Algorithm \ref{alg:BtCP}. Noteably, if a particular  data point appears in all bootstrapped samples, it is then excluded from the computation of conformity scores since it has no associated \gls{loo} estimator. In \gls{btcp}, the absolute residual is mainly used for measuring conformity, due to potentially insufficient \gls{loo} outputs for standard deviation estimation, i.e., $LOO_i$ in Algorithm \ref{alg:BtCP} might have fewer than two points. Specifically, \gls{btcp} is only applied with the ensemble model. This concludes our experiment setups and the BANANAS--CP framework is finally evaluated under five various predictor+CP configurations.
+Implementation of \gls{btcp} is shown in Algorithm \ref{alg:BtCP}. Notably, if a particular  data point appears in all bootstrapped samples, it is then excluded from the computation of conformity scores since it has no associated \gls{loo} estimator. In \gls{btcp}, the absolute residual is mainly used for measuring conformity, due to potentially insufficient \gls{loo} outputs for standard deviation estimation, i.e., $LOO_i$ in Algorithm \ref{alg:BtCP} might have fewer than two points. Specifically, \gls{btcp} is only applied with the ensemble model. This concludes our experiment setups and the BANANAS--CP framework is finally evaluated under five various predictor+CP configurations.
 
 
 \section{Distribution Estimation}
@@ -249,10 +249,10 @@ As described in Section \ref{sec:bananas}, Bayesian optimization generally relie
 In the BANANAS--CP framework, as outlined in Algorithm \ref{alg:OCP}, we are able to generate calibrated quantile estimates for a finite set of discrete quantile levels. Intuitively, assuming the quantiles estimates are accurate, increasing the granularity of quantile levels should lead to a more accurate approximation of the underlying continuous distribution. However, it is computationally prohibited to estimate an infinite number of quantiles in practice, especially with significantly limited training data. Therefore, we propose an approach for constructing a continuous distribution from discrete quantile estimates with mild assumption. Specifically, the distribution estimator is defined as:
 
 \begin{description}[leftmargin=0cm, listparindent=\parindent]
-\item[Definition] Let $\{q_i\}_{i=1}^n$ be a quantile of percentile levels such that $0<q_1<q_2, ..., <q_n<1$, and $\{v_i\}_{i=1}^n$ are the corresponding quantiles, i.e., $F^{-1}(q_i)=v_i$, the empirical \gls{cdf} of the distributions $\hat{F}$ is constructed by applying linear interpolation between adjacent quantiles. Consequently, the \gls{pdf} of a specific interval $\left(v_a, v_b\right), a,b \in \{1,..., n\}$ and $a<b$ is:
+\item[Definition] Let $\{p_i\}_{i=1}^n$ be a sequence of fraction levels such that $0<p_1<p_2, ..., <p_n<1$, and $\{q_i\}_{i=1}^n$ are the corresponding quantiles, i.e., $F^{-1}(p_i)=q_i$, the empirical \gls{cdf} of the distributions $\hat{F}$ is constructed by applying linear interpolation between adjacent quantiles. Consequently, the \gls{pdf} of a specific interval $\left(q_a, q_b\right), a,b \in \{1,..., n\}$ and $a<b$ is:
 \vspace{0.5em}
 \[
-PDF(x) = \frac{q_b - q_a}{v_b - v_a}, \quad & \text{if } x \in (v_a, v_b) \\
+PDF(x) = \frac{p_b - p_a}{q_b - q_a}, \quad & \text{if } x \in (q_a, q_b) \\
 \]
 
 \vspace{1em}
@@ -263,7 +263,7 @@ Table \ref{table:distest} reports the performance of three distribution estimato
 Having considered the behaviors of the various acquisition functions employed in the real BANANAS--CP application (see Section \ref{sec:acq}), we additionally present several visualizations based on a synthetic dataset with 150 samples (Figure \ref{fig:distest10}, Figure \ref{fig:distest20}) to confirm the shapes of the estimated distributions are not significantly deviated from that of the true underlying distribution, thereby assuring the effectiveness of the acquisition functions.
 
 \vspace{0.5em}
-\item[Evaluation Metrics] Within the BANANAS--CP framework, the calibration quality at a specific epoch is measured by the \gls{rmsce} \cite{pmlr-v80-kuleshov18a}. Suppose $\hat{F}^{-1}_t$ is the \gls{cdf} of the distribution estimated at the  $t$-th step and $y_t$ is the true value revealed after the estimation, consider a sequence of $\{(\hat{F}^{-1}_t, y_t)\}_{t=1}^T$ that represents a neural architecture search process after $T$ epochs, the calibration error at the $T$-th epoch is defined as:
+\item[Evaluation Metrics] Within the BANANAS--CP framework, the calibration quality at a specific epoch is measured by the \gls{rmsce} \cite{pmlr-v80-kuleshov18a}. Suppose $\hat{F}^{-1}_t$ is the inverse \gls{cdf} of the distribution estimated at the  $t$-th step and $y_t$ is the true value revealed after the estimation, consider a sequence of $\{(\hat{F}^{-1}_t, y_t)\}_{t=1}^T$ that represents a neural architecture search process after $T$ epochs, the calibration error at the $T$-th epoch is defined as:
 	\vspace{0.5em}
 	\begin{equation}
 	\text{RMSCE} \left( \hat{F}^{-1}_1, y_1, \dots, \hat{F}^{-1}_T, y_T \right) = \sum_{j=1}^m w_j \left( p_j - \hat{p}_j \right)^2
@@ -275,7 +275,7 @@ Having considered the behaviors of the various acquisition functions employed in
 	\hat{p}_j = \frac{\left| \left\{ y_t \;\middle|\; \hat{F}^{-1}_t(y_t) \le p_j,\; t = 1, 2, \dots, T \right\} \right|}{T}
 	\]
 
-\noindent where $m$ represents the number of discrete quantile levels and the scalars $w_j$ are  quantile weights. For simplicity, we adopt  $w_j=1, \forall j \in[0,1]$ in this work. Alternatively, calibration errors of the quantiles can be weighted by the number of observations falling into the corresponding intervals. Note that calibration errors calculated with different numbers of quantiles are not directly comparable. In general, increasing the number of quantiles tends to lead to larger calibration errors.	
+\noindent where $m$ represents the number of discrete quantile levels and the scalars $w_j$ are  quantile weights. For simplicity, we follow \cite{pmlr-v80-kuleshov18a} and adopt  $w_j=1, \forall j \in[1,m]$ in this work. Alternatively, calibration errors of the quantiles can be weighted by the number of observations falling into the corresponding intervals. Note that calibration errors calculated with different numbers of quantiles are not directly comparable. In general, increasing the number of quantiles tends to lead to larger calibration errors.	
 \end{description}
 
 

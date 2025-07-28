@@ -90,12 +90,12 @@ Previous studies have shown that accurate uncertainty estimates improve the perf
 \section{Contributions and Limitations}
 In this work, we review various \gls{cp} methods and identify several algorithms that are suitable for BANANAS and can be integrated into the existing framework with little overhead. Based on the evaluations, we propose a new framework BANANAS-CP, an extension of BANANAS that can produce conformalized distribution estimates at each epoch in Bayesian optimization, and supports tracking calibration qualities across the entire architecture search procedure. 
 
-Specifically, we carefully select three different \gls{cp} methods for uncertainty calibration: \gls{scp}, \gls{cvcp}, \gls{btcp}. For Bayesian optimization, we consider two different prediction algorithms for the surrograte model: an ensemble predictor and a quantile regressor. These configurations result in a total of five distinct methods for neural architecture search. Although only two types of surrogate models are explored in this work, this framework in fact can be combined with any prediction algorithm that produces quantile estimates for any specified quantile levels, either based on a specific distribution assumption or via a probabilistic modeling approach. In addition, BANANAS-CP is highly flexible and can be applied with any acquisition function since it models the shape of the full conditional distribution for each data point. In contrast, the work based on conformalized quantile regression \cite{salinas2023optimizing}, which is mentioned in the previous section, only produces discrete quantile estimates and thus can not be applied with acquisition functions requiring a continuous distribution, like Expected Improvement.
+Specifically, we carefully select three different \gls{cp} methods for uncertainty calibration: \gls{scp}, \gls{cvcp}, \gls{btcp}. For Bayesian optimization, we consider two different prediction algorithms for the surrogate model: an ensemble predictor and a quantile regressor. These configurations result in a total of five distinct methods for neural architecture search. Although only two types of surrogate models are explored in this work, this framework in fact can be combined with any prediction algorithm that produces quantile estimates for any specified quantile levels. In addition, BANANAS-CP is highly flexible and can be applied with any acquisition function since it models the shape of the full conditional distribution for each data point. In contrast, the work based on conformalized quantile regression \cite{salinas2023optimizing}, which is mentioned in the previous section, only produces discrete quantile estimates and thus can not be applied with acquisition functions requiring a continuous distribution, like Expected Improvement.
 
 We evaluate the performance of BANANAS-CP on the commonly used benchmark dataset NAS-Bench-201. Empirical results show that, in general, incorporating an uncertainty calibration step into BANANAS can significantly reduce calibration errors, suggesting enhanced uncertainty estimates. However, better uncertainty estimates can not always be efficiently translated into better search performance. Among the five variants of calibrated search methods, only \gls{cvcp} with a quantile regressor and a specific acquisition function has achieved better or comparable performances than the original BANANAS method. Despite of the  less encouraging empirical outcomes, our analyses provide insights into how uncertainty estimation impacts search performance within a Bayesian optimization based NAS framework:
 
 \textcolor{red}{limitations}
-- small data set
+- small data set, long-tail distribution estimates
 
 
 \section{Outline}
@@ -454,18 +454,9 @@ SCP Ensemble
 \end{tabular}
 \end{table}
 
+\subsection{Properties of Estimated Distributions} - scatter plot based on std of distribution at 30, 60, 90, 120, 150 epochs 
 
-
-
-
-\begin{description}[leftmargin=0cm, listparindent=\parindent]
-	\item[Estimation Quality of Distribution]
-	
-	\item[Performance Correlation]
-
-	- scatter plot based on std of distribution at 30, 60, 90, 120, 150 epochs 
-\end{description}
-
+\subsection{Performance Correlation}
 
 
 

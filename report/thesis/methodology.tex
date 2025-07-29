@@ -31,7 +31,7 @@ In this section, we focus on the key ideas of the uncertainty calibration mechan
 				\begin{enumerate}
 				\itemsep0em 
 				\item Estimate the value for each quantile level $p_i$ in $p$ and calibrate using conformity scores computed in the previous step, with $p_i$ implying a mis-coverage rate $2p_i$ or $2(1-p_i)$ for conformal prediction.
-				\item Fit a distribution $F_{i}$ based on the estimated quantile values.
+				\item Fit a distribution $F_{i}$ based on the estimated quantiles.
 				\item Compute the acquisition score $\myfunc{\phi(a_{i})}$.
 				\end{enumerate}
 			\ENDFOR
@@ -97,7 +97,7 @@ Implementation steps of \gls{scp} are summarized in Algorithm \ref{alg:SCP}. Ima
     \end{algorithmic}
 \end{algorithm}
 
-In this work, we explore \gls{scp} in combination with different prediction algorithms. First, we follow the settings in BANANAS and use an ensemble of five \gls{fnns} as the underlying surrogate model. In this case, note that the bounds of the prediction set as identified in Algorithm \ref{alg:SCP} should not be simply interpreted as the quantile values of a distribution, since the prediction algorithm does not directly model the $\tau$-quantile of the variable Y, i.e., ${Q_Y(\tau)= F_{Y}^{-1}(\tau) = \inf \left\{y\colon F_{Y}(y)\geq \tau\}$, with $\tau \in [0, 1]}$ denoting a quantile level and $F_Y$ its cumulative distribution function. Thus, the ensemble predictor must be used in conjunction with a valid distribution assumption to obtain valid quantile values. Motivated by the goal of achieving a completely distribution-agnostic solution, we next replace the ensemble model with a quantile regressor that directly models the quantiles of a distribution. In the remainder of this section, we discuss the configurations designated for each prediction algorithm. 
+In this work, we explore \gls{scp} in combination with different prediction algorithms. First, we follow the settings in BANANAS and use an ensemble of five \gls{fnns} as the underlying surrogate model. In this case, note that the bounds of the prediction set as identified in Algorithm \ref{alg:SCP} should not be simply interpreted as the quantiles of a distribution, since the prediction algorithm does not directly model the $\tau$-quantile of the variable Y, i.e., ${Q_Y(\tau)= F_{Y}^{-1}(\tau) = \inf \left\{y\colon F_{Y}(y)\geq \tau\}$, with $\tau \in [0, 1]}$ denoting a quantile level and $F_Y$ its cumulative distribution function. Thus, the ensemble predictor must be used in conjunction with a valid distribution assumption to obtain valid quantiles. Motivated by the goal of achieving a completely distribution-agnostic solution, we next replace the ensemble model with a quantile regressor that directly models the quantiles of a distribution. In the remainder of this section, we discuss the configurations designated for each prediction algorithm. 
 \vspace{0.5em}
 \begin{description}[leftmargin=0cm, listparindent=\parindent]
 	\item [Ensemble Predictor] Following the settings in the original BANANAS, an ensemble by default consists of five neural networks, where each neural network is a fully-connected multi-layer perceptron with 20 layers of width 20. The neural networks are trained by minimizing the mean absolute error (MAE), using the Adam optimizer with a learning rate of 0.01. In parallel to BANANAS, we assume that the validation accuracy of each unseen candidate architecture $a$ follows a Gaussian distribution, which is parameterized by the predictive mean ($\hat{\mu}$) and standard deviation ($\hat{\sigma}$) provided by the ensemble model, as demonstrated in equation \ref{eq:ensemble_gaussian}. For a specific significance level $\alpha$ (suppose $\alpha<0.5$), the central quantile interval can be written as:
@@ -144,7 +144,7 @@ In this work, we explore \gls{scp} in combination with different prediction algo
 		\label{pinballloss}
 		\end{equation}
 		
-	\noindent where $\hat{y}$ is the predicted quantile value.	 As illustrated in Figure \ref{fig:CQR}, the Pinball loss is asymmetric and the intuition behind is that under-estimate and over-estimate receive different penalties across quantiles. 	For instance, if $\tau=0.9$, then we would expect that empirically 90\% of observations should fall below the prediction. In this case, the loss function places a higher penalty for underestimate.	
+	\noindent where $\hat{y}$ is the predicted quantile.	 As illustrated in Figure \ref{fig:CQR}, the Pinball loss is asymmetric and the intuition behind is that under-estimate and over-estimate receive different penalties across quantiles. 	For instance, if $\tau=0.9$, then we would expect that empirically 90\% of observations should fall below the prediction. In this case, the loss function places a higher penalty for underestimate.	
 	
 	Quantile regression in the BANANAS--CP framework is implemented by training a dedicated neural network for each quantile level $\tau_j$ in the quantile array as defined in Algorithm \ref{alg:OCP} using the corresponding Pinball loss $\ell_{\tau_j}(y, \hat{y})$. 
 	

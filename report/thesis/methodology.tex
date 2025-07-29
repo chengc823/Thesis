@@ -148,7 +148,7 @@ In this work, we explore \gls{scp} in combination with different prediction algo
 	
 	Quantile regression in the BANANAS--CP framework is implemented by training a dedicated neural network for each quantile level $\tau_j$ in the quantile array as defined in Algorithm \ref{alg:OCP} using the corresponding Pinball loss $\ell_{\tau_j}(y, \hat{y})$. 
 	
-	 While quantile regression can model the shape of any continuous distribution given enough data, the predictions are not guaranteed to be well calibrated in practice. In fact, it is not uncommon that quantile regression generates non-monotonic predictions on increased quantiles, a phenomenon referred as quantile crossing. To address this issue, we apply a post-hoc calibration upon the predicted quantiles using the \gls{cqr} from \cite{romano2019conformalized}. This method consists of a novel conformity score tailored for quantile estimation and the key idea of calibration is to apply quantile-aware offsets, which are computed on the calibration set, on the original predicted quantiles.
+	 While quantile regression can model the shape of any continuous distribution given enough data, the predictions are not guaranteed to be well calibrated in practice. In fact, it is not uncommon that quantile regression generates non-monotonic predictions on increased quantile levels, a phenomenon referred as quantile crossing. To address this issue, we apply a post-hoc calibration upon the predicted quantiles using the \gls{cqr} from \cite{romano2019conformalized}. This method consists of a novel conformity score tailored for quantile estimation and the key idea of calibration is to apply quantile-aware offsets, which are computed on the calibration set, on the original predicted quantiles.
 	 
 	 \begin{figure}[t]	
 	 	\centering
@@ -163,7 +163,7 @@ In this work, we explore \gls{scp} in combination with different prediction algo
  		}
 	\end{figure}
 	 
-	 A close work is \cite{salinas2023optimizing} that employs \gls{cqr} to obtain quantiles with robust coverage during hyperparameter tuning via Bayesian optimization. Specifically, the calibrated quantiles are used to select the candidate for the next search, where a set of candidates is first sampled uniformly at random, and then for each of those candidates a random quantile is simply picked and is treated as the acquisition score (Figure \ref{fig:CQR}). We follow their notation and interpretation in defining the conformity score for a quantile surrogate:  
+	 A close work is \cite{salinas2023optimizing} that employs \gls{cqr} to obtain quantiles with robust coverage during hyperparameter tuning via Bayesian optimization. Specifically, the calibrated quantiles are used to select the candidate for the next search, where a set of candidates is first sampled uniformly at random, and then for each of those candidates a random quantile is simply picked and is used as the acquisition score (Figure \ref{fig:CQR}). We follow their notation and interpretation in defining the conformity score for a quantile surrogate:  
 	 
 	 \begin{equation}
 		E_i = \max \big\{\hat{q}_{\tau_j}(x_i) - y_i, \; y_i - \hat{q}_{1-\tau_j}(x_i) \big\}

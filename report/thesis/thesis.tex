@@ -43,7 +43,7 @@ colorlinks=true, urlcolor=blue, linkcolor=black, colorlinks,citecolor=green
 % Cover page
 \frontmatter \subject{Master Thesis} % change to appropriate type
 \title{\LARGE 
-	Uncertainty Calibration with Online Conformal Prediction in Neural Architecture Search: \\ 
+	Uncertainty Estimation with Online Conformal Prediction in Neural Architecture Search: \\ 
 	An Evaluation under the BANANAS Framework 
 }
 \author{
@@ -92,10 +92,10 @@ In this work, we review various \gls{cp} methods and identify several algorithms
 
 Specifically, we carefully select three different \gls{cp} methods for uncertainty calibration: \gls{scp}, \gls{cvcp}, \gls{btcp}. For Bayesian optimization, we consider two different prediction algorithms for the surrogate model: an ensemble predictor and a quantile regressor. These configurations result in a total of five distinct methods for neural architecture search. Although only two types of surrogate models are explored in this work, this framework in fact can be combined with any prediction algorithm that produces quantile estimates for any specified quantile levels. In addition, BANANAS-CP is highly flexible and can be applied with any acquisition function since it models the shape of the full conditional distribution for each data point. In contrast, the work based on conformalized quantile regression \cite{salinas2023optimizing}, which is mentioned in the previous section, only produces discrete quantile estimates and thus can not be applied with acquisition functions requiring a continuous distribution, like Expected Improvement.
 
-We evaluate the performance of BANANAS-CP on the commonly used benchmark dataset NAS-Bench-201. Empirical results show that, in general, incorporating an uncertainty calibration step into BANANAS can significantly reduce calibration errors, suggesting enhanced uncertainty estimates. However, better uncertainty estimates can not always be efficiently translated into better search performance. Among the five variants of calibrated search methods, only \gls{cvcp} with a quantile regressor and a specific acquisition function has achieved better or comparable performances than the original BANANAS method. Our diagnostic analyses indicate that the underperformance of the calibrated methods is likely due to the additional variations and noises introduced during the distribution fitting process, which can be addressed in future research. Despite of the  less encouraging empirical outcomes, our analyses provide insights into how uncertainty estimation impacts search performance within the  “Bayesian optimization + neural predictor” framework:
+We evaluate the performance of BANANAS-CP on the commonly used benchmark dataset NAS-Bench-201. Empirical results show that, in general, incorporating an uncertainty calibration step into BANANAS can significantly reduce calibration errors, suggesting enhanced uncertainty estimates. However, better uncertainty estimates can not always be efficiently translated into better search performance. Among the five variants of calibrated search methods, only \gls{cvcp} with a quantile regressor and a specific acquisition function has achieved better or comparable performances than the original BANANAS method. Our diagnostic analyses indicate that the underperformance of the calibrated methods is likely due to the additional variations and noises introduced during the distribution fitting process, which can be addressed in future research. Despite of the  less encouraging empirical outcomes, our analyses provide insights into how uncertainty estimation impacts search performance within the BANANAS framework:
 
 	\begin{itemize}
-    \item Bayesian optimization involves constructing posterior conditional distributions. Our evaluations indicate that the exact shape of these distributions is relatively unimportant. However, their location (e.g., mean) and scale (e.g., standard deviation) play a crucial role in determining search efficiency. 
+    \item Bayesian optimization involves constructing posterior conditional distributions. Our evaluations indicate that the exact shape of these distributions is relatively unimportant. However, their location (e.g., mean) and scale (e.g., standard deviation) play a crucial role in determining search efficiency. This also explains why BANANAS relies on a simple Gaussian but still demonstrates competitive performance.
     \item Our evaluations demonstrate consistent behaviors with \cite{white2019bananas} and suggest that localized search is more effective under a limited search budget, offering empirical support for \cite{nomura2019simple}. 
     \end{itemize}
 
@@ -456,7 +456,6 @@ SCP Ensemble
 \end{tabular}
 \end{table}
 
-\subsection{Properties of Estimated Distributions}
 The prediction error analysis for ensemble-based methods in Section \ref{sec: ensemble} suggests the strong performance of BANANAS is likely attributable to the accurate estimation of the distribution's location (e.g., mean). However, this analysis is not applicable to methods employing a quantile regressor. To facilitate general cross-method comparisons, we analyze the estimated conditional distribution, which is a common component possessed by all methods.  \cite{white2019bananas} finds that  acquisition function has limited impact on performance within the BANANAS framework. One possible explanation is that the Gaussian-like distribution estimate exhibits a relatively small variance. Intuitively, when a Gaussian distribution has a small variance, its values are concentrated narrowly within the domain. In such cases, the location of the estimated distribution plays a more critical role in determining the level of acquisition scores. To examine this hypothesis, we compute the standard deviation of the estimated  distributions at specific epochs across all methods. For each epoch in Figure \ref{fig: boxplot}, the results are collected over 50 experiment trials.
 
 	\vspace{0.7em}
@@ -469,52 +468,42 @@ The prediction error analysis for ensemble-based methods in Section \ref{sec: en
 		\\
  		\parbox{\linewidth}{
  		\vspace{1em}
-  		{\small \textit{Figure \ref{fig: boxplot}:} Box plot showing the standard deviation of estimated conditional distributions for different methods at selected search epochs. Each box summarizes results from 50 trials.}
+  		{\small \textit{Figure \ref{fig: boxplot}:} Box plot showing the standard deviation (std) of estimated conditional distributions for different methods at selected search epochs. Each box summarizes results from 50 trials.}
  	 }	
 	\end{figure}	
 
 
 The outcomes align with our expectation, showing BANANAS consistently exhibits the lowest standard deviations throughout the search time. Combined with its relatively accurate mean predictions, as discussed in Section \ref{sec: ensemble}, these two factors help explain the strong performance of BANANAS and why the choice of acquisition function has little impact on performance. Overall, distributions of CP-based methods tend to exhibit higher variance. This is likely because such distributions are derived by interpolating discrete quantiles that are estimated based on empirical data, which often lacks observations in the extremes, leading to heavy tails and consequently larger variances. The SCP Ensemble exhibits the highest variation during the early epochs but rapidly decreases and stabilizes from the 50th epoch. Meanwhile, \gls{cvcp} Ensemble tends to show an opposite trend with overall increased distribution variances. The comparison of these two methods suggests that, when using an ensemble predictor, cross-validation indeed introduces additional variability and noise into the process, which may explain the observed weak performance of \gls{cvcp} Ensemble. Recall that in earlier experiments we observe that the impact of cross-validation on search efficiency varies depending on the surrogate predictor used. Figure \ref{fig: boxplot} offers insight into this observation as well: cross-validation tends to increase distribution variance when an ensemble predictor is used, but slightly reduces it when a quantile regressor is employed.
 
-\subsection{Performance Correlation}
-Finally, we examine the correlation among method performances on different datasets. The motivation behind is that, if a computationally efficient method shows strong correlation with a better-performing but more expensive method, like \gls{cvcp} Quantile, under certain conditions, then the cheaper method can be used as a proxy to estimate the performance of the more costly one, thereby enabling more efficient multi-fidelity optimization. For each method, we gather the validation accuracy of the best-performing architecture across all experimental repetitions and visualize the resulting correlations in Figure \ref{fig: corr}. However, the results show that correlations are generally weak or moderate and the patterns vary drastically across datasets, suggesting restricted application in practice.
-
-	\vspace{0.7em}
-	\begin{figure}[htbp]
-		\centering
-		\includegraphics[scale=0.37 ]{figs/val_acc_correlation_per_dataset.png}
-		\refstepcounter{figure}
-		\addcontentsline{lof}{figure}{Figure~\thefigure: Correlation of Method Performances on Different Datasets}
-		\label{fig: corr}
-		\\
- 		\vspace{1em}
-  		{\small \textit{Figure \ref{fig: corr}:} Performance correlations across methods on different datasets.}	
-	\end{figure}
-
 
 % chapter 6
 \chapter{Conclusion}
 This chapter presents the central findings of this work as well as their critical discussions (Section \ref{sec: discussion}). Finally, it highlights limitations and corresponding opportunities for further research (Section \ref{sec: future_work}).
 
-\section{Discussion}
-cross-validation has different effects with different predictors.
-qutile better to be combined with EI
-mutation or local search is better with small budget (cite the paper)
+\section{Summary}
 \label{sec: discussion}
+This study explores to enhance the uncertainty quantification method in the BANANAS framework by incorporating a \gls{cp} based calibration step, such that the uncertainty estimates can better align with the empirical likelihoods. Based on this idea, we propose the new framework BANANAS--CP and evaluate its performance on the benchmark dataset NAS-Bench-201. Although our novel method does not significantly outperform BANANAS, it provides valuable insight that contributes to a deeper understanding of BANANAS's capabilities:
 
-quantile regressor gives lower
+\begin{itemize}
+\item Conformal prediction can significantly reduce \gls{rmsce}, indicating that the estimated distributions, which are used for obtaining acquisition scores, generally exhibit well-calibrated shapes. Specifically, using a quantile regressor as the surrogate model in Bayesian optimization produces more accurate uncertainty estimates than an ensemble predictor, especially when more data is available.
+ 
+\item However, the exact shape of estimated distributions is relatively unimportant in determining method's efficiency. Instead, their location (e.g., mean) and scale (e.g., standard deviation) play a more crucial role. 
 
- 	The top row in Figure \ref{fig: scp_quantile} visualizes \gls{rmsce}, showing a quantile regressor in general yields more accurate distribution estimates. In particular, the calibration error of the SCP-quantile method is higher at early epochs, but then consistently, steadily decreases as the search progresses. This indicates that a quantile regressor, perhaps due to its model complexity, requires more data to showcase its strength.
-1.  uncertainty os not strongly correlated with performance, prediction accuracy is more important \\long-tail distribution estimates.
+\item Empirical data based calibration, especially when using with cross-validation, tends to yield heavy-tailed distributions and thus introduces additional noises and variations into the optimization procedure. A quantile regressor can better mitigate the increased variability than an ensemble model.
 
+\item For Bayesian optimization with low search budget, methods that encourages localized search appear to be more efficient. This finding is consistent with the previous work \cite{nomura2019simple}. Additionally, while a certain degree of randomness in the search process seems to be beneficial, excessive randomness may hinder convergence and deteriorate search performances.
+\end{itemize}
 
-- Likewise, prior work that evaluates Bayesian optimization in a low budget setting shows that when the search budget is low (randomness), 
-- behaviors on cifar10 and cifar100 have higher correlations, supports knowledge transfer; 
+In summary, our evaluations suggest that uncertainty is not strongly correlated with  search performance and well-calibrated uncertainty estimates do not necessarily lead to increased efficiency. Instead, it is more important for the surrogate model to produce precise and reliable predictions. The surrogate model employed in BANANAS is simple yet effective, contributing to its strong performance. 
+
 
 \section{Future Work}
 \label{sec: future_work}
-- combining with multi-fidelity search; apply on the robustness dataset ; encourage search / calibration locally (by quantifying the distance between architectures based on encodings, however, usually too sparse, truncated path or other projection-based methods), try other search space (seems nas-bench-201 produces too low variations)
-- distribution estimate that adjusted by standard deviation.
+Our evaluations highlight several directions for further exploration. First, these \gls{cp}-based methods can be evaluated across different search spaces to gain a more comprehensive view how enhanced uncertainty estimates affect performance. For example, we observe in the experiments that methods that involve uncertainty calibration tend to exhibit lower performance variability, as evidenced by the reduced standard deviations across multiple trials. Thus, these \gls{cp}-based methods can be evaluated on the robustness dataset \cite{jung2023neural}, which may help assess whether uncertainty calibration enhances robustness to adversarial attacks and common image corruptions. Besides, since cell-based search spaces are constrained in terms of architectural expressiveness \cite{white2023survey}, evaluating these methods on other types of search spaces may reflect whether uncertainty estimation contributes to the discovery of novel architectures in different settings.
+
+Another direction is to explore alternative acquisition strategies that encourage localized search, as this strategy proves to be more efficient for Bayesian optimization under low-budget settings. For example, candidate architectures sampled for computing acquisition scores can be selected based on their distances to the current top-performing architecture, and those fall within a neighborhood around the current best are gathered. Specifically, the distance can be measured using (truncated) architecture representations encoded by path or other projection-based methods.
+
+In addition, techniques for more precise distribution estimation can be explored to reduce the noises and variations arising during this process.
 
 
 % Reference
@@ -686,6 +675,6 @@ Erklärung rechtliche Folgen haben wird.
 
 \vspace{2cm}
 \noindent Unterschrift\\
-\noindent Mannheim, den 29.07.2025 \hfill
+\noindent Mannheim, den 30.07.2025 \hfill
 
 \end{document}

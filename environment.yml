@@ -9,10 +9,9 @@ dependencies:
   - pydantic~=2.10
   - pandas~=2.2
   - numpy~=1.26  # 1.24 seems to cause this issue: https://github.com/numba/numba/issues/8615
-  - matplotlib~=3.1, <3.6 # shap.plots.beeswarm does not work with matplotlib of version 3.6.0, the colorbar is missing
+  - matplotlib~=3.1, <3.6
   - seaborn
   - scikit-learn==1.4.0
-  - mapie~=0.6.4
   - typer~=0.4
   - tqdm~=4.64.1
   - ipywidgets~=8.0.4

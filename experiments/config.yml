@@ -23,7 +23,7 @@ search:
     #: Frequency to setup checkpoints 
     checkpoint_freq: null
     #: Number of architectures being sampled and evaluated
-    epochs: 150
+    epochs: 30
     #: Architecture encoding type
     encoding_type: "path"
     
@@ -38,7 +38,7 @@ search:
     #: Calibrator: 
     num_quantiles: 10
     train_cal_split: 3  # float number for split CP; integer number for cross-val CP; not relevant for bootstrap CP
-    calibrator_type: "CP_bootstrap"
+    calibrator_type: "gaussian"
     calibrator_params: null
       
     

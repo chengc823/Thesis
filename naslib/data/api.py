@@ -17,7 +17,7 @@ def get_nasbench201_api(dataset: Literal["cifar10", "cifar100", "ImageNet16-120"
         'ImageNet16-120': 'nb201_ImageNet16_full_training.pickle',
         'ninapro': 'nb201_ninapro_full_training.pickle'
     }
-    datafile_path = os.path.join(os.getcwd(), 'naslib/data/nas-bench-201', datafiles[dataset])
+    datafile_path = os.path.join(os.getcwd(), 'naslib/data/nas_bench_201', datafiles[dataset])
     assert os.path.exists(datafile_path)
 
     with open(datafile_path, 'rb') as f:
